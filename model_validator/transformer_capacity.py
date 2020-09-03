@@ -40,85 +40,40 @@
 """
 Created on Jan 19, 2018
 
-@author: Craig Allwardt and Shiva Poudel
-"""
+@author: Shiva Poudel
+"""""
 
-__version__ = "0.0.8"
+import transformer_capacity.SPARQLManager
+import transformer_capacity.GLMManager
 
-import argparse
-import json
-import logging
-import sys
-import time
-from transformer_capacity.sparql import SPARQLManager
-import networkx as nx
+import networkx
 import math
-from transformer_capacity.glm import GLMManager
 
-from gridappsd import GridAPPSD, DifferenceBuilder, utils
-from gridappsd.topics import simulation_input_topic, simulation_output_topic, simulation_log_topic, simulation_output_topic
+def start(feeder_mrid, model_api_topic):
+    sparql_mgr = SPARQLManager(topic, gapps, feeder_mrid=feeder_mrid)
+    xfm_df = sparql_mgr.query_transformers()
+    print(xfm_df)
 
-DEFAULT_MESSAGE_PERIOD = 5
+    load_df = sparql_mgr.query_energyconsumer()
+    print(load_df)
+    acline_df = sparql_mgr.acline_measurements()       
+   
+    model = sparql_mgr.get_glm()
+    node = 'hvmv11sub1_lsb'
+    glm_mgr = GLMManager(model=model, model_is_path=False)
 
-# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG,
-#                     format="%(asctime)s - %(name)s;%(levelname)s|%(message)s",
-#                     datefmt="%Y-%m-%d %H:%M:%S")
-# Only log errors to the stomp logger.
-logging.getLogger('stomp.py').setLevel(logging.ERROR)
-
-_log = logging.getLogger(__name__)
-
-
-class ModelValid(object):
-    """ A simple class that handles publishing forward and reverse differences
-
-    The object should be used as a callback from a GridAPPSD object so that the
-    on_message function will get called each time a message from the simulator.  During
-    the execution of on_meessage the `CapacitorToggler` object will publish a
-    message to the simulation_input_topic with the forward and reverse difference specified.
-    """
-
-    def __init__(self, simulation_id, gridappsd_obj, model_glm):
-        """ Create a ``ModelValid`` object
-
-        This object should be used as a subscription callback from a ``GridAPPSD``
-        object.  This class will toggle the capacitors passed to the constructor
-        off and on every five messages that are received on the ``fncs_output_topic``.
-
-        Note
-        ----
-        This class does not subscribe only publishes.
-
-        Parameters
-        ----------
-        simulation_id: str
-            The simulation_id to use for publishing to a topic.
-        gridappsd_obj: GridAPPSD
-            An instatiated object that is connected to the gridappsd message bus
-            usually this should be the same object which subscribes, but that
-            isn't required.
-        model_glm: dict
-            A dict of base model (GridLAB-D)
-        """
-        self._gapps = gridappsd_obj
-        self._model = model_glm
-
-
-    def on_message(self, headers, message):
-        """ Handle incoming messages on the simulation_output_topic for the simulation_id
-
-        Parameters
-        ----------
-        headers: dict
-            A dictionary of headers that could be used to determine topic of origin and
-            other attributes.
-        message: object
-            A data structure following the protocol defined in the message structure
-            of ``GridAPPSD``.  Most message payloads will be serialized dictionaries, but that is
-            not a requirement.
-        """
-
-        # Find a planning model of the system 
+    nodes = glm_mgr.graph_glm(node)
+    totalP = 0.
+    totalQ = 0.
+    count = 0
+    for n in nodes:
+        index = load_df.bus[load_df.bus == n].index.tolist()
+        for k in index:
+            count += 1
+            totalP += float(load_df.iloc[k, 3])/1000.
+            totalQ += float(load_df.iloc[k, 4])/1000.
+    print('P:', totalP, 'Q:', totalQ, 'S:', math.sqrt(totalP**2 + totalQ**2), count)
+    return 
 
 
 def _main():
@@ -144,35 +99,8 @@ def _main():
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
 
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
-    
-    sparql_mgr = SPARQLManager(gapps, feeder_mrid=feeder_mrid)
-    xfm_df = sparql_mgr.query_transformers()
-    print(xfm_df)
-
-    load_df = sparql_mgr.query_energyconsumer()
-    print(load_df)
-   
-    model = sparql_mgr.get_glm()
-    node = 'hvmv11sub1_lsb'
-    glm_mgr = GLMManager(model=model, model_is_path=False)
-
-    nodes = glm_mgr.graph_glm(node)
-    totalP = 0.
-    totalQ = 0.
-    count = 0
-    for n in nodes:
-        index = load_df.bus[load_df.bus == n].index.tolist()
-        for k in index:
-            count += 1
-            totalP += float(load_df.iloc[k, 3])/1000.
-            totalQ += float(load_df.iloc[k, 4])/1000.
-    print('P:', totalP, 'Q:', totalQ, 'S:', math.sqrt(totalP**2 + totalQ**2), count)
-    
-    validator = ModelValid(opts.simulation_id, gapps, feeder_mrid)
-    gapps.subscribe(listening_to_topic, validator)
-    while True:
-        time.sleep(0.1)
-
+    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
+    start(feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()
