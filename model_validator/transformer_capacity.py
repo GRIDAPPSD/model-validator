@@ -43,11 +43,12 @@ Created on Jan 19, 2018
 @author: Shiva Poudel
 """""
 
-import transformer_capacity.SPARQLManager
-import transformer_capacity.GLMManager
+from transformer_capacity.sparql import SPARQLManager
+from transformer_capacity.glm import GLMManager
 
 import networkx
 import math
+import argparse
 
 def start(feeder_mrid, model_api_topic):
     sparql_mgr = SPARQLManager(topic, gapps, feeder_mrid=feeder_mrid)
@@ -77,7 +78,7 @@ def start(feeder_mrid, model_api_topic):
 
 
 def _main():
-    _log.debug("Starting application")
+    #_log.debug("Starting application")
     print("Application starting!!!-------------------------------------------------------")
     global message_period
     parser = argparse.ArgumentParser()
@@ -94,7 +95,7 @@ def _main():
     message_period = int(opts.message_period)
     sim_request = json.loads(opts.request.replace("\'",""))
     model_mrid = sim_request["power_system_config"]["Line_name"]
-    _log.debug("Model mrid is: {}".format(model_mrid))
+    #_log.debug("Model mrid is: {}".format(model_mrid))
     gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
                       username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
 
