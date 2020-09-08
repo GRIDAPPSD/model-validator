@@ -50,11 +50,15 @@ import networkx
 import math
 import argparse
 import json
+#import importlib
 
 from gridappsd import GridAPPSD
 
 
 def start(feeder_mrid, model_api_topic):
+    #SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+    #GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
+
     gapps = GridAPPSD()
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid)
