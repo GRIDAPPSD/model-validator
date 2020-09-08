@@ -56,7 +56,7 @@ import pprint
 # gridappsd-python module
 from gridappsd import GridAPPSD
 
-from transformer_cap import transformer_capacity
+from transformer_capacity import transformer_capacity
 
 # global variables
 gapps = None

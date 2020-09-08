@@ -38,69 +38,68 @@
 # UNITED STATES DEPARTMENT OF ENERGY under Contract DE-AC05-76RL01830
 # -------------------------------------------------------------------------------
 """
-Created on Jan 19, 2018
+Created on Sept 8, 2020
 
 @author: Shiva Poudel
 """""
 
-from transformer_capacity.sparql import SPARQLManager
-from transformer_capacity.glm import GLMManager
+from shared.sparql import SPARQLManager
+from shared.glm import GLMManager
 
 import networkx
 import math
 import argparse
+import json
 
 from gridappsd import GridAPPSD
 
-class transformer_capacity:
 
-    def start(feeder_mrid, model_api_topic):
-        gapps = GridAPPSD()
+def start(feeder_mrid, model_api_topic):
+    gapps = GridAPPSD()
 
-        sparql_mgr = SPARQLManager(gapps, feeder_mrid)
-        xfm_df = sparql_mgr.query_transformers()
-        print(xfm_df)
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid)
+    xfm_df = sparql_mgr.query_transformers()
+    print(xfm_df)
 
-        load_df = sparql_mgr.query_energyconsumer()
-        print(load_df)
-        acline_df = sparql_mgr.acline_measurements()
-   
-        model = sparql_mgr.get_glm()
-        node = 'hvmv11sub1_lsb'
-        glm_mgr = GLMManager(model=model, model_is_path=False)
+    load_df = sparql_mgr.query_energyconsumer()
+    print(load_df)
+    acline_df = sparql_mgr.acline_measurements()
 
-        nodes = glm_mgr.graph_glm(node)
-        totalP = 0.
-        totalQ = 0.
-        count = 0
-        for n in nodes:
-            index = load_df.bus[load_df.bus == n].index.tolist()
-            for k in index:
-                count += 1
-                totalP += float(load_df.iloc[k, 3])/1000.
-                totalQ += float(load_df.iloc[k, 4])/1000.
-        print('P:', totalP, 'Q:', totalQ, 'S:', math.sqrt(totalP**2 + totalQ**2), count)
-        return
+    model = sparql_mgr.get_glm()
+    node = 'hvmv11sub1_lsb'
+    glm_mgr = GLMManager(model=model, model_is_path=False)
+
+    nodes = glm_mgr.graph_glm(node)
+    totalP = 0.
+    totalQ = 0.
+    count = 0
+    for n in nodes:
+        index = load_df.bus[load_df.bus == n].index.tolist()
+        for k in index:
+            count += 1
+            totalP += float(load_df.iloc[k, 3])/1000.
+            totalQ += float(load_df.iloc[k, 4])/1000.
+    print('P:', totalP, 'Q:', totalQ, 'S:', math.sqrt(totalP**2 + totalQ**2), count)
+    return
 
 
 def _main():
     #_log.debug("Starting application")
     print("Application starting!!!-------------------------------------------------------")
-    global message_period
+    #global message_period
     parser = argparse.ArgumentParser()
-    parser.add_argument("simulation_id",
-                        help="Simulation id to use for responses on the message bus.")
-    parser.add_argument("request",
-                        help="Simulation Request")
-    parser.add_argument("--message_period",
-                        help="How often the sample app will send open/close capacitor message.",
-                        default=DEFAULT_MESSAGE_PERIOD)
+    #parser.add_argument("simulation_id",
+    #                    help="Simulation id to use for responses on the message bus.")
+    parser.add_argument("--request", help="Simulation Request")
+    #parser.add_argument("--message_period",
+    #                    help="How often the sample app will send open/close capacitor message.",
+    #                    default=DEFAULT_MESSAGE_PERIOD)
 
     opts = parser.parse_args()
-    listening_to_topic = simulation_output_topic(opts.simulation_id)
-    message_period = int(opts.message_period)
+    #listening_to_topic = simulation_output_topic(opts.simulation_id)
+    #message_period = int(opts.message_period)
     sim_request = json.loads(opts.request.replace("\'",""))
-    model_mrid = sim_request["power_system_config"]["Line_name"]
+    #model_mrid = sim_request["power_system_config"]["Line_name"]
     #_log.debug("Model mrid is: {}".format(model_mrid))
     #gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
     #                  username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
@@ -108,7 +107,7 @@ def _main():
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
 
-    transformer_capacity.start(feeder_mrid, model_api_topic)
+    start(feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()
