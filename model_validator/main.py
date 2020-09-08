@@ -56,6 +56,8 @@ import pprint
 # gridappsd-python module
 from gridappsd import GridAPPSD
 
+from transformer_cap import transformer_capacity
+
 # global variables
 gapps = None
 appName = None
@@ -144,6 +146,11 @@ Optional command line arguments:
     # more example code
     gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
                     simID, estimateCallback)
+
+    # invoke Shiva's module
+    feeder_mrid = simDict['power_system_config']['Line_name']
+    model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
+    transformer_capacity.start(feeder_mrid, model_api_topic)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
     # depending on what we want the main model-validator main app to do,
