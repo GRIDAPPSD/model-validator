@@ -96,8 +96,9 @@ Optional command line arguments:
         exit()
 
     appName = sys.argv[0]
-    simID = sys.argv[1]
-    simReq = sys.argv[2]
+    #simID = sys.argv[1]
+    #simReq = sys.argv[2]
+    simReq = sys.argv[1]
 
     # example code for processing command line arguments
     plotConfigFlag = False
@@ -140,12 +141,12 @@ Optional command line arguments:
             useSensorsForEstimatesFlag = jsc['user_options']['use-sensors-for-estimates']
 
     # example code to subscribe to all simulation measurements
-    gapps.subscribe('/topic/goss.gridappsd.simulation.output.' +
-                    simID, simulationCallback)
+    #gapps.subscribe('/topic/goss.gridappsd.simulation.output.' +
+    #                simID, simulationCallback)
 
     # more example code
-    gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
-                    simID, estimateCallback)
+    #gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
+    #                simID, estimateCallback)
 
     # invoke Shiva's module
     feeder_mrid = simDict['power_system_config']['Line_name']
@@ -157,8 +158,8 @@ Optional command line arguments:
     # that could be as simple as just a while loop that calls sleep repeatedly
     # like the sample app allowing the other threads that process messages
     # to get the needed CPU time
-    while True:
-        time.sleep(0.1)
+    #while True:
+    #    time.sleep(0.1)
 
     # for an app with a GUI though, it should enter the GUI event processing
     # loop at this point

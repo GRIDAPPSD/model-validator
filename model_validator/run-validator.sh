@@ -8,5 +8,5 @@ SIMREQ={\"power_system_config\":{\"Line_name\":\"_C1C3E687-6FFD-C753-582B-632A27
 
 #SIMREQ={\"power_system_config\":{\"Line_name\":\"_49AD8E07-3BF9-A4E2-CB8F-C3722F837B62\"},\"service_configs\":[{\"id\":\"state-estimator\",\"user_options\":{\"use-sensors-for-estimates\":false}}]} # ieee13nodeckt using simulation
 
-./main.py $1 $SIMREQ 2>&1 | tee validator.dbg
+./main.py $SIMREQ 2>&1 | tee validator.dbg
 #python3 transformer_capacity/transformer_capacity.py --request $SIMREQ 2>&1 | tee validator.dbg
