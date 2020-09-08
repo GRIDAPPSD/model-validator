@@ -43,21 +43,23 @@ Created on Sept 8, 2020
 @author: Shiva Poudel
 """""
 
-from shared.sparql import SPARQLManager
-from shared.glm import GLMManager
+#from shared.sparql import SPARQLManager
+#from shared.glm import GLMManager
 
 import networkx
 import math
 import argparse
 import json
-#import importlib
+import sys
+import os
+import importlib
 
 from gridappsd import GridAPPSD
 
 
 def start(feeder_mrid, model_api_topic):
-    #SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-    #GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+    GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
 
     gapps = GridAPPSD()
 
@@ -88,6 +90,12 @@ def start(feeder_mrid, model_api_topic):
 
 
 def _main():
+    # for loading modules
+    if (os.path.isdir('shared')):
+        sys.path.append('.')
+    elif (os.path.isdir('../shared')):
+        sys.path.append('..')
+
     #_log.debug("Starting application")
     print("Application starting!!!-------------------------------------------------------")
     #global message_period
