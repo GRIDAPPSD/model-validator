@@ -46,7 +46,8 @@ Created on Sept 8, 2020
 #from shared.sparql import SPARQLManager
 #from shared.glm import GLMManager
 
-import networkx
+import networkx as nx
+import pandas as pd
 import math
 import argparse
 import json
@@ -64,28 +65,74 @@ def start(feeder_mrid, model_api_topic):
     gapps = GridAPPSD()
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid)
+
+    # Get Service Transformer and EnergyConsumer data
     xfm_df = sparql_mgr.query_transformers()
-    print(xfm_df)
+    print('Service transformer data obtained')
 
     load_df = sparql_mgr.query_energyconsumer()
-    print(load_df)
-    acline_df = sparql_mgr.acline_measurements()
+    print('Load data obtained')
 
+    # Get the base glm file representing a network model
     model = sparql_mgr.get_glm()
-    node = 'hvmv11sub1_lsb'
     glm_mgr = GLMManager(model=model, model_is_path=False)
+    model_dict = glm_mgr.model_dict
+    print('Base network model obtained')
 
-    nodes = glm_mgr.graph_glm(node)
-    totalP = 0.
-    totalQ = 0.
-    count = 0
-    for n in nodes:
-        index = load_df.bus[load_df.bus == n].index.tolist()
-        for k in index:
-            count += 1
-            totalP += float(load_df.iloc[k, 3])/1000.
-            totalQ += float(load_df.iloc[k, 4])/1000.
-    print('P:', totalP, 'Q:', totalQ, 'S:', math.sqrt(totalP**2 + totalQ**2), count)
+    # Form a graph G(V,E)
+    G = nx.Graph()  
+    nor_open = []
+    for key, value in model_dict.items():
+        if value['object'] == 'switch' and value['status'] =='OPEN':
+            nor_open.append(value['name'])
+    
+    # Screen throuh model_dict of a feeder and form a graph using all possible connecting elements
+    component = ['transformer', 'regulator', 'triplex_line', 'overhead_line', 'switch', 'recloser', 'fuse']
+    for key, value in model_dict.items():
+        if value['object'] in component and value['name'] not in nor_open:
+            G.add_edge(value['from'].replace('"', ''), value['to'].replace('"', ''))
+    print('The graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), "\n")
+    T = list(nx.bfs_tree(G, source = '650').edges())
+    Nodes = list(nx.bfs_tree(G, source = '650').nodes())
+    fr, to = zip(*T)
+    fr = list(fr)
+    to = list(to) 
+
+    # A recursive function to find all descendent of a given node
+    def descendant (fr, to, node, des):
+        ch = [n for n, e in enumerate(fr) if e == node]
+        for k in ch:
+            des.append(to[k])
+            node = to[k]
+            descendant(fr, to, node, des)
+        return des
+
+    # Pick a node, find all descendent and sum all loads to check against the rating 
+    checked = []
+    report_xfmr = []
+    for xfm in xfm_df.itertuples(index=False):
+        xfm_dict = xfm._asdict()
+        xfm_name = xfm_dict['name']
+        if xfm_name not in checked and 'reg' not in xfm_name:
+            index = xfm_df.name[xfm_df.name == xfm_name].index.tolist()
+            node = xfm_df.bus[max(index)]
+            checked.append(xfm_name)
+            des = [node]
+            children = descendant(fr, to, node, des)
+            totalP = 0.
+            totalQ = 0.
+            count = 0
+            for n in children:
+                index = load_df.bus[load_df.bus == n].index.tolist()
+                for k in index:
+                    count += 1
+                    totalP += float(load_df.iloc[k, 3])/1000.
+                    totalQ += float(load_df.iloc[k, 4])/1000.
+            message = dict(name = xfm_name,                           
+                           kVA_total = math.sqrt(totalP**2 + totalQ**2),
+                           tot_loads = count)
+            report_xfmr.append(message)
+    print(pd.DataFrame(report_xfmr))
     return
 
 

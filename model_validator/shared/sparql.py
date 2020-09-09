@@ -39,34 +39,27 @@ class SPARQLManager:
         """Get information on transformers in the feeder."""
         # Perform the query.
         XFMR_QUERY = """
-        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT ?pname ?tname ?xfmrcode ?vgrp ?enum ?bus ?basev ?phs ?grounded ?rground ?xground ?fdrid WHERE {
-        ?p r:type c:PowerTransformer.
-        VALUES ?fdrid {"%s"}  
-        ?p c:Equipment.EquipmentContainer ?fdr.
-        ?fdr c:IdentifiedObject.mRID ?fdrid.
-        ?p c:IdentifiedObject.name ?pname.
-        ?p c:PowerTransformer.vectorGroup ?vgrp.
-        ?t c:TransformerTank.PowerTransformer ?p.
-        ?t c:IdentifiedObject.name ?tname.
-        ?asset c:Asset.PowerSystemResources ?t.
-        ?asset c:Asset.AssetInfo ?inf.
-        ?inf c:IdentifiedObject.name ?xfmrcode.
-        ?end c:TransformerTankEnd.TransformerTank ?t.
-        ?end c:TransformerTankEnd.phases ?phsraw.
-        bind(strafter(str(?phsraw),"PhaseCode.") as ?phs)
-        ?end c:TransformerEnd.endNumber ?enum.
-        ?end c:TransformerEnd.grounded ?grounded.
-        OPTIONAL {?end c:TransformerEnd.rground ?rground.}
-        OPTIONAL {?end c:TransformerEnd.xground ?xground.}
+        PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c: <http://iec.ch/TC57/CIM100#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        SELECT ?name ?wnum ?bus ?phs ?eqid  WHERE { 
+        VALUES ?fdrid {"%s"}
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid. 
+        ?s r:type c:PowerTransformer.
+        ?end c:TransformerTankEnd.TransformerTank ?tank.
+        ?tank c:TransformerTank.PowerTransformer ?s.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:IdentifiedObject.mRID ?eqid.
         ?end c:TransformerEnd.Terminal ?trm.
+        ?end c:TransformerEnd.endNumber ?wnum.
+        ?trm c:IdentifiedObject.mRID ?trmid. 
         ?trm c:Terminal.ConnectivityNode ?cn. 
         ?cn c:IdentifiedObject.name ?bus.
-        ?end c:TransformerEnd.BaseVoltage ?bv.
-        ?bv c:BaseVoltage.nominalVoltage ?basev
+        OPTIONAL {?end c:TransformerTankEnd.phases ?phsraw.
+        bind(strafter(str(?phsraw),"PhaseCode.") as ?phs)}
         }
-        ORDER BY ?pname ?tname ?enum
+        ORDER BY ?name ?wnum ?phs
         """% self.feeder_mrid
         results = self.gad.query_data(XFMR_QUERY)
         bindings = results['data']['results']['bindings']
@@ -82,7 +75,7 @@ class SPARQLManager:
         LOAD_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT ?name ?bus ?basev ?p ?q ?conn ?cnt ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe ?fdrid WHERE {
+        SELECT ?name ?bus ?basev ?p ?q ?conn ?cnt ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe WHERE {
         ?s r:type c:EnergyConsumer.        
         VALUES ?fdrid {"%s"}         
         ?s c:Equipment.EquipmentContainer ?fdr.
@@ -111,7 +104,7 @@ class SPARQLManager:
         ?t c:Terminal.ConnectivityNode ?cn. 
         ?cn c:IdentifiedObject.name ?bus
         }
-        GROUP BY ?name ?bus ?basev ?p ?q ?cnt ?conn ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe ?fdrid
+        GROUP BY ?name ?bus ?basev ?p ?q ?cnt ?conn ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe 
         ORDER by ?name
         """% self.feeder_mrid
         results = self.gad.query_data(LOAD_QUERY)
