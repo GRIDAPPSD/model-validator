@@ -48,13 +48,13 @@ Created on Sept 8, 2020
 
 import networkx as nx
 import pandas as pd
-import numpy as np
 import math
 import argparse
 import json
 import sys
 import os
 import importlib
+import numpy as np
 
 from gridappsd import GridAPPSD
 
@@ -67,14 +67,11 @@ def start(feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    # Get Service Transformer and EnergyConsumer data
-    xfm_df = sparql_mgr.query_transformers()
-    print('Service transformer data obtained')
-    print(xfm_df)
-
-    load_df = sparql_mgr.query_energyconsumer()
-    print('Load data obtained')
-    print(load_df)
+    # AC Line segement rating check
+    acline_df = sparql_mgr.acline_measurements()    
+    print(acline_df)
+    acline_df = acline_df.assign(rating = np.zeros(acline_df.shape[0]))
+    print('ACLineSegment data obtained')
 
     # Get the base glm file representing a network model
     model = sparql_mgr.get_glm()
@@ -82,82 +79,42 @@ def start(feeder_mrid, model_api_topic):
     model_dict = glm_mgr.model_dict
     print('Base network model obtained')
 
-    # Form a graph G(V,E)
-    G = nx.Graph()  
-    nor_open = []
+    # Find the rating from .glm and update it in the query result
     for key, value in model_dict.items():
-        if value['object'] == 'switch' and value['status'] =='OPEN':
-            nor_open.append(value['name'])
+        if value['object'] == 'overhead_line':
+            # Find this line in acline_df 
+            lineseg = value['name'].replace('"', '')           
+            phase = value['phases'][0]
+            try:
+                rating = value['continuous_rating_' + phase]
+            except:
+                print('Rating of line not specified in glm file')
+            ind =  acline_df.index['line_' + acline_df['eqname'] == lineseg].tolist()
+            for k in ind:
+                acline_df.loc[acline_df.index == k, 'rating'] = rating
+        if value['object'] == 'triplex_line':
+            # Find this line in acline_df 
+            lineseg = value['name'].replace('"', '')           
+            phase = value['phases'][0]
+            try:
+                rating = value['continuous_rating_' + phase]
+            except:
+                print('Rating of line not specified in glm file')
+            ind =  acline_df.index['tpx_' + acline_df['eqname'] == lineseg].tolist()
+            for k in ind:
+                acline_df.loc[acline_df.index == k, 'rating'] = rating
     
-    # Screen throuh model_dict of a feeder and form a graph using all possible connecting elements
-    component = ['transformer', 'regulator', 'triplex_line', 'overhead_line', 'switch', 'recloser', 'fuse']
-    for key, value in model_dict.items():
-        if value['object'] in component and value['name'] not in nor_open:
-            G.add_edge(value['from'].replace('"', ''), value['to'].replace('"', ''))
-    print('The graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), "\n")
-    T = list(nx.bfs_tree(G, source = 'sourcebus').edges())
-    Nodes = list(nx.bfs_tree(G, source = 'sourcebus').nodes())
-    fr, to = zip(*T)
-    fr = list(fr)
-    to = list(to) 
+    # Find the actual flow from simulation output and form a new column
+    # meas_value = sim_output['message']['measurements']     
+    # acline_df = acline_df.assign(flow = np.zeros(acline_df.shape[0]))
+    # for k in range (acline_df.shape[0]):
+    #     measid = acline_df['measid'][k]
+    #     pamp = meas_value[measid]['magnitude']
+    #     acline_df['flow'][k] = pamp
 
-    # A recursive function to find all descendent of a given node
-    def descendant (fr, to, node, des):
-        ch = [n for n, e in enumerate(fr) if e == node]
-        for k in ch:
-            des.append(to[k])
-            node = to[k]
-            descendant(fr, to, node, des)
-        return des
-
-    # Pick a node, find all descendent and sum all loads to check against the rating 
-    checked = []
-    report_xfmr = []
-    for xfm in xfm_df.itertuples(index=False):
-        xfm_dict = xfm._asdict()
-        xfm_name = xfm_dict['name']
-        if xfm_name not in checked and 'reg' not in xfm_name:
-            index = xfm_df.name[xfm_df.name == xfm_name].index.tolist()
-            node = xfm_df.bus[max(index)]
-            checked.append(xfm_name)
-            des = [node]
-            children = descendant(fr, to, node, des)
-            totalP = 0.
-            totalQ = 0.
-            count = 0
-            for n in children:
-                index = load_df.bus[load_df.bus == n].index.tolist()
-                for k in index:
-                    count += 1
-                    totalP += float(load_df.iloc[k, 3])/1000.
-                    totalQ += float(load_df.iloc[k, 4])/1000.
-            message = dict(name = xfm_name,                           
-                           kVA_total = math.sqrt(totalP**2 + totalQ**2),
-                           tot_loads = count)
-            report_xfmr.append(message)
-
-    # Now finding the rating from glm file and comparing against kVA_total
-    xfmr_df = pd.DataFrame(report_xfmr)
-    xfmr_glm = []
-    xfmr_config = []
-
-    # Find transformer and the configuration from glm
-    for key, value in model_dict.items():
-        if value['object'] == 'transformer_configuration':
-            xfmr_config.append(value)
-        if value['object'] == 'transformer':
-            xfmr_glm.append(value)
-    
-    # Find the transformer in xfmr_df and update their rating
-    xfmr_df = xfmr_df.assign(rating = np.zeros(xfmr_df.shape[0]))
-    for xfm in xfmr_glm:       
-        ind = xfmr_df.index['xf_' + xfmr_df['name'] == xfm['name'].replace('"', '')].tolist()
-        if ind:
-            config = [c for c in xfmr_config if c['name'].replace('"', '') ==  xfm['configuration'].replace('"', '')]
-            rating =  config[0]['power_rating']
-            xfmr_df.loc[xfmr_df.index == ind, 'rating'] = rating
-    print(xfmr_df)
+    print(acline_df)       
     return
+
 
 def _main():
     # for loading modules

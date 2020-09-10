@@ -15,7 +15,7 @@ class SPARQLManager:
     """
 
     
-    def __init__(self, gapps, feeder_mrid, timeout=30):
+    def __init__(self, gapps, feeder_mrid, model_api_topic, timeout=30):
         """Connect to the platform.
 
         :param feeder_mrid: unique identifier for the feeder in
@@ -34,6 +34,9 @@ class SPARQLManager:
 
         # Timeout for SPARQL queries.
         self.timeout = timeout
+
+        # Powergridmodel API topic
+        self.topic = model_api_topic
 
     def query_transformers(self):
         """Get information on transformers in the feeder."""
@@ -114,6 +117,21 @@ class SPARQLManager:
             list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
         output = pd.DataFrame(list_of_dicts)
         return output
+
+    def acline_measurements(self):
+        message = {
+            "modelId": self.feeder_mrid,
+            "requestType": "QUERY_OBJECT_MEASUREMENTS",
+            "resultFormat": "JSON",
+            "objectType": "ACLineSegment"}     
+        acline_meas = self.gad.get_response(self.topic, message, timeout=180) 
+        acline_meas = acline_meas['data']
+        acline_measA = [m for m in acline_meas if m['type'] == 'A']
+        df_acline_measA = pd.DataFrame(acline_measA)
+        del df_acline_measA['trmid']
+        del df_acline_measA['eqid']
+        del df_acline_measA['measid']
+        return df_acline_measA
 
     def get_glm(self):
         """Given a model ID, get a GridLAB-D (.glm) model."""
