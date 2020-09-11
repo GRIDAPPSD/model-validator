@@ -62,8 +62,8 @@ from ac_line_ampacity import ac_line_ampacity
 # global variables
 gapps = None
 appName = None
-simID = None
-modelMRID = None
+simulation_id = None
+feeder_mrid = None
 
 
 def simulationCallback(header, message):
@@ -79,7 +79,7 @@ def estimateCallback(header, message):
 
 
 def _main():
-    global appName, simID, modelMRID, gapps
+    global appName, simulation_id, feeder_mrid, gapps
 
     if len(sys.argv)<2 or '-help' in sys.argv:
         usestr =  '\nUsage: ' + sys.argv[0] + ' simID simReq\n'
@@ -97,9 +97,8 @@ Optional command line arguments:
         exit()
 
     appName = sys.argv[0]
-    #simID = sys.argv[1]
-    #simReq = sys.argv[2]
     simReq = sys.argv[1]
+    simulation_id = sys.argv[2]
 
     # example code for processing command line arguments
     plotConfigFlag = False
@@ -131,7 +130,6 @@ Optional command line arguments:
     # interrogate simReq to determine whether to subscribe to the sensor-
     # simulator service or to simulation output measurements
     simDict = json.loads(simReq)
-    modelMRID = simDict['power_system_config']['Line_name']
 
     # example code for parsing the service_configs and user_options set in
     # the platform viz
@@ -143,17 +141,18 @@ Optional command line arguments:
 
     # example code to subscribe to all simulation measurements
     #gapps.subscribe('/topic/goss.gridappsd.simulation.output.' +
-    #                simID, simulationCallback)
+    #                simulation_id, simulationCallback)
 
     # more example code
     #gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
-    #                simID, estimateCallback)
+    #                simulation_id, estimateCallback)
 
-    # invoke Shiva's module
+    # invoke Shiva's modules
     feeder_mrid = simDict['power_system_config']['Line_name']
     model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
-    # transformer_capacity.start(feeder_mrid, model_api_topic)
-    ac_line_ampacity.start(feeder_mrid, model_api_topic)
+
+    transformer_capacity.start(feeder_mrid, model_api_topic)
+    ac_line_ampacity.start(feeder_mrid, model_api_topic, simulation_id)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
     # depending on what we want the main model-validator main app to do,
@@ -169,7 +168,7 @@ Optional command line arguments:
 
     # depending on what is done to block above, this disconnect may never
     # be reached.  It will for a GUI app though so it's nice to free resources
-    gapps.disconnect()
+    #gapps.disconnect()
 
 
 if __name__ == '__main__':

@@ -59,7 +59,7 @@ import numpy as np
 from gridappsd import GridAPPSD
 
 
-def start(feeder_mrid, model_api_topic):
+def start(feeder_mrid, model_api_topic, simulation_id):
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
     GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
 
@@ -125,28 +125,21 @@ def _main():
 
     #_log.debug("Starting application")
     print("Application starting!!!-------------------------------------------------------")
-    #global message_period
     parser = argparse.ArgumentParser()
-    #parser.add_argument("simulation_id",
-    #                    help="Simulation id to use for responses on the message bus.")
     parser.add_argument("--request", help="Simulation Request")
-    #parser.add_argument("--message_period",
-    #                    help="How often the sample app will send open/close capacitor message.",
-    #                    default=DEFAULT_MESSAGE_PERIOD)
+    parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
     #listening_to_topic = simulation_output_topic(opts.simulation_id)
-    #message_period = int(opts.message_period)
     sim_request = json.loads(opts.request.replace("\'",""))
-    #model_mrid = sim_request["power_system_config"]["Line_name"]
-    #_log.debug("Model mrid is: {}".format(model_mrid))
-    #gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
-    #                  username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
+    #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
+    simulation_id = opts.simid
+    #_log.debug("Simulation ID is: {}".format(simulation_mrid))
+
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
 
-    start(feeder_mrid, model_api_topic)
+    start(feeder_mrid, model_api_topic, simulation_id)
 
 if __name__ == "__main__":
     _main()
