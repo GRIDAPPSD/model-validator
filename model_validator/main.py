@@ -98,7 +98,8 @@ Optional command line arguments:
 
     appName = sys.argv[0]
     simReq = sys.argv[1]
-    simulation_id = sys.argv[2]
+    if len(sys.argv) > 2:
+        simulation_id = sys.argv[2]
 
     # example code for processing command line arguments
     plotConfigFlag = False
