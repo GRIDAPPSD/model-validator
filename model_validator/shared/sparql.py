@@ -5,11 +5,6 @@ import numpy as np
 import re
 from gridappsd import GridAPPSD, topics, utils
 
-# Map CIM booleans (come back as strings) to Python booleans.
-BOOLEAN_MAP = {'true': True, 'false': False}
-REGEX_1 = re.compile(r'^\s*\{\s*"data"\s*:\s*')
-REGEX_2 = re.compile(r'\s*,\s*"responseComplete".+$')
-
 class SPARQLManager:
     """Class for querying and parsing SPARQL in GridAPPS-D.
     """
@@ -44,25 +39,32 @@ class SPARQLManager:
         XFMR_QUERY = """
         PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c: <http://iec.ch/TC57/CIM100#>
-        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-        SELECT ?name ?wnum ?bus ?phs ?eqid  WHERE { 
+        SELECT ?pname ?tname ?xfmrcode ?bus ?vgrp ?enum ?ratedS ?ratedU WHERE {
         VALUES ?fdrid {"%s"}
-        ?s c:Equipment.EquipmentContainer ?fdr.
-        ?fdr c:IdentifiedObject.mRID ?fdrid. 
-        ?s r:type c:PowerTransformer.
-        ?end c:TransformerTankEnd.TransformerTank ?tank.
-        ?tank c:TransformerTank.PowerTransformer ?s.
-        ?s c:IdentifiedObject.name ?name.
-        ?s c:IdentifiedObject.mRID ?eqid.
+        ?p r:type c:PowerTransformer.
+        ?p c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?p c:IdentifiedObject.name ?pname.
+        ?p c:PowerTransformer.vectorGroup ?vgrp.
+        ?t c:TransformerTank.PowerTransformer ?p.
+        ?t c:IdentifiedObject.name ?tname.
+        ?asset c:Asset.PowerSystemResources ?t.
+        ?asset c:Asset.AssetInfo ?inf.
+        ?inf c:IdentifiedObject.name ?xfmrcode.
+        ?end c:TransformerTankEnd.TransformerTank ?t.
+        ?end c:TransformerTankEnd.phases ?phsraw.
+        ?end c:TransformerEnd.endNumber ?enum.
         ?end c:TransformerEnd.Terminal ?trm.
-        ?end c:TransformerEnd.endNumber ?wnum.
-        ?trm c:IdentifiedObject.mRID ?trmid. 
         ?trm c:Terminal.ConnectivityNode ?cn. 
         ?cn c:IdentifiedObject.name ?bus.
-        OPTIONAL {?end c:TransformerTankEnd.phases ?phsraw.
-        bind(strafter(str(?phsraw),"PhaseCode.") as ?phs)}
+        ?asset c:Asset.PowerSystemResources ?t.
+        ?asset c:Asset.AssetInfo ?tinf.
+        ?einf c:TransformerEndInfo.TransformerTankInfo ?tinf.
+        ?einf c:TransformerEndInfo.endNumber ?enum.
+        ?einf c:TransformerEndInfo.ratedS ?ratedS.
+        ?einf c:TransformerEndInfo.ratedU ?ratedU.
         }
-        ORDER BY ?name ?wnum ?phs
+        ORDER BY ?pname ?tname ?enum
         """% self.feeder_mrid
         results = self.gad.query_data(XFMR_QUERY)
         bindings = results['data']['results']['bindings']
@@ -124,22 +126,114 @@ class SPARQLManager:
             "requestType": "QUERY_OBJECT_MEASUREMENTS",
             "resultFormat": "JSON",
             "objectType": "ACLineSegment"}     
-        acline_meas = self.gad.get_response(self.topic, message, timeout=180) 
-        acline_meas = acline_meas['data']
-        acline_measA = [m for m in acline_meas if m['type'] == 'A']
-        df_acline_measA = pd.DataFrame(acline_measA)
-        del df_acline_measA['trmid']
-        del df_acline_measA['eqid']
-        del df_acline_measA['measid']
-        return df_acline_measA
+        try:
+            acline_meas = self.gad.get_response(self.topic, message, timeout=180) 
+            acline_meas = acline_meas['data']
+            acline_measA = [m for m in acline_meas if m['type'] == 'A']
+            df_acline_measA = pd.DataFrame(acline_measA)
+            del df_acline_measA['trmid']
+            del df_acline_measA['eqid']
+            df_acline_measA = df_acline_measA.assign(rating = np.zeros(df_acline_measA.shape[0]))
+            return df_acline_measA
+        except:
+            print('Current Measurments (A) are missing for ACLineSegment', flush = True)
+            return 
+        
+    def acline_rating_query(self):
+        # Getting the Ratings for ACLineSegment
+        AC_LINE_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?eqtype ?eqname ?eqid ?val ?cn1id WHERE {
+        VALUES ?fdrid {"%s"} 
+        VALUES ?dur {"5E9"}
+        # VALUES ?seq {"1"}
+        VALUES ?eqtype {"ACLineSegment"}
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?eq c:Equipment.EquipmentContainer ?fdr.
+        ?eq c:IdentifiedObject.name ?eqname.
+        ?eq c:IdentifiedObject.mRID ?eqid.
+        ?eq r:type ?rawtype.
+        #bind(strafter(str(?rawtype),"#") as ?eqtype)
+        ?t c:Terminal.ConductingEquipment ?eq.
+        ?t c:ACDCTerminal.OperationalLimitSet ?ols.
+        ?t c:ACDCTerminal.sequenceNumber ?seq.
+        ?t c:Terminal.ConnectivityNode ?cn1.
+        ?cn1 c:IdentifiedObject.mRID ?cn1id.
+        ?clim c:OperationalLimit.OperationalLimitSet ?ols.
+        ?clim r:type c:CurrentLimit.
+        ?clim c:OperationalLimit.OperationalLimitType ?olt.
+        ?olt c:OperationalLimitType.acceptableDuration ?dur.
+        ?clim c:CurrentLimit.value ?val.
+        }
+        ORDER by ?eqtype ?eqname ?eqid ?val
+        """% self.feeder_mrid
+        results = self.gad.query_data(AC_LINE_QUERY)
+        bindings = results['data']['results']['bindings']
+        list_of_dicts = []
+        for obj in bindings:
+            list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
+        rating_query = pd.DataFrame(list_of_dicts)
+        return rating_query
 
-    def get_glm(self):
-        """Given a model ID, get a GridLAB-D (.glm) model."""
-        payload = {'configurationType': 'GridLAB-D Base GLM',
-                   'parameters': {'model_id': self.feeder_mrid}}
-        response = self.gad.get_response(topic=topics.CONFIG, message=payload,
-                                         timeout=self.timeout)
-        # Fix bad json return.
-        # TODO: remove when platform is fixed.
-        glm = REGEX_2.sub('', REGEX_1.sub('', response['message']))
-        return glm
+    def graph_query(self):
+        TERMINAL_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT  ?eqname ?id ?bus1 ?bus2 WHERE {
+        VALUES ?fdrid {"%s"}  
+        VALUES ?cimraw {c:LoadBreakSwitch c:Recloser c:Breaker c:PowerTransformer c:ACLineSegment c:Fuse}
+        ?eq r:type ?cimraw.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?eq c:Equipment.EquipmentContainer ?fdr.
+        ?eq c:IdentifiedObject.mRID ?id.
+        ?t1 c:Terminal.ConductingEquipment ?eq.
+        ?t1 c:ACDCTerminal.sequenceNumber "1".
+        ?t1 c:Terminal.ConnectivityNode ?cn1. 
+        ?cn1 c:IdentifiedObject.name ?bus1.
+        ?t2 c:Terminal.ConductingEquipment ?eq.
+        ?t2 c:ACDCTerminal.sequenceNumber "2".
+        ?t2 c:Terminal.ConnectivityNode ?cn2. 
+        ?cn2 c:IdentifiedObject.name ?bus2.
+        ?eq c:IdentifiedObject.name ?eqname.
+        ?eq a ?classraw.
+        }
+        ORDER by  ?eqname 
+        """% self.feeder_mrid
+        results = self.gad.query_data(TERMINAL_QUERY)
+        bindings = results['data']['results']['bindings']
+        list_of_dicts = []
+        for obj in bindings:
+            list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
+        graph_query = pd.DataFrame(list_of_dicts)
+        return list_of_dicts
+    
+    def sourcebus_query(self):
+        SOURCE_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?bus ?basev ?nomv ?vmag ?vang ?r1 ?x1 ?r0 ?x0 WHERE {
+        ?s r:type c:EnergySource.
+        VALUES ?fdrid {"%s"} 
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:ConductingEquipment.BaseVoltage ?bv.
+        ?bv c:BaseVoltage.nominalVoltage ?basev.
+        ?s c:EnergySource.nominalVoltage ?nomv. 
+        ?s c:EnergySource.voltageMagnitude ?vmag. 
+        ?s c:EnergySource.voltageAngle ?vang. 
+        ?s c:EnergySource.r ?r1. 
+        ?s c:EnergySource.x ?x1. 
+        ?s c:EnergySource.r0 ?r0. 
+        ?s c:EnergySource.x0 ?x0. 
+        ?t c:Terminal.ConductingEquipment ?s.
+        ?t c:Terminal.ConnectivityNode ?cn. 
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        ORDER by ?name
+        """% self.feeder_mrid
+        results = self.gad.query_data(SOURCE_QUERY)
+        bindings = results['data']['results']['bindings']
+        sourcebus = bindings[0]['bus']['value']
+        return sourcebus

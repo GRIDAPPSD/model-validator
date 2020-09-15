@@ -55,6 +55,7 @@ import json
 import sys
 import os
 import importlib
+from tabulate import tabulate
 
 from gridappsd import GridAPPSD
 
@@ -67,36 +68,28 @@ def start(feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    # Get Service Transformer and EnergyConsumer data
+    # Get service transformer, graph connectivity, and EnergyConsumer data
     xfm_df = sparql_mgr.query_transformers()
-    print('Service transformer data obtained')
-    print(xfm_df)
+    print('Service transformer data obtained', flush = True)
 
+    undirected_graph = sparql_mgr.graph_query()
+    sourcebus = sparql_mgr.sourcebus_query()
+    print('Conectivity information obtained', flush = True)
+    
     load_df = sparql_mgr.query_energyconsumer()
-    print('Load data obtained')
-    print(load_df)
-
-    # Get the base glm file representing a network model
-    model = sparql_mgr.get_glm()
-    glm_mgr = GLMManager(model=model, model_is_path=False)
-    model_dict = glm_mgr.model_dict
-    print('Base network model obtained')
+    print('Load data obtained', flush = True)
 
     # Form a graph G(V,E)
-    G = nx.Graph()  
-    nor_open = []
-    for key, value in model_dict.items():
-        if value['object'] == 'switch' and value['status'] =='OPEN':
-            nor_open.append(value['name'])
-    
-    # Screen throuh model_dict of a feeder and form a graph using all possible connecting elements
-    component = ['transformer', 'regulator', 'triplex_line', 'overhead_line', 'switch', 'recloser', 'fuse']
-    for key, value in model_dict.items():
-        if value['object'] in component and value['name'] not in nor_open:
-            G.add_edge(value['from'].replace('"', ''), value['to'].replace('"', ''))
-    print('The graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), "\n")
-    T = list(nx.bfs_tree(G, source = 'sourcebus').edges())
-    Nodes = list(nx.bfs_tree(G, source = 'sourcebus').nodes())
+    G = nx.Graph()     
+    for g in undirected_graph:
+        G.add_edge(g['bus1'], g['bus2'])
+
+    # TODO: For the Substation transformer, the radiality has to be enforced. 
+    # For service transformer, it is assumed that there is no loop after the service xfmr
+    # How to find the name of sourcebus 
+    print('The graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), "\n", flush = True)
+    T = list(nx.bfs_tree(G, source = sourcebus).edges())
+    Nodes = list(nx.bfs_tree(G, source = sourcebus).nodes())
     fr, to = zip(*T)
     fr = list(fr)
     to = list(to) 
@@ -115,9 +108,9 @@ def start(feeder_mrid, model_api_topic):
     report_xfmr = []
     for xfm in xfm_df.itertuples(index=False):
         xfm_dict = xfm._asdict()
-        xfm_name = xfm_dict['name']
-        if xfm_name not in checked and 'reg' not in xfm_name:
-            index = xfm_df.name[xfm_df.name == xfm_name].index.tolist()
+        xfm_name = xfm_dict['pname']
+        if xfm_name not in checked and 'reg' not in xfm_dict['xfmrcode']:
+            index = xfm_df.pname[xfm_df.pname == xfm_name].index.tolist()
             node = xfm_df.bus[max(index)]
             checked.append(xfm_name)
             des = [node]
@@ -133,30 +126,15 @@ def start(feeder_mrid, model_api_topic):
                     totalQ += float(load_df.iloc[k, 4])/1000.
             message = dict(name = xfm_name,                           
                            kVA_total = math.sqrt(totalP**2 + totalQ**2),
-                           tot_loads = count)
+                           tot_loads = count,
+                           rating = float(xfm_dict['ratedS'])/1000.)
             report_xfmr.append(message)
 
-    # Now finding the rating from glm file and comparing against kVA_total
     xfmr_df = pd.DataFrame(report_xfmr)
-    xfmr_glm = []
-    xfmr_config = []
-
-    # Find transformer and the configuration from glm
-    for key, value in model_dict.items():
-        if value['object'] == 'transformer_configuration':
-            xfmr_config.append(value)
-        if value['object'] == 'transformer':
-            xfmr_glm.append(value)
-    
-    # Find the transformer in xfmr_df and update their rating
-    xfmr_df = xfmr_df.assign(rating = np.zeros(xfmr_df.shape[0]))
-    for xfm in xfmr_glm:       
-        ind = xfmr_df.index['xf_' + xfmr_df['name'] == xfm['name'].replace('"', '')].tolist()
-        if ind:
-            config = [c for c in xfmr_config if c['name'].replace('"', '') ==  xfm['configuration'].replace('"', '')]
-            rating =  config[0]['power_rating']
-            xfmr_df.loc[xfmr_df.index == ind, 'rating'] = rating
-    print(xfmr_df)
+    if xfmr_df.empty:
+        print('There are no Service Transformers in the selected feeder')
+    else:
+        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush = True)
     return
 
 def _main():
@@ -167,7 +145,7 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("Application starting!!!-------------------------------------------------------")
+    print("\n \n Application starting!!!-------------------------------------------------------")
     #global message_period
     parser = argparse.ArgumentParser()
     #parser.add_argument("simulation_id",

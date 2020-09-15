@@ -55,9 +55,13 @@ import sys
 import os
 import importlib
 import numpy as np
+import time
+from tabulate import tabulate
 
 from gridappsd import GridAPPSD
+from gridappsd.topics import simulation_output_topic
 
+global df_acline_measA 
 
 def start(feeder_mrid, model_api_topic, simulation_id):
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
@@ -68,53 +72,39 @@ def start(feeder_mrid, model_api_topic, simulation_id):
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
     # AC Line segement rating check
-    acline_df = sparql_mgr.acline_measurements()    
-    print(acline_df)
-    acline_df = acline_df.assign(rating = np.zeros(acline_df.shape[0]))
-    print('ACLineSegment data obtained')
+    global df_acline_measA
+    df_acline_measA = sparql_mgr.acline_measurements()    
+    print('ACLineSegment measurements obtained', flush = True)
 
-    # Get the base glm file representing a network model
-    model = sparql_mgr.get_glm()
-    glm_mgr = GLMManager(model=model, model_is_path=False)
-    model_dict = glm_mgr.model_dict
-    print('Base network model obtained')
-
-    # Find the rating from .glm and update it in the query result
-    for key, value in model_dict.items():
-        if value['object'] == 'overhead_line':
-            # Find this line in acline_df 
-            lineseg = value['name'].replace('"', '')           
-            phase = value['phases'][0]
-            try:
-                rating = value['continuous_rating_' + phase]
-            except:
-                print('Rating of line not specified in glm file')
-            ind =  acline_df.index['line_' + acline_df['eqname'] == lineseg].tolist()
-            for k in ind:
-                acline_df.loc[acline_df.index == k, 'rating'] = rating
-        if value['object'] == 'triplex_line':
-            # Find this line in acline_df 
-            lineseg = value['name'].replace('"', '')           
-            phase = value['phases'][0]
-            try:
-                rating = value['continuous_rating_' + phase]
-            except:
-                print('Rating of line not specified in glm file')
-            ind =  acline_df.index['tpx_' + acline_df['eqname'] == lineseg].tolist()
-            for k in ind:
-                acline_df.loc[acline_df.index == k, 'rating'] = rating
-    
-    # Find the actual flow from simulation output and form a new column
-    # meas_value = sim_output['message']['measurements']     
-    # acline_df = acline_df.assign(flow = np.zeros(acline_df.shape[0]))
-    # for k in range (acline_df.shape[0]):
-    #     measid = acline_df['measid'][k]
-    #     pamp = meas_value[measid]['magnitude']
-    #     acline_df['flow'][k] = pamp
-
-    print(acline_df)       
+    # Combine measurement mrids for 'A' and rating together
+    df_acline_rating = sparql_mgr.acline_rating_query() 
+    if df_acline_measA is not None:
+        df_acline_measA = df_acline_measA.assign(flow = np.zeros(df_acline_measA.shape[0]))   
+        for r in df_acline_rating.itertuples(index=False):
+            index = df_acline_measA.index[df_acline_measA['eqname'] == r.eqname].tolist()
+            rating = r.val
+            for k in index:
+                df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
+    # print(df_acline_measA)
+    print('ACLineSegment rating obtained', flush = True)
     return
 
+def on_message(headers, message):
+    global df_acline_measA
+    if type(message) == str:
+            message = json.loads(message)
+    if not message['message']['measurements']:
+        return
+    meas_value = message['message']['measurements']  
+    try: 
+        for k in range (df_acline_measA.shape[0]):
+            measid = df_acline_measA['measid'][k]
+            pamp = meas_value[measid]['magnitude']
+            df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
+        # del df_acline_measA['eqname']
+        print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'))
+    except:
+        print('AC Line Measurments for type A not available', flush = True)
 
 def _main():
     # for loading modules
@@ -124,7 +114,7 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("Application starting!!!-------------------------------------------------------")
+    print("\n \n Application starting!!!-------------------------------------------------------")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")
@@ -138,8 +128,12 @@ def _main():
     #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-
+    gapps = GridAPPSD()
     start(feeder_mrid, model_api_topic, simulation_id)
+    listening_to_topic = simulation_output_topic(simulation_id)
+    gapps.subscribe(topic = listening_to_topic, callback = on_message)
+    while True:
+        time.sleep(0.1)
 
 if __name__ == "__main__":
     _main()
