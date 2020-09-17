@@ -55,6 +55,7 @@ import pprint
 
 # gridappsd-python module
 from gridappsd import GridAPPSD
+from gridappsd.simulation import Simulation
 
 from transformer_capacity import transformer_capacity
 from ac_line_ampacity import ac_line_ampacity
@@ -62,7 +63,7 @@ from ac_line_ampacity import ac_line_ampacity
 # global variables
 gapps = None
 appName = None
-simulation_id = None
+sim_id = None
 feeder_mrid = None
 
 
@@ -79,7 +80,7 @@ def estimateCallback(header, message):
 
 
 def _main():
-    global appName, simulation_id, feeder_mrid, gapps
+    global appName, sim_id, feeder_mrid, gapps
 
     if len(sys.argv)<2 or '-help' in sys.argv:
         usestr =  '\nUsage: ' + sys.argv[0] + ' simID simReq\n'
@@ -97,11 +98,16 @@ Optional command line arguments:
         exit()
 
     appName = sys.argv[0]
-    simReq = sys.argv[1]
-    if len(sys.argv) > 2:
-        simulation_id = sys.argv[2]
 
-    # example code for processing command line arguments
+    startFlag = False
+    if sys.argv[1] == '--start':
+        startFlag = True
+        sim_config_file = './simulation_config_files/' + sys.argv[2] + '-config.json'
+    else:
+        sim_req = sys.argv[1]
+        sim_id = sys.argv[2]
+
+    # example code for processing command line arguments, not currently used
     plotConfigFlag = False
     plotBusFlag = False
     plotPhaseFlag = False
@@ -128,13 +134,21 @@ Optional command line arguments:
 
     gapps = GridAPPSD()
 
-    # interrogate simReq to determine whether to subscribe to the sensor-
-    # simulator service or to simulation output measurements
-    simDict = json.loads(simReq)
+    if startFlag:
+        with open(sim_config_file) as config_fp:
+            sim_config = json.load(config_fp)
 
-    # example code for parsing the service_configs and user_options set in
-    # the platform viz
-    for jsc in simDict['service_configs']:
+        print('MV main initializing simulation from: ' + sim_config_file, flush=True)
+        sim = Simulation(gapps, sim_config)
+        print('MV main about to start simulation...', flush=True)
+        sim.start_simulation()
+        sim_id = sim.simulation_id
+        print('MV main simulation started with id: ' + sim_id, flush=True)
+    else:
+        sim_config = json.loads(sim_req)
+
+    # example code for parsing the service_configs and user_options
+    for jsc in sim_config['service_configs']:
         if jsc['id'] == 'gridappsd-sensor-simulator':
             sensorSimulatorRunningFlag = True
         elif jsc['id'] == 'state-estimator':
@@ -142,18 +156,18 @@ Optional command line arguments:
 
     # example code to subscribe to all simulation measurements
     #gapps.subscribe('/topic/goss.gridappsd.simulation.output.' +
-    #                simulation_id, simulationCallback)
+    #                sim_id, simulationCallback)
 
     # more example code
     #gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
-    #                simulation_id, estimateCallback)
+    #                sim_id, estimateCallback)
 
     # invoke Shiva's modules
-    feeder_mrid = simDict['power_system_config']['Line_name']
+    feeder_mrid = sim_config['power_system_config']['Line_name']
     model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
 
     transformer_capacity.start(feeder_mrid, model_api_topic)
-    ac_line_ampacity.start(feeder_mrid, model_api_topic, simulation_id)
+    ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
     # depending on what we want the main model-validator main app to do,
