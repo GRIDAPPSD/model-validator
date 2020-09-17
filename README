@@ -1,0 +1,13 @@
+
+Last updated by: Gary
+Last updated on: 9/17/20
+
+
+Steps to be able to run MV modules
+----------------------------------
+
+List of Python modules to install via "pip3 install":
+    * networkx
+    * pandas
+    * tabulate
+
