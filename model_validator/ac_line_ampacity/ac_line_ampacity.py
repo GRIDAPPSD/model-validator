@@ -62,17 +62,21 @@ from gridappsd import GridAPPSD
 from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 global df_acline_measA 
+global exit_flag
+
 
 def on_message(headers, message):
+    global df_acline_measA, exit_flag
 
-    global df_acline_measA
     if type(message) == str:
             message = json.loads(message)
+
     if 'message' not in message:
-        print(message, flush = True)
-        if message['processStatus'] == 'COMPLETE':
+        if message['processStatus']=='COMPLETE' or \
+           message['processStatus']=='CLOSED':
             print('End of Simulation', flush = True)
-            sys.exit()
+            exit_flag = True
+
     else:
         meas_value = message["message"]["measurements"]
         print('Checking ACLine Rating', flush = True)
@@ -84,6 +88,7 @@ def on_message(headers, message):
             print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush = True)
         except:
             print('Simulation Output and Object MeasID Mismatch', flush = True)
+
 
 def start(feeder_mrid, model_api_topic, simulation_id):
 
@@ -108,20 +113,24 @@ def start(feeder_mrid, model_api_topic, simulation_id):
             for k in index:
                 df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
     print('ACLineSegment rating obtained', flush = True)
-    print(df_acline_measA)
+    print('df_acline_measA: ' + str(df_acline_measA), flush = True)
+
     sim_output_topic = simulation_output_topic(simulation_id)
-    log_topic = simulation_log_topic(simulation_id)
-    print(sim_output_topic,flush = True)
-    print(log_topic,flush = True)
-    
-    sim_output_topic = 'goss.gridappsd.simulation.output.' + simulation_id
-    log_topic = 'goss.gridappsd.simulation.log.' + simulation_id
+    sim_log_topic = simulation_log_topic(simulation_id)
+    print('Simulation output topic from function: ' + sim_output_topic,flush = True)
+    print('Simulation log topic from function: ' + sim_log_topic,flush = True)
 
     gapps.subscribe(topic = sim_output_topic, callback = on_message)
-    # gapps.subscribe(topic = log_topic, callback = on_message)
-    while True:
+    gapps.subscribe(topic = sim_log_topic, callback = on_message)
+    print('Subscribed to both output and log topics, waiting for messages',flush = True)
+
+    global exit_flag
+    exit_flag = False
+
+    while not exit_flag:
         time.sleep(0.1)
         
+
 def _main():
     # for loading modules
     if (os.path.isdir('shared')):
@@ -144,8 +153,8 @@ def _main():
     #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    gapps = GridAPPSD()
     start(feeder_mrid, model_api_topic, simulation_id)    
+
 
 if __name__ == "__main__":
     _main()
