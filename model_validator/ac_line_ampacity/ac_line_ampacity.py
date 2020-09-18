@@ -59,11 +59,34 @@ import time
 from tabulate import tabulate
 
 from gridappsd import GridAPPSD
-from gridappsd.topics import simulation_output_topic
+from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 global df_acline_measA 
 
+def on_message(headers, message):
+
+    global df_acline_measA
+    if type(message) == str:
+            message = json.loads(message)
+    if 'message' not in message:
+        print(message, flush = True)
+        if message['processStatus'] == 'COMPLETE':
+            print('End of Simulation', flush = True)
+            sys.exit()
+    else:
+        meas_value = message["message"]["measurements"]
+        print('Checking ACLine Rating', flush = True)
+        try:
+            for k in range (df_acline_measA.shape[0]):
+                measid = df_acline_measA['measid'][k]
+                pamp = meas_value[measid]['magnitude']
+                df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
+            print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush = True)
+        except:
+            print('Simulation Output and Object MeasID Mismatch', flush = True)
+
 def start(feeder_mrid, model_api_topic, simulation_id):
+
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
     GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
 
@@ -75,7 +98,6 @@ def start(feeder_mrid, model_api_topic, simulation_id):
     global df_acline_measA
     df_acline_measA = sparql_mgr.acline_measurements()    
     print('ACLineSegment measurements obtained', flush = True)
-
     # Combine measurement mrids for 'A' and rating together
     df_acline_rating = sparql_mgr.acline_rating_query() 
     if df_acline_measA is not None:
@@ -85,27 +107,21 @@ def start(feeder_mrid, model_api_topic, simulation_id):
             rating = r.val
             for k in index:
                 df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
-    # print(df_acline_measA)
     print('ACLineSegment rating obtained', flush = True)
-    return
+    print(df_acline_measA)
+    sim_output_topic = simulation_output_topic(simulation_id)
+    log_topic = simulation_log_topic(simulation_id)
+    print(sim_output_topic,flush = True)
+    print(log_topic,flush = True)
+    
+    sim_output_topic = 'goss.gridappsd.simulation.output.' + simulation_id
+    log_topic = 'goss.gridappsd.simulation.log.' + simulation_id
 
-def on_message(headers, message):
-    global df_acline_measA
-    if type(message) == str:
-            message = json.loads(message)
-    if not message['message']['measurements']:
-        return
-    meas_value = message['message']['measurements']  
-    try: 
-        for k in range (df_acline_measA.shape[0]):
-            measid = df_acline_measA['measid'][k]
-            pamp = meas_value[measid]['magnitude']
-            df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
-        # del df_acline_measA['eqname']
-        print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'))
-    except:
-        print('AC Line Measurments for type A not available', flush = True)
-
+    gapps.subscribe(topic = sim_output_topic, callback = on_message)
+    # gapps.subscribe(topic = log_topic, callback = on_message)
+    while True:
+        time.sleep(0.1)
+        
 def _main():
     # for loading modules
     if (os.path.isdir('shared')):
@@ -129,11 +145,7 @@ def _main():
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     gapps = GridAPPSD()
-    start(feeder_mrid, model_api_topic, simulation_id)
-    listening_to_topic = simulation_output_topic(simulation_id)
-    gapps.subscribe(topic = listening_to_topic, callback = on_message)
-    while True:
-        time.sleep(0.1)
+    start(feeder_mrid, model_api_topic, simulation_id)    
 
 if __name__ == "__main__":
     _main()
