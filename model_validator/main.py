@@ -56,6 +56,7 @@ import pprint
 # gridappsd-python module
 from gridappsd import GridAPPSD
 from gridappsd.simulation import Simulation
+from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 from transformer_capacity import transformer_capacity
 from ac_line_ampacity import ac_line_ampacity
@@ -65,18 +66,25 @@ gapps = None
 appName = None
 sim_id = None
 feeder_mrid = None
+lastStatus = None
 
 
-def simulationCallback(header, message):
+def simOutputCallback(header, message):
     msgdict = message['message']
     ts = msgdict['timestamp']
-    print(appName + ': simulation timestamp: ' + str(ts), flush=True)
+    print('MV main simulation output timestamp: ' + str(ts), flush=True)
 
 
-def estimateCallback(header, message):
-    msgdict = message['message']
-    ts = msgdict['timestamp']
-    print(appName + ': estimate timestamp: ' + str(ts), flush=True)
+def simLogCallback(header, message):
+    global lastStatus
+
+    status = message['processStatus']
+    if status != lastStatus:
+        lastStatus = status
+        print('MV main simulation status change: ' + str(status), flush=True)
+        if status=='COMPLETE' or status=='CLOSED':
+            print('MV main simulation done, exiting', flush=True)
+            sys.exit()
 
 
 def _main():
@@ -154,19 +162,20 @@ Optional command line arguments:
         elif jsc['id'] == 'state-estimator':
             useSensorsForEstimatesFlag = jsc['user_options']['use-sensors-for-estimates']
 
-    # example code to subscribe to all simulation measurements
-    #gapps.subscribe('/topic/goss.gridappsd.simulation.output.' +
-    #                sim_id, simulationCallback)
+    # example code to subscribe to simulation measurements
+    gapps.subscribe(simulation_output_topic(sim_id), simOutputCallback)
+    gapps.subscribe(simulation_log_topic(sim_id), simLogCallback)
 
-    # more example code
-    #gapps.subscribe('/topic/goss.gridappsd.state-estimator.out.' +
-    #                sim_id, estimateCallback)
-
-    # invoke Shiva's modules
     feeder_mrid = sim_config['power_system_config']['Line_name']
+    print('MV main simulation feeder_mrid: ' + feeder_mrid, flush=True)
     model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
 
+    print('MV main done with initialization, module handoff...', flush=True)
+
+    # invoke Shiva's transformer capacity module
     transformer_capacity.start(feeder_mrid, model_api_topic)
+
+    # invoke Shiva's AC line ampacity module
     ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
@@ -174,8 +183,8 @@ Optional command line arguments:
     # that could be as simple as just a while loop that calls sleep repeatedly
     # like the sample app allowing the other threads that process messages
     # to get the needed CPU time
-    #while True:
-    #    time.sleep(0.1)
+    while True:
+        time.sleep(0.1)
 
     # for an app with a GUI though, it should enter the GUI event processing
     # loop at this point
