@@ -67,6 +67,7 @@ appName = None
 sim_id = None
 feeder_mrid = None
 lastStatus = None
+exitFlag = False
 
 
 def simOutputCallback(header, message):
@@ -76,7 +77,7 @@ def simOutputCallback(header, message):
 
 
 def simLogCallback(header, message):
-    global lastStatus
+    global lastStatus, exitFlag
 
     status = message['processStatus']
     if status != lastStatus:
@@ -84,7 +85,7 @@ def simLogCallback(header, message):
         print('MV main simulation status change: ' + str(status), flush=True)
         if status=='COMPLETE' or status=='CLOSED':
             print('MV main simulation done, exiting', flush=True)
-            sys.exit()
+            exitFlag = True
 
 
 def _main():
@@ -183,7 +184,7 @@ Optional command line arguments:
     # that could be as simple as just a while loop that calls sleep repeatedly
     # like the sample app allowing the other threads that process messages
     # to get the needed CPU time
-    while True:
+    while not exitFlag:
         time.sleep(0.1)
 
     # for an app with a GUI though, it should enter the GUI event processing
@@ -192,7 +193,7 @@ Optional command line arguments:
 
     # depending on what is done to block above, this disconnect may never
     # be reached.  It will for a GUI app though so it's nice to free resources
-    #gapps.disconnect()
+    gapps.disconnect()
 
 
 if __name__ == '__main__':
