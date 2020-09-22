@@ -88,6 +88,7 @@ def on_message(headers, message):
             print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush = True)
         except:
             print('Simulation Output and Object MeasID Mismatch', flush = True)
+            exit_flag = True
 
 
 def start(feeder_mrid, model_api_topic, simulation_id):
@@ -102,18 +103,20 @@ def start(feeder_mrid, model_api_topic, simulation_id):
     # AC Line segement rating check
     global df_acline_measA
     df_acline_measA = sparql_mgr.acline_measurements()    
-    print('ACLineSegment measurements obtained', flush = True)
     # Combine measurement mrids for 'A' and rating together
     df_acline_rating = sparql_mgr.acline_rating_query() 
     if df_acline_measA is not None:
+        print('ACLineSegment measurements obtained', flush = True)
         df_acline_measA = df_acline_measA.assign(flow = np.zeros(df_acline_measA.shape[0]))   
         for r in df_acline_rating.itertuples(index=False):
             index = df_acline_measA.index[df_acline_measA['eqname'] == r.eqname].tolist()
             rating = r.val
             for k in index:
                 df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
-    print('ACLineSegment rating obtained', flush = True)
-    print('df_acline_measA: ' + str(df_acline_measA), flush = True)
+        print('ACLineSegment rating obtained', flush = True)
+        print('df_acline_measA: ' + str(df_acline_measA), flush = True)
+    else:
+        return
 
     sim_output_topic = simulation_output_topic(simulation_id)
     sim_log_topic = simulation_log_topic(simulation_id)

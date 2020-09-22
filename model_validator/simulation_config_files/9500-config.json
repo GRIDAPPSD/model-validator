@@ -15,7 +15,7 @@
     "simulator": "GridLAB-D",
     "timestep_frequency": 1000,
     "timestep_increment": 1000,
-    "run_realtime": false,
+    "run_realtime": true,
     "simulation_name": "test9500new",
     "power_flow_solver_method": "NR",
     "model_creation_config": {
