@@ -164,8 +164,8 @@ Optional command line arguments:
             useSensorsForEstimatesFlag = jsc['user_options']['use-sensors-for-estimates']
 
     # example code to subscribe to simulation measurements
-    gapps.subscribe(simulation_output_topic(sim_id), simOutputCallback)
-    gapps.subscribe(simulation_log_topic(sim_id), simLogCallback)
+    #gapps.subscribe(simulation_output_topic(sim_id), simOutputCallback)
+    #gapps.subscribe(simulation_log_topic(sim_id), simLogCallback)
 
     feeder_mrid = sim_config['power_system_config']['Line_name']
     print('MV main simulation feeder_mrid: ' + feeder_mrid, flush=True)
@@ -184,8 +184,8 @@ Optional command line arguments:
     # that could be as simple as just a while loop that calls sleep repeatedly
     # like the sample app allowing the other threads that process messages
     # to get the needed CPU time
-    while not exitFlag:
-        time.sleep(0.1)
+    #while not exitFlag:
+    #    time.sleep(0.1)
 
     # for an app with a GUI though, it should enter the GUI event processing
     # loop at this point
