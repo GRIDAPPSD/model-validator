@@ -109,13 +109,8 @@ Optional command line arguments:
 
     appName = sys.argv[0]
 
-    startFlag = False
-    if sys.argv[1] == '--start':
-        startFlag = True
-        sim_config_file = './simulation_config_files/' + sys.argv[2] + '-config.json'
-    else:
-        sim_req = sys.argv[1]
-        sim_id = sys.argv[2]
+    sim_req = sys.argv[1]
+    sim_id = sys.argv[2]
 
     # example code for processing command line arguments, not currently used
     plotConfigFlag = False
@@ -144,18 +139,7 @@ Optional command line arguments:
 
     gapps = GridAPPSD()
 
-    if startFlag:
-        with open(sim_config_file) as config_fp:
-            sim_config = json.load(config_fp)
-
-        print('MV main initializing simulation from: ' + sim_config_file, flush=True)
-        sim = Simulation(gapps, sim_config)
-        print('MV main about to start simulation...', flush=True)
-        sim.start_simulation()
-        sim_id = sim.simulation_id
-        print('MV main simulation started with id: ' + sim_id, flush=True)
-    else:
-        sim_config = json.loads(sim_req)
+    sim_config = json.loads(sim_req)
 
     # example code for parsing the service_configs and user_options
     for jsc in sim_config['service_configs']:
