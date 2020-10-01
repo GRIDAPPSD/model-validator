@@ -81,19 +81,20 @@ Optional command line arguments:
     with open(sim_config_file) as config_fp:
         sim_config = json.load(config_fp)
 
-    #print('MV sim_start initializing simulation from: ' + sim_config_file, flush=True)
+    print('MV sim_start initializing simulation from: ' + sim_config_file, flush=True)
     sim = Simulation(gapps, sim_config)
-    #print('MV sim_start about to start simulation...', flush=True)
+    print('MV sim_start about to start simulation...', flush=True)
     sim.start_simulation()
     sim_id = sim.simulation_id
-    #print('MV sim_start simulation started with id: ' + sim_id, flush=True)
+    print('MV sim_start simulation started with id: ' + sim_id, flush=True)
 
     # need to dump sim_config before passing it on to downstream modules
     # in order to convert single quotes to double quotes
     sim_req = json.dumps(sim_config)
-    print(sim_id + ' ' + sim_req, flush=True)
+    print(sim_id, file=sys.stderr, flush=True)
+    print(sim_req, file=sys.stderr, flush=True)
 
-    #print('MV sim_start done', flush=True)
+    print('MV sim_start done', flush=True)
 
     gapps.disconnect()
 
