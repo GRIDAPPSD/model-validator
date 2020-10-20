@@ -58,98 +58,64 @@ import numpy as np
 import time
 from tabulate import tabulate
 
-from gridappsd import GridAPPSD
+from gridappsd import GridAPPSD, topics
 from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
-global G, undirected_graph, loadbreaksw, exit_flag
+global G, undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status
 
-def find_all_cycles():
-    global G
-    
-    cycle_stack = []
-    output_cycles = set()
-    nodes=[list(i)[0] for i in nx.connected_components(G)]
-
-    def get_hashable_cycle(cycle):
-        m = min(cycle)
-        mi = cycle.index(m)
-        mi_plus_1 = mi + 1 if mi < len(cycle) - 1 else 0
-        if cycle[mi-1] > cycle[mi_plus_1]:
-            result = cycle[mi:] + cycle[:mi]
-        else:
-            result = list(reversed(cycle[:mi_plus_1])) + list(reversed(cycle[mi_plus_1:]))
-        return tuple(result)
-    
-    for start in nodes:
-        if start in cycle_stack:
-            continue
-        cycle_stack.append(start)
+def on_message(headers, message):
+    global exit_flag
+    print(message, flush= True)
+    exit_flag = True
         
-        stack = [(start,iter(G[start]))]
-        while stack:
-            parent,children = stack[-1]
-            try:
-                child = next(children)
-                
-                if child not in cycle_stack:
-                    cycle_stack.append(child)
-                    stack.append((child,iter(G[child])))
-                else:
-                    i = cycle_stack.index(child)
-                    if i < len(cycle_stack) - 2: 
-                        output_cycles.add(get_hashable_cycle(cycle_stack[i:]))
-                
-            except StopIteration:
-                stack.pop()
-                cycle_stack.pop()
-
-    output_cycles = list(output_cycles)  
-    return output_cycles
-
+        
 def get_topology(feeder_mrid, model_api_topic):
 
-    global G
-
-    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+    global G, measid_lbs, loadbreaksw, undirected_graph  
 
     gapps = GridAPPSD()
+    message = {"modelId": "_C1C3E687-6FFD-C753-582B-632A27E28507",
+                   "requestType": "LOOPS",
+                   "modelType": "STATIC",
+                   "resultFormat": "JSON"}
+    out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
+    gapps.subscribe(out_topic, on_message)
 
-    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
+    in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
+    gapps.send(in_topic, message)
+    print("Send the request to microservice; waiting for response \n", flush = True)
     
-    # Get graph connectivity    
-    undirected_graph = sparql_mgr.graph_query()
-    sourcebus = sparql_mgr.sourcebus_query()
-    print('Conectivity information obtained', flush = True)
+    global exit_flag
+    exit_flag = False
 
-    loadbreaksw = sparql_mgr.switch_query()
+    while not exit_flag:
+        time.sleep(0.1)
     
-    # Form a graph G(V,E)
-    G = nx.Graph()     
-    for g in undirected_graph:
-        G.add_edge(g['bus1'], g['bus2'])
-    print('Graph is formed', flush = True)
 
-    # Find number of edges and switches in each cycle
-    cycles = find_all_cycles()
-    list_of_cycles = []
-    ind = 0
-    for k in cycles:
-        switches = []  
-        for i in range(len(k)):  
-            j = (i + 1) % len(k)
-            edge = {k[i], k[j]}
-            for l in loadbreaksw:
-                check = set([l['bus1'], l['bus2']])
-                if check == edge:
-                    switches.append(l['name'])
-        loop = dict(index = ind,
-                    nEdges = len(k),
-                    nSwitches = len(switches),
-                    switches = switches)
-        list_of_cycles.append(loop)
-        ind += 1
-    print('The total number of cycles in a graph is', len(cycles), flush = True)
-    cycle = {'feeder_id': feeder_mrid, 'total_loops': len(cycles), 'loops':  list_of_cycles}
-    with open ('cycles.json', 'w') as outfile:
-        json.dump(cycle, outfile)
-    return
+
+def _main():
+    # for loading modules
+    if (os.path.isdir('shared')):
+        sys.path.append('.')
+    elif (os.path.isdir('../shared')):
+        sys.path.append('..')
+
+    #_log.debug("Starting application")
+    print("\n \n Application starting!!!-------------------------------------------------------")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--request", help="Simulation Request")
+    parser.add_argument("--simid", help="Simulation ID")
+
+    opts = parser.parse_args()
+    #listening_to_topic = simulation_output_topic(opts.simulation_id)
+    sim_request = json.loads(opts.request.replace("\'",""))
+    feeder_mrid = sim_request["power_system_config"]["Line_name"]
+    #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
+    simulation_id = opts.simid
+    #_log.debug("Simulation ID is: {}".format(simulation_mrid))
+
+    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
+    get_topology(feeder_mrid, model_api_topic, simulation_id)    
+
+if __name__ == "__main__":
+    _main()

@@ -273,3 +273,14 @@ class SPARQLManager:
         for obj in bindings:
             list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
         return list_of_dicts
+
+    def switch_meas_query(self):
+        message = {
+        "modelId": self.feeder_mrid,
+        "requestType": "QUERY_OBJECT_MEASUREMENTS",
+        "resultFormat": "JSON",
+        "objectType": "LoadBreakSwitch"}     
+        obj_msr_loadsw = self.gad.get_response(self.topic, message, timeout=30) 
+        obj_msr_loadsw = obj_msr_loadsw['data']
+        obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
+        return obj_msr_loadsw

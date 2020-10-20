@@ -60,7 +60,7 @@ from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 from transformer_capacity import transformer_capacity
 from ac_line_ampacity import ac_line_ampacity
-from topology_microservice import get_topology
+from topology import topology_module
 
 # global variables
 gapps = None
@@ -159,7 +159,8 @@ Optional command line arguments:
     print('MV main done with initialization, module handoff...', flush=True)
 
     # invoke Shiva's microservice for finding cycles in a static model
-    get_topology(feeder_mrid, model_api_topic)
+    # Expects the microservice to be running in the background
+    # topology_module.get_topology(feeder_mrid, model_api_topic)
 
     # invoke Shiva's transformer capacity module
     transformer_capacity.start(feeder_mrid, model_api_topic)
