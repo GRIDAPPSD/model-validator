@@ -65,7 +65,7 @@ global G, undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status
 
 def on_message(headers, message):
     global exit_flag
-    print(message, flush= True)
+    print('Response: ' + str(message), flush= True)
     exit_flag = True
         
         
@@ -74,6 +74,7 @@ def get_topology(feeder_mrid, model_api_topic):
     global G, measid_lbs, loadbreaksw, undirected_graph  
 
     gapps = GridAPPSD()
+    #TODO don't hardwire modelID to the 123-node model
     message = {"modelId": "_C1C3E687-6FFD-C753-582B-632A27E28507",
                    "requestType": "LOOPS",
                    "modelType": "STATIC",
@@ -83,7 +84,7 @@ def get_topology(feeder_mrid, model_api_topic):
 
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.send(in_topic, message)
-    print("Send the request to microservice; waiting for response \n", flush = True)
+    print("Sent request to microservice; waiting for response\n", flush = True)
     
     global exit_flag
     exit_flag = False
@@ -101,21 +102,19 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("\n \n Application starting!!!-------------------------------------------------------")
+    print("\n\nTopology starting!!!------------------------------------------------------------")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
-    parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
     #listening_to_topic = simulation_output_topic(opts.simulation_id)
     sim_request = json.loads(opts.request.replace("\'",""))
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
     #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
-    simulation_id = opts.simid
-    #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    get_topology(feeder_mrid, model_api_topic, simulation_id)    
+    get_topology(feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()
+

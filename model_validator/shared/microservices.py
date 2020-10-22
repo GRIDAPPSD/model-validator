@@ -217,7 +217,7 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("\n \n Application starting!!!-------------------------------------------------------")
+    print("\n\nMicroservices starting!!!-------------------------------------------------------")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")
@@ -231,7 +231,8 @@ def _main():
     #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    get_topology(feeder_mrid, model_api_topic, simulation_id)    
+    check_topology(feeder_mrid, model_api_topic, simulation_id)
 
 if __name__ == "__main__":
     _main()
+
