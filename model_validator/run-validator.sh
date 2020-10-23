@@ -23,10 +23,11 @@ fi
 # only start microservices if not already running
 if ! pgrep -f microservices.py -U $USER > /dev/null
 then
+    # TODO invoking in the background is needed to get to the main.py invocation
+    # but it also results in an issue where the underlying callback that
+    # releases the lock is not called so need to figure that out
+    #python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID"
     python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
-    # need to wait before issuing any microservices requests
-    echo "Sleeping 10 seconds to allow microservices to initialize..."
-    sleep 10
 fi
 
 ./main.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
