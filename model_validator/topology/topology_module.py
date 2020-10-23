@@ -69,13 +69,13 @@ def on_message(headers, message):
     exit_flag = True
         
         
-def get_topology(feeder_mrid, model_api_topic):
+def start(feeder_mrid, model_api_topic):
 
     global G, measid_lbs, loadbreaksw, undirected_graph  
 
     gapps = GridAPPSD()
     #TODO don't hardwire modelID to the 123-node model
-    message = {"modelId": "_C1C3E687-6FFD-C753-582B-632A27E28507",
+    message = {"modelId": feeder_mrid,
                    "requestType": "LOOPS",
                    "modelType": "STATIC",
                    "resultFormat": "JSON"}
@@ -113,7 +113,7 @@ def _main():
     #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    get_topology(feeder_mrid, model_api_topic)
+    start(feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()
