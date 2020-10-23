@@ -13,8 +13,8 @@ if [ -z "$SIMREQ" ]; then
     read -d "\n" SIMID SIMREQ <<< $(sim_starter/sim_starter.py $1)
     # need to wait after starting a simulation so that it's initialized to
     # the point it will respond to queries/subscriptions
-    echo "Sleeping 5 seconds to allow simulation to initialize..."
-    sleep 5
+    echo "Sleeping 10 seconds to allow simulation to initialize..."
+    sleep 10
 else
 #   main.py invocation when simulation is already started from platform viz
     SIMID=$1
@@ -23,11 +23,9 @@ fi
 # only start microservices if not already running
 if ! pgrep -f microservices.py -U $USER > /dev/null
 then
-    # TODO invoking in the background is needed to get to the main.py invocation
-    # but it also results in an issue where the underlying callback that
-    # releases the lock is not called so need to figure that out
-    #python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID"
     python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
+    echo "Sleeping 10 seconds to allow microservices to initialize..."
+    sleep 10
 fi
 
 ./main.py "$SIMREQ" $SIMID 2>&1 | tee validator.log

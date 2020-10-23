@@ -185,12 +185,6 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     global measid_lbs, loadbreaksw, undirected_graph, openSW
     global lock_flag, feeder_id
 
-    # TODO some issue with starting this process in the background results
-    # in the on_message callback not being called and therefore the lock is
-    # never released even though it should really be set here
-    # When this is figured out then go back to setting lock_flag here
-    #lock_flag = True
-    lock_flag = False
 
     feeder_id = feeder_mrid
     openSW = []
@@ -209,10 +203,13 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     loadbreaksw = sparql_mgr.switch_query()
     measid_lbs = sparql_mgr.switch_meas_query()
     find_all_cycles()
+
     sim_output_topic = simulation_output_topic(simulation_id)
+    gapps.subscribe(sim_output_topic, on_message)
+
+    lock_flag = True
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.subscribe(in_topic, handle_request)
-    gapps.subscribe(sim_output_topic, on_message)
 
     global exit_flag
     exit_flag = False
