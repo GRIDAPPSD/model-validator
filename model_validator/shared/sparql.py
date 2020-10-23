@@ -136,7 +136,7 @@ class SPARQLManager:
             df_acline_measA = df_acline_measA.assign(rating = np.zeros(df_acline_measA.shape[0]))
             return df_acline_measA
         except:
-            print('Current Measurments (A) are missing for ACLineSegment', flush = True)
+            print('ACLINE_MEASUREMENTS current Measurements (A) are missing for ACLineSegment', flush = True)
             return 
         
     def acline_rating_query(self):

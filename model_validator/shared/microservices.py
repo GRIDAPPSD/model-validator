@@ -63,6 +63,7 @@ from gridappsd.topics import simulation_output_topic, simulation_log_topic, serv
 
 global undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status, openSW, lock_flag, feeder_id
 
+
 def find_all_cycles():
     global undirected_graph, G, openSW, feeder_id
     G = nx.Graph()     
@@ -127,13 +128,15 @@ def find_all_cycles():
     cycles = {'feeder_id': feeder_id, 'total_loops': len(output_cycles), 'loops':  list_of_cycles}
     return cycles
 
+
 def connected():
-    global undirected_graph, G, openSW
+    global undirected_graph, G
     G = nx.Graph()     
     for g in undirected_graph:
         if g['eqname'] not in openSW:
             G.add_edge(g['bus1'], g['bus2'])    
     return nx.is_connected(G)
+
 
 def on_message(headers, message):
     global lock_flag, openSW
@@ -146,20 +149,20 @@ def on_message(headers, message):
         if p['value'] == 0:
             Loadbreak.append(d['eqname'])
     openSW = list(set(Loadbreak))
-    print("The open switches are: ", openSW, flush= True)
+    print("MICROSERVICES the open switches are: ", openSW, flush= True)
     lock_flag = False
     
-def handle_request(headers, message):
 
-    global measid_lbs, loadbreaksw, undirected_graph, openSW, G
+def handle_request(headers, message):
+    global openSW
+
     while lock_flag:
         time.sleep(0.1)
 
-    a = 'I got the request'
+    print("MICROSERVICES I got the request", flush= True)
     gapps = GridAPPSD()
-    print(a, flush= True)
+
     out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
-    print("I am sending the response", flush = True)
     if message['requestType'] == 'LOOPS':
         if message['modelType'] == 'STATIC':
             openSW = []
@@ -170,16 +173,16 @@ def handle_request(headers, message):
         response = {'Is the graph connected': connected()}
     else:
         response = 'Invalid request type'
-    gapps.send(out_topic, response)
 
+    print("MICROSERVICES I am sending the response", flush = True)
+    gapps.send(out_topic, response)
     
 
 def check_topology(feeder_mrid, model_api_topic, simulation_id):
-
-    global lock_flag, feeder_id
-    lock_flag = False
-
     global measid_lbs, loadbreaksw, undirected_graph, openSW
+    global lock_flag, feeder_id
+
+    lock_flag = False
     feeder_id = feeder_mrid
     openSW = []
 
@@ -192,7 +195,7 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     # Get graph connectivity    
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
-    print('Conectivity information obtained', flush = True)
+    print('MICROSERVICES conectivity information obtained', flush = True)
 
     loadbreaksw = sparql_mgr.switch_query()
     measid_lbs = sparql_mgr.switch_meas_query()
@@ -217,7 +220,7 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("\n\nMicroservices starting!!!-------------------------------------------------------")
+    print("\nMICROSERVICES starting!!!-------------------------------------------------------")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")

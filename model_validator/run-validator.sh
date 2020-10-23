@@ -19,13 +19,12 @@ fi
 # only start microservices if not already running
 if ! pgrep -f microservices.py -U $USER > /dev/null
 then
-    python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" >/tmp/micro.out &
+    python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
     # need to wait before issuing any microservices requests
     sleep 10
 fi
 
-python3 topology/topology_module.py --request "$SIMREQ" 2>&1 | tee validator.log
-#./main.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
+./main.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 
 # kill microservices so that it starts up with the new simulation next time
 pkill -f microservices.py -U $USER
@@ -33,3 +32,4 @@ pkill -f microservices.py -U $USER
 # standalone invoications of model validation modules
 #python3 transformer_capacity/transformer_capacity.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 ac_line_ampacity/ac_line_ampacity.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
+#python3 topology/topology_module.py --request "$SIMREQ" 2>&1 | tee validator.log

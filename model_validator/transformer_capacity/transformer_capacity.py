@@ -61,8 +61,10 @@ from gridappsd import GridAPPSD
 
 
 def start(feeder_mrid, model_api_topic):
+    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------")
+
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-    GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
+    #GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
 
     gapps = GridAPPSD()
 
@@ -70,14 +72,14 @@ def start(feeder_mrid, model_api_topic):
 
     # Get service transformer, graph connectivity, and EnergyConsumer data
     xfm_df = sparql_mgr.query_transformers()
-    print('Service transformer data obtained', flush = True)
+    print('TRANSFORMER_CAPACITY service transformer data obtained', flush = True)
 
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
-    print('Conectivity information obtained', flush = True)
+    print('TRANSFORMER_CAPACITY conectivity information obtained', flush = True)
     
     load_df = sparql_mgr.query_energyconsumer()
-    print('Load data obtained', flush = True)
+    print('TRANSFORMER_CAPACITY load data obtained', flush = True)
 
     # Form a graph G(V,E)
     G = nx.Graph()     
@@ -87,7 +89,7 @@ def start(feeder_mrid, model_api_topic):
     # TODO: For the Substation transformer, the radiality has to be enforced. 
     # For service transformer, it is assumed that there is no loop after the service xfmr
     # How to find the name of sourcebus 
-    print('The graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), "\n", flush = True)
+    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), flush = True)
     T = list(nx.bfs_tree(G, source = sourcebus).edges())
     Nodes = list(nx.bfs_tree(G, source = sourcebus).nodes())
     fr, to = zip(*T)
@@ -132,8 +134,9 @@ def start(feeder_mrid, model_api_topic):
 
     xfmr_df = pd.DataFrame(report_xfmr)
     if xfmr_df.empty:
-        print('There are no Service Transformers in the selected feeder')
+        print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder')
     else:
+        print('TRANSFORMER_CAPACITY output:')
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush = True)
     return
 
@@ -145,7 +148,6 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("\n \n Application starting!!!-------------------------------------------------------")
     #global message_period
     parser = argparse.ArgumentParser()
     #parser.add_argument("simulation_id",

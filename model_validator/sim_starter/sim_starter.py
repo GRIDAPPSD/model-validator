@@ -95,8 +95,6 @@ Optional command line arguments:
     print(sim_id, flush=True)
     print(sim_req, flush=True)
 
-    print('SIM_STARTER done', file=sys.stderr, flush=True)
-
     gapps.disconnect()
 
 

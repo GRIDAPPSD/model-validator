@@ -74,7 +74,7 @@ exitFlag = False
 def simOutputCallback(header, message):
     msgdict = message['message']
     ts = msgdict['timestamp']
-    print('MV main simulation output timestamp: ' + str(ts), flush=True)
+    print('MV_MAIN simulation output timestamp: ' + str(ts), flush=True)
 
 
 def simLogCallback(header, message):
@@ -83,9 +83,9 @@ def simLogCallback(header, message):
     status = message['processStatus']
     if status != lastStatus:
         lastStatus = status
-        print('MV main simulation status change: ' + str(status), flush=True)
+        print('MV_MAIN simulation status change: ' + str(status), flush=True)
         if status=='COMPLETE' or status=='CLOSED':
-            print('MV main simulation done, exiting', flush=True)
+            print('MV_MAIN simulation done, exiting', flush=True)
             exitFlag = True
 
 
@@ -106,6 +106,8 @@ Optional command line arguments:
         '''
         print(usestr, flush=True)
         exit()
+
+    print('\nMV_MAIN starting!!!-------------------------------------------------------------', flush=True)
 
     appName = sys.argv[0]
 
@@ -153,17 +155,16 @@ Optional command line arguments:
     #gapps.subscribe(simulation_log_topic(sim_id), simLogCallback)
 
     feeder_mrid = sim_config['power_system_config']['Line_name']
-    print('MV main simulation feeder_mrid: ' + feeder_mrid, flush=True)
+    print('MV_MAIN simulation feeder_mrid: ' + feeder_mrid, flush=True)
     model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
 
-    print('MV main done with initialization, module handoff...', flush=True)
-
-    # invoke Shiva's microservice for finding cycles in a static model
-    # Expects the microservice to be running in the background
-    # topology_module.get_topology(feeder_mrid, model_api_topic)
+    print('MV_MAIN done with initialization, module handoff...', flush=True)
 
     # invoke Shiva's transformer capacity module
     transformer_capacity.start(feeder_mrid, model_api_topic)
+
+    # invoke Shiva's topology module, which makes a microservice request
+    topology_module.start(feeder_mrid, model_api_topic)
 
     # invoke Shiva's AC line ampacity module
     ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)

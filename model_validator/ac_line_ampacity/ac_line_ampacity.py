@@ -74,24 +74,26 @@ def on_message(headers, message):
     if 'message' not in message:
         if message['processStatus']=='COMPLETE' or \
            message['processStatus']=='CLOSED':
-            print('End of Simulation', flush = True)
+            print('AC_LINE_AMPACITY End of Simulation', flush = True)
             exit_flag = True
 
     else:
         meas_value = message["message"]["measurements"]
-        print('Checking ACLine Rating', flush = True)
+        print('AC_LINE_AMPACITY checking ACLine Rating', flush = True)
         try:
             for k in range (df_acline_measA.shape[0]):
                 measid = df_acline_measA['measid'][k]
                 pamp = meas_value[measid]['magnitude']
                 df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
+            print('AC_LINE_AMPACITY output:', flush = True)
             print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush = True)
         except:
-            print('Simulation Output and Object MeasID Mismatch', flush = True)
+            print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', flush = True)
             exit_flag = True
 
 
 def start(feeder_mrid, model_api_topic, simulation_id):
+    print("\nAC_LINE_AMPACITY starting!!!----------------------------------------------------")
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
     GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
@@ -106,26 +108,26 @@ def start(feeder_mrid, model_api_topic, simulation_id):
     # Combine measurement mrids for 'A' and rating together
     df_acline_rating = sparql_mgr.acline_rating_query() 
     if df_acline_measA is not None:
-        print('ACLineSegment measurements obtained', flush = True)
+        print('AC_LINE_AMPACITY ACLineSegment measurements obtained', flush = True)
         df_acline_measA = df_acline_measA.assign(flow = np.zeros(df_acline_measA.shape[0]))   
         for r in df_acline_rating.itertuples(index=False):
             index = df_acline_measA.index[df_acline_measA['eqname'] == r.eqname].tolist()
             rating = r.val
             for k in index:
                 df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
-        print('ACLineSegment rating obtained', flush = True)
-        print('df_acline_measA: ' + str(df_acline_measA), flush = True)
+        print('AC_LINE_AMPACITY ACLineSegment rating obtained', flush = True)
+        print('AC_LINE_AMPACITY df_acline_measA: ' + str(df_acline_measA), flush = True)
     else:
         return
 
     sim_output_topic = simulation_output_topic(simulation_id)
     sim_log_topic = simulation_log_topic(simulation_id)
-    print('Simulation output topic from function: ' + sim_output_topic,flush = True)
-    print('Simulation log topic from function: ' + sim_log_topic,flush = True)
+    print('AC_LINE_AMPACITY simulation output topic from function: ' + sim_output_topic,flush = True)
+    print('AC_LINE_AMPACITY simulation log topic from function: ' + sim_log_topic,flush = True)
 
     gapps.subscribe(topic = sim_output_topic, callback = on_message)
     gapps.subscribe(topic = sim_log_topic, callback = on_message)
-    print('Subscribed to both output and log topics, waiting for messages',flush = True)
+    print('AC_LINE_AMPACITY subscribed to both output and log topics, waiting for messages',flush = True)
 
     global exit_flag
     exit_flag = False
@@ -142,7 +144,6 @@ def _main():
         sys.path.append('..')
 
     #_log.debug("Starting application")
-    print("\n \n Application starting!!!-------------------------------------------------------")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")
