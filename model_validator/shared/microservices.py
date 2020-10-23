@@ -156,6 +156,9 @@ def on_message(headers, message):
 def handle_request(headers, message):
     global openSW
 
+    if lock_flag:
+        print("MICROSERVICES waiting for lock to be opened", flush= True)
+
     while lock_flag:
         time.sleep(0.1)
 
@@ -182,7 +185,13 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     global measid_lbs, loadbreaksw, undirected_graph, openSW
     global lock_flag, feeder_id
 
+    # TODO some issue with starting this process in the background results
+    # in the on_message callback not being called and therefore the lock is
+    # never released even though it should really be set here
+    # When this is figured out then go back to setting lock_flag here
+    #lock_flag = True
     lock_flag = False
+
     feeder_id = feeder_mrid
     openSW = []
 

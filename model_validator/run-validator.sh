@@ -11,6 +11,10 @@
 if [ -z "$SIMREQ" ]; then
 #   main.py invocation when sim_starter.py will start the simulation
     read -d "\n" SIMID SIMREQ <<< $(sim_starter/sim_starter.py $1)
+    # need to wait after starting a simulation so that it's initialized to
+    # the point it will respond to queries/subscriptions
+    echo "Sleeping 5 seconds to allow simulation to initialize..."
+    sleep 5
 else
 #   main.py invocation when simulation is already started from platform viz
     SIMID=$1
@@ -21,6 +25,7 @@ if ! pgrep -f microservices.py -U $USER > /dev/null
 then
     python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
     # need to wait before issuing any microservices requests
+    echo "Sleeping 10 seconds to allow microservices to initialize..."
     sleep 10
 fi
 
