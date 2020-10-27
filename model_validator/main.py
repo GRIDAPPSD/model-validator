@@ -60,7 +60,7 @@ from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 from transformer_capacity import transformer_capacity
 from ac_line_ampacity import ac_line_ampacity
-from topology import topology_module
+from topology_validator import topology_validator
 
 # global variables
 gapps = None
@@ -164,7 +164,7 @@ Optional command line arguments:
     transformer_capacity.start(feeder_mrid, model_api_topic)
 
     # invoke Shiva's topology module, which makes a microservice request
-    topology_module.start(feeder_mrid, model_api_topic)
+    topology_validator.start(feeder_mrid, model_api_topic)
 
     # invoke Shiva's AC line ampacity module
     ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)

@@ -66,14 +66,14 @@ global G, undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status
 def on_message(headers, message):
     global exit_flag
 
-    print('\nTOPOLOGY microservice response: ' + str(message), flush= True)
+    print('\nTOPOLOGY_VALIDATOR microservice response: ' + str(message), flush= True)
     exit_flag = True
         
         
 def start(feeder_mrid, model_api_topic):
     global G, measid_lbs, loadbreaksw, undirected_graph  
 
-    print("\nTOPOLOGY starting!!!------------------------------------------------------------")
+    print("\nTOPOLOGY_VALIDATOR starting!!!------------------------------------------------------------")
 
     gapps = GridAPPSD()
     #TODO don't hardwire modelID to the 123-node model
@@ -86,7 +86,7 @@ def start(feeder_mrid, model_api_topic):
 
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.send(in_topic, message)
-    print("TOPOLOGY sent request to microservice; waiting for response\n", flush = True)
+    print("TOPOLOGY_VALIDATOR sent request to microservice; waiting for response\n", flush = True)
     
     global exit_flag
     exit_flag = False
