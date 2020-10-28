@@ -20,6 +20,12 @@ else
     SIMID=$1
 fi
 
+# for development/testing, best to kill microservices to insure we are using
+# a fresh instance for each MV invocation
+# comment out this pkill when we want to use the same microservices instance
+# for multple MV invocations
+pkill -f microservices.py -U $USER
+
 # only start microservices if not already running
 if ! pgrep -f microservices.py -U $USER > /dev/null
 then
