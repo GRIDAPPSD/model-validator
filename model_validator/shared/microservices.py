@@ -140,6 +140,7 @@ def connected():
 
 def on_message(headers, message):
     global lock_flag, openSW
+    report_lock = lock_flag
     lock_flag = True
     Loadbreak = []
     meas_value = message['message']['measurements']
@@ -150,6 +151,8 @@ def on_message(headers, message):
             Loadbreak.append(d['eqname'])
     openSW = list(set(Loadbreak))
     print("MICROSERVICES the open switches are: ", openSW, flush= True)
+    if report_lock:
+        print("MICROSERVICES clearing initial lock", flush = True)
     lock_flag = False
     
 
@@ -204,10 +207,11 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     measid_lbs = sparql_mgr.switch_meas_query()
     find_all_cycles()
 
+    lock_flag = True
+    print("MICROSERVICES setting initial lock", flush = True)
     sim_output_topic = simulation_output_topic(simulation_id)
     gapps.subscribe(sim_output_topic, on_message)
 
-    lock_flag = True
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.subscribe(in_topic, handle_request)
 
