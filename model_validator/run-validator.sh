@@ -9,14 +9,14 @@
 #SIMREQ={\"power_system_config\":{\"Line_name\":\"_AAE94E4A-2465-6F5E-37B1-3E72183A4E44\"},\"service_configs\":[{\"id\":\"state-estimator\",\"user_options\":{\"use-sensors-for-estimates\":false}}]} # test9500new using simulation
 
 if [ -z "$SIMREQ" ]; then
-#   main.py invocation when sim_starter.py will start the simulation
+#   invocation when sim_starter.py will start the simulation
     read -d "\n" SIMID SIMREQ <<< $(sim_starter/sim_starter.py $1)
     # need to wait after starting a simulation so that it's initialized to
     # the point it will respond to queries/subscriptions
     echo "Sleeping 10 seconds to allow simulation to initialize..."
     sleep 10
 else
-#   main.py invocation when simulation is already started from platform viz
+#   invocation when simulation is already started from platform viz
     SIMID=$1
 fi
 
@@ -28,7 +28,7 @@ then
     sleep 10
 fi
 
-./main.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
+./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 
 # kill microservices so that it starts up with the new simulation next time
 pkill -f microservices.py -U $USER

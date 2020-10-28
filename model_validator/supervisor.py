@@ -170,7 +170,7 @@ Optional command line arguments:
     ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
-    # depending on what we want the main model-validator main app to do,
+    # depending on what we want the model-validator supervisor to do,
     # that could be as simple as just a while loop that calls sleep repeatedly
     # like the sample app allowing the other threads that process messages
     # to get the needed CPU time
