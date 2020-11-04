@@ -59,10 +59,6 @@ from gridappsd import GridAPPSD
 from gridappsd.simulation import Simulation
 from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
-from transformer_capacity import transformer_capacity
-from ac_line_ampacity import ac_line_ampacity
-from topology_validator import topology_validator
-
 # global variables
 gapps = None
 appName = None
