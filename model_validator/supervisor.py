@@ -52,6 +52,7 @@ import time
 import json
 import math
 import pprint
+import importlib
 
 # gridappsd-python module
 from gridappsd import GridAPPSD
@@ -143,31 +144,29 @@ Optional command line arguments:
 
     sim_config = json.loads(sim_req)
 
-    # example code for parsing the service_configs and user_options
-    for jsc in sim_config['service_configs']:
-        if jsc['id'] == 'gridappsd-sensor-simulator':
-            sensorSimulatorRunningFlag = True
-        elif jsc['id'] == 'state-estimator':
-            useSensorsForEstimatesFlag = jsc['user_options']['use-sensors-for-estimates']
-
-    # example code to subscribe to simulation measurements
-    #gapps.subscribe(simulation_output_topic(sim_id), simOutputCallback)
-    #gapps.subscribe(simulation_log_topic(sim_id), simLogCallback)
-
     feeder_mrid = sim_config['power_system_config']['Line_name']
     print('MV_SUPERVISOR simulation feeder_mrid: ' + feeder_mrid, flush=True)
     model_api_topic = 'goss.gridappsd.process.request.data.powergridmodel'
 
     print('MV_SUPERVISOR done with initialization, module handoff...', flush=True)
 
-    # invoke Shiva's transformer capacity module
-    transformer_capacity.start(feeder_mrid, model_api_topic)
+    with open('modules-config.json') as mod_file:
+        mod_json = json.load(mod_file)
+        for mod in mod_json['module_configs']:
+          mod_name = mod['module']
+          op_flag = mod['operational']
 
-    # invoke Shiva's topology module, which makes a microservice request
-    topology_validator.start(feeder_mrid, model_api_topic)
+          # import the module given by the configuration file
+          mod_import = importlib.import_module(mod_name+'.'+mod_name)
+          # find the start function in the imported module
+          start_func = getattr(mod_import, 'start')
 
-    # invoke Shiva's AC line ampacity module
-    ac_line_ampacity.start(feeder_mrid, model_api_topic, sim_id)
+          # invoke start function with standardized arguments depending on
+          # whether it's a static or operational module
+          if op_flag:
+              start_func(feeder_mrid, model_api_topic, sim_id)
+          else:
+              start_func(feeder_mrid, model_api_topic)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
     # depending on what we want the model-validator supervisor to do,

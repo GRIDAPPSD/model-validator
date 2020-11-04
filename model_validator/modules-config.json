@@ -1,0 +1,7 @@
+{
+    "module_configs":[
+        {"module":"transformer_capacity", "operational":false},
+        {"module":"topology_validator", "operational":false},
+        {"module":"ac_line_ampacity", "operational":true}
+    ]
+}
