@@ -50,9 +50,9 @@ __version__ = '0.1.0'
 import sys
 import time
 import json
-import math
-import pprint
 import importlib
+
+from concurrent.futures import ThreadPoolExecutor
 
 # gridappsd-python module
 from gridappsd import GridAPPSD
@@ -86,6 +86,28 @@ def simLogCallback(header, message):
             exitFlag = True
 
 
+def start_mod(args):
+    # retrieve the arguments from the tuple
+    mod_name, op_flag, feeder_mrid, model_api_topic, sim_id = args
+
+    # import the module given by the configuration file
+    mod_import = importlib.import_module(mod_name+'.'+mod_name)
+    # find the start function in the imported module
+    start_func = getattr(mod_import, 'start')
+
+    print('MV_SUPERVISOR about to call start function for: ' + mod_name, flush=True)
+
+    try:
+        if op_flag:
+            start_func(feeder_mrid, model_api_topic, sim_id)
+        else:
+            start_func(feeder_mrid, model_api_topic)
+
+        print('MV_SUPERVISOR called start function for: ' + mod_name, flush=True)
+    except:
+        print('MV_SUPERVISOR failed to call start function for: ' + mod_name, flush=True)
+
+
 def _main():
     global appName, sim_id, feeder_mrid, gapps
 
@@ -112,29 +134,11 @@ Optional command line arguments:
     sim_id = sys.argv[2]
 
     # example code for processing command line arguments, not currently used
-    plotConfigFlag = False
-    plotBusFlag = False
-    plotPhaseFlag = False
-    plotTitleFlag = False
-    plotBusList = []
-    for arg in sys.argv:
-        if plotBusFlag:
-            plotBusList.append(arg)
-            plotBusFlag = False
-        elif plotPhaseFlag:
-            plotPhaseList.append(arg.upper())
-            plotPhaseFlag = False
-        elif plotTitleFlag:
-            plotTitle = arg
-            plotTitleFlag = False
-        elif arg == '-legend':
-            plotLegendFlag = True
-        elif arg.startswith('-mag'):
-            plotMagFlag = True
-        elif arg[0]=='-' and arg[1:].isdigit():
-            plotNumber = int(arg[1:])
-            plotStatsFlag = False
-            plotConfigFlag = False
+    #for arg in sys.argv:
+    #    if arg.startswith('-mag'):
+    #        plotMagFlag = True
+    #    elif arg[0]=='-' and arg[1:].isdigit():
+    #        plotNumber = int(arg[1:])
 
     gapps = GridAPPSD()
 
@@ -148,21 +152,24 @@ Optional command line arguments:
 
     with open('modules-config.json') as mod_file:
         mod_json = json.load(mod_file)
-        for mod in mod_json['module_configs']:
-          mod_name = mod['module']
-          op_flag = mod['operational']
 
-          # import the module given by the configuration file
-          mod_import = importlib.import_module(mod_name+'.'+mod_name)
-          # find the start function in the imported module
-          start_func = getattr(mod_import, 'start')
+        num_modules = len(mod_json['module_configs'])
+        print('MV_SUPERVISOR number of configured modules: ' + str(num_modules), flush=True)
 
-          # invoke start function with standardized arguments depending on
-          # whether it's a static or operational module
-          if op_flag:
-              start_func(feeder_mrid, model_api_topic, sim_id)
-          else:
-              start_func(feeder_mrid, model_api_topic)
+        with ThreadPoolExecutor(max_workers=num_modules) as executor:
+            for mod in mod_json['module_configs']:
+                mod_name = mod['module']
+                op_flag = mod['operational']
+
+                try:
+                    # invoke local start_mod function within its own thread,
+                    # which will then invoke the validator module start function
+                    # with standardized arguments depending on whether it's a
+                    # static or operational module
+                    future = executor.submit(start_mod, (mod_name, op_flag, feeder_mrid, model_api_topic, sim_id))
+
+                except:
+                    print('MV_SUPERVISOR unable to start thread for module: ' + mod_name, flush=True)
 
     # TODO need to block here to avoid hitting the disconnect and exiting
     # depending on what we want the model-validator supervisor to do,
