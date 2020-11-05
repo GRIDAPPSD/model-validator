@@ -62,18 +62,24 @@ from gridappsd import GridAPPSD, topics
 from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 global G, undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status
+global logfile
 
 def on_message(headers, message):
     global exit_flag
 
-    print('\nTOPOLOGY_VALIDATOR microservice response: ' + str(message), flush= True)
+    print('\nTOPOLOGY_VALIDATOR microservice response: ' + str(message), flush=True)
+    print('\nTOPOLOGY_VALIDATOR microservice response: ' + str(message), file=logfile)
     exit_flag = True
         
         
-def start(feeder_mrid, model_api_topic):
+def start(log_file, feeder_mrid, model_api_topic):
+    global logfile
+    logfile = log_file
+
     global G, measid_lbs, loadbreaksw, undirected_graph  
 
     print("\nTOPOLOGY_VALIDATOR starting!!!------------------------------------------------------------")
+    print("\nTOPOLOGY_VALIDATOR starting!!!------------------------------------------------------------", file=logfile)
 
     gapps = GridAPPSD()
     #TODO don't hardwire modelID to the 123-node model
@@ -86,7 +92,8 @@ def start(feeder_mrid, model_api_topic):
 
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.send(in_topic, message)
-    print("TOPOLOGY_VALIDATOR sent request to microservice; waiting for response\n", flush = True)
+    print("TOPOLOGY_VALIDATOR sent request to microservice; waiting for response\n", flush=True)
+    print("TOPOLOGY_VALIDATOR sent request to microservice; waiting for response\n", file=logfile)
     
     global exit_flag
     exit_flag = False
@@ -102,18 +109,17 @@ def _main():
     elif (os.path.isdir('../shared')):
         sys.path.append('..')
 
-    #_log.debug("Starting application")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
 
     opts = parser.parse_args()
-    #listening_to_topic = simulation_output_topic(opts.simulation_id)
     sim_request = json.loads(opts.request.replace("\'",""))
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
-    #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    start(feeder_mrid, model_api_topic)
+    log_file = open('topology_validator.log', 'w')
+
+    start(log_file, feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()

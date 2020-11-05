@@ -62,6 +62,7 @@ from gridappsd import GridAPPSD, topics, utils
 from gridappsd.topics import simulation_output_topic, simulation_log_topic, service_output_topic
 
 global undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status, openSW, lock_flag, feeder_id
+global logfile
 
 
 def find_all_cycles():
@@ -150,9 +151,11 @@ def on_message(headers, message):
         if p['value'] == 0:
             Loadbreak.append(d['eqname'])
     openSW = list(set(Loadbreak))
-    print("MICROSERVICES the open switches are: ", openSW, flush= True)
+    print("MICROSERVICES the open switches are: ", openSW, flush=True)
+    print("MICROSERVICES the open switches are: ", openSW, file=logfile, flush=True)
     if report_lock:
-        print("MICROSERVICES clearing initial lock", flush = True)
+        print("MICROSERVICES clearing initial lock", flush=True)
+        print("MICROSERVICES clearing initial lock", file=logfile, flush=True)
     lock_flag = False
     
 
@@ -160,12 +163,14 @@ def handle_request(headers, message):
     global openSW
 
     if lock_flag:
-        print("MICROSERVICES waiting for lock to be opened", flush= True)
+        print("MICROSERVICES waiting for lock to be opened", flush=True)
+        print("MICROSERVICES waiting for lock to be opened", file=logfile, flush=True)
 
     while lock_flag:
         time.sleep(0.1)
 
-    print("MICROSERVICES I got the request", flush= True)
+    print("MICROSERVICES I got the request", flush=True)
+    print("MICROSERVICES I got the request", file=logfile, flush=True)
     gapps = GridAPPSD()
 
     out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
@@ -180,14 +185,14 @@ def handle_request(headers, message):
     else:
         response = 'Invalid request type'
 
-    print("MICROSERVICES I am sending the response", flush = True)
+    print("MICROSERVICES I am sending the response", flush=True)
+    print("MICROSERVICES I am sending the response", file=logfile, flush=True)
     gapps.send(out_topic, response)
     
 
 def check_topology(feeder_mrid, model_api_topic, simulation_id):
     global measid_lbs, loadbreaksw, undirected_graph, openSW
     global lock_flag, feeder_id
-
 
     feeder_id = feeder_mrid
     openSW = []
@@ -201,14 +206,16 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     # Get graph connectivity    
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
-    print('MICROSERVICES conectivity information obtained', flush = True)
+    print('MICROSERVICES conectivity information obtained', flush=True)
+    print('MICROSERVICES conectivity information obtained', file=logfile, flush=True)
 
     loadbreaksw = sparql_mgr.switch_query()
     measid_lbs = sparql_mgr.switch_meas_query()
     find_all_cycles()
 
     lock_flag = True
-    print("MICROSERVICES setting initial lock", flush = True)
+    print("MICROSERVICES setting initial lock", flush=True)
+    print("MICROSERVICES setting initial lock", file=logfile, flush=True)
     sim_output_topic = simulation_output_topic(simulation_id)
     gapps.subscribe(sim_output_topic, on_message)
 
@@ -229,19 +236,20 @@ def _main():
     elif (os.path.isdir('../shared')):
         sys.path.append('..')
 
-    #_log.debug("Starting application")
+    global logfile
+    logfile = open('microservices.log', 'w')
+
     print("\nMICROSERVICES starting!!!-------------------------------------------------------")
+    print("\nMICROSERVICES starting!!!-------------------------------------------------------", file=logfile, flush=True)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
-    #listening_to_topic = simulation_output_topic(opts.simulation_id)
     sim_request = json.loads(opts.request.replace("\'",""))
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
-    #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
     simulation_id = opts.simid
-    #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     check_topology(feeder_mrid, model_api_topic, simulation_id)

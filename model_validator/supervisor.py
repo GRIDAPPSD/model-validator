@@ -53,6 +53,7 @@ import json
 import importlib
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 # gridappsd-python module
 from gridappsd import GridAPPSD
@@ -95,17 +96,22 @@ def start_mod(args):
     # find the start function in the imported module
     start_func = getattr(mod_import, 'start')
 
-    print('MV_SUPERVISOR about to call start function for: ' + mod_name, flush=True)
+    with open(mod_name+'.log', 'w') as log_file:
+        print('MV_SUPERVISOR about to call start function for: ' + mod_name, flush=True)
+        log_file.write('Supervisor starting module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
 
-    try:
-        if op_flag:
-            start_func(feeder_mrid, model_api_topic, sim_id)
-        else:
-            start_func(feeder_mrid, model_api_topic)
+        try:
+            if op_flag:
+                start_func(log_file, feeder_mrid, model_api_topic, sim_id)
+            else:
+                start_func(log_file, feeder_mrid, model_api_topic)
 
-        print('MV_SUPERVISOR called start function for: ' + mod_name, flush=True)
-    except:
-        print('MV_SUPERVISOR failed to call start function for: ' + mod_name, flush=True)
+            print('MV_SUPERVISOR finished start function for: ' + mod_name, flush=True)
+            log_file.write('Supervisor finished module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
+
+        except:
+            print('MV_SUPERVISOR failed to call start function for: ' + mod_name, flush=True)
+            log_file.write('Supervisor failed to call start function for module: ' + mod_name + '\n')
 
 
 def _main():

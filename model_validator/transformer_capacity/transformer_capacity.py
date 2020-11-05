@@ -60,8 +60,9 @@ from tabulate import tabulate
 from gridappsd import GridAPPSD
 
 
-def start(feeder_mrid, model_api_topic):
+def start(log_file, feeder_mrid, model_api_topic):
     print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------")
+    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------", file=log_file)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
     #GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
@@ -72,14 +73,17 @@ def start(feeder_mrid, model_api_topic):
 
     # Get service transformer, graph connectivity, and EnergyConsumer data
     xfm_df = sparql_mgr.query_transformers()
-    print('TRANSFORMER_CAPACITY service transformer data obtained', flush = True)
+    print('TRANSFORMER_CAPACITY service transformer data obtained', flush=True)
+    print('TRANSFORMER_CAPACITY service transformer data obtained', file=log_file)
 
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
-    print('TRANSFORMER_CAPACITY conectivity information obtained', flush = True)
+    print('TRANSFORMER_CAPACITY conectivity information obtained', flush=True)
+    print('TRANSFORMER_CAPACITY conectivity information obtained', file=log_file)
     
     load_df = sparql_mgr.query_energyconsumer()
-    print('TRANSFORMER_CAPACITY load data obtained', flush = True)
+    print('TRANSFORMER_CAPACITY load data obtained', flush=True)
+    print('TRANSFORMER_CAPACITY load data obtained', file=log_file)
 
     # Form a graph G(V,E)
     G = nx.Graph()     
@@ -89,7 +93,8 @@ def start(feeder_mrid, model_api_topic):
     # TODO: For the Substation transformer, the radiality has to be enforced. 
     # For service transformer, it is assumed that there is no loop after the service xfmr
     # How to find the name of sourcebus 
-    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), flush = True)
+    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), flush=True)
+    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), file=log_file)
     T = list(nx.bfs_tree(G, source = sourcebus).edges())
     Nodes = list(nx.bfs_tree(G, source = sourcebus).nodes())
     fr, to = zip(*T)
@@ -135,9 +140,12 @@ def start(feeder_mrid, model_api_topic):
     xfmr_df = pd.DataFrame(report_xfmr)
     if xfmr_df.empty:
         print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder')
+        print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder', file=log_file)
     else:
         print('TRANSFORMER_CAPACITY output:')
-        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush = True)
+        print('TRANSFORMER_CAPACITY output:', file=log_file)
+        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush=True)
+        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
     return
 
 def _main():
@@ -147,29 +155,22 @@ def _main():
     elif (os.path.isdir('../shared')):
         sys.path.append('..')
 
-    #_log.debug("Starting application")
     #global message_period
     parser = argparse.ArgumentParser()
-    #parser.add_argument("simulation_id",
-    #                    help="Simulation id to use for responses on the message bus.")
     parser.add_argument("--request", help="Simulation Request")
     #parser.add_argument("--message_period",
     #                    help="How often the sample app will send open/close capacitor message.",
     #                    default=DEFAULT_MESSAGE_PERIOD)
 
     opts = parser.parse_args()
-    #listening_to_topic = simulation_output_topic(opts.simulation_id)
     #message_period = int(opts.message_period)
     sim_request = json.loads(opts.request.replace("\'",""))
-    #model_mrid = sim_request["power_system_config"]["Line_name"]
-    #_log.debug("Model mrid is: {}".format(model_mrid))
-    #gapps = GridAPPSD(opts.simulation_id, address=utils.get_gridappsd_address(),
-    #                  username=utils.get_gridappsd_user(), password=utils.get_gridappsd_pass())
-
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
-    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
 
-    start(feeder_mrid, model_api_topic)
+    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
+    log_file = open('transformer_capacity.log', 'w')
+
+    start(log_file, feeder_mrid, model_api_topic)
 
 if __name__ == "__main__":
     _main()

@@ -63,6 +63,7 @@ from gridappsd.topics import simulation_output_topic, simulation_log_topic
 
 global df_acline_measA 
 global exit_flag
+global logfile
 
 
 def on_message(headers, message):
@@ -74,26 +75,35 @@ def on_message(headers, message):
     if 'message' not in message:
         if message['processStatus']=='COMPLETE' or \
            message['processStatus']=='CLOSED':
-            print('AC_LINE_AMPACITY End of Simulation', flush = True)
+            print('AC_LINE_AMPACITY End of Simulation', flush=True)
+            print('AC_LINE_AMPACITY End of Simulation', file=logfile)
             exit_flag = True
 
     else:
         meas_value = message["message"]["measurements"]
-        print('AC_LINE_AMPACITY checking ACLine Rating', flush = True)
+        print('AC_LINE_AMPACITY checking ACLine Rating', flush=True)
+        print('AC_LINE_AMPACITY checking ACLine Rating', file=logfile)
         try:
             for k in range (df_acline_measA.shape[0]):
                 measid = df_acline_measA['measid'][k]
                 pamp = meas_value[measid]['magnitude']
                 df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
             print('AC_LINE_AMPACITY output:', flush = True)
-            print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush = True)
+            print('AC_LINE_AMPACITY output:', file=logfile)
+            print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush=True)
+            print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), file=logfile)
         except:
-            print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', flush = True)
+            print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', flush=True)
+            print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', file=logfile)
             exit_flag = True
 
 
-def start(feeder_mrid, model_api_topic, simulation_id):
+def start(log_file, feeder_mrid, model_api_topic, simulation_id):
+    global logfile
+    logfile = log_file
+
     print("\nAC_LINE_AMPACITY starting!!!----------------------------------------------------")
+    print("\nAC_LINE_AMPACITY starting!!!----------------------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
     GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
@@ -104,30 +114,36 @@ def start(feeder_mrid, model_api_topic, simulation_id):
 
     # AC Line segement rating check
     global df_acline_measA
-    df_acline_measA = sparql_mgr.acline_measurements()    
+    df_acline_measA = sparql_mgr.acline_measurements(logfile)    
     # Combine measurement mrids for 'A' and rating together
     df_acline_rating = sparql_mgr.acline_rating_query() 
     if df_acline_measA is not None:
-        print('AC_LINE_AMPACITY ACLineSegment measurements obtained', flush = True)
+        print('AC_LINE_AMPACITY ACLineSegment measurements obtained', flush=True)
+        print('AC_LINE_AMPACITY ACLineSegment measurements obtained', file=logfile)
         df_acline_measA = df_acline_measA.assign(flow = np.zeros(df_acline_measA.shape[0]))   
         for r in df_acline_rating.itertuples(index=False):
             index = df_acline_measA.index[df_acline_measA['eqname'] == r.eqname].tolist()
             rating = r.val
             for k in index:
                 df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
-        print('AC_LINE_AMPACITY ACLineSegment rating obtained', flush = True)
-        print('AC_LINE_AMPACITY df_acline_measA: ' + str(df_acline_measA), flush = True)
+        print('AC_LINE_AMPACITY ACLineSegment rating obtained', flush=True)
+        print('AC_LINE_AMPACITY ACLineSegment rating obtained', file=logfile)
+        print('AC_LINE_AMPACITY df_acline_measA: ' + str(df_acline_measA), flush=True)
+        print('AC_LINE_AMPACITY df_acline_measA: ' + str(df_acline_measA), file=logfile)
     else:
         return
 
     sim_output_topic = simulation_output_topic(simulation_id)
     sim_log_topic = simulation_log_topic(simulation_id)
-    print('AC_LINE_AMPACITY simulation output topic from function: ' + sim_output_topic,flush = True)
-    print('AC_LINE_AMPACITY simulation log topic from function: ' + sim_log_topic,flush = True)
+    print('AC_LINE_AMPACITY simulation output topic from function: ' + sim_output_topic, flush=True)
+    print('AC_LINE_AMPACITY simulation output topic from function: ' + sim_output_topic, file=logfile)
+    print('AC_LINE_AMPACITY simulation log topic from function: ' + sim_log_topic, flush=True)
+    print('AC_LINE_AMPACITY simulation log topic from function: ' + sim_log_topic, file=logfile)
 
     gapps.subscribe(topic = sim_output_topic, callback = on_message)
     gapps.subscribe(topic = sim_log_topic, callback = on_message)
-    print('AC_LINE_AMPACITY subscribed to both output and log topics, waiting for messages',flush = True)
+    print('AC_LINE_AMPACITY subscribed to both output and log topics, waiting for messages', flush=True)
+    print('AC_LINE_AMPACITY subscribed to both output and log topics, waiting for messages', file=logfile)
 
     global exit_flag
     exit_flag = False
@@ -143,21 +159,19 @@ def _main():
     elif (os.path.isdir('../shared')):
         sys.path.append('..')
 
-    #_log.debug("Starting application")
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
     parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
-    #listening_to_topic = simulation_output_topic(opts.simulation_id)
     sim_request = json.loads(opts.request.replace("\'",""))
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
-    #_log.debug("Feeder mrid is: {}".format(feeder_mrid))
     simulation_id = opts.simid
-    #_log.debug("Simulation ID is: {}".format(simulation_mrid))
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    start(feeder_mrid, model_api_topic, simulation_id)    
+    log_file = open('ac_line_ampacity.log', 'w')
+
+    start(log_file, feeder_mrid, model_api_topic, simulation_id)    
 
 
 if __name__ == "__main__":
