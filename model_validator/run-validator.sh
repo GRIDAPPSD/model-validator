@@ -39,7 +39,7 @@ fi
 # kill microservices so that it starts up with the new simulation next time
 pkill -f microservices.py -U $USER
 
-# standalone invoications of model validation modules
+# standalone invocations of model validation modules
 #python3 transformer_capacity/transformer_capacity.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 ac_line_ampacity/ac_line_ampacity.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
-#python3 topology/topology_module.py --request "$SIMREQ" 2>&1 | tee validator.log
+#python3 topology_validator/topology_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
