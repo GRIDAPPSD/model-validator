@@ -3,5 +3,11 @@
         {"module":"transformer_capacity", "operational":false},
         {"module":"topology_validator", "operational":false},
         {"module":"ac_line_ampacity", "operational":true}
+    ],
+
+    "all_configs_to_swap_in_and_out_above":[
+        {"module":"transformer_capacity", "operational":false},
+        {"module":"topology_validator", "operational":false},
+        {"module":"ac_line_ampacity", "operational":true}
     ]
 }
