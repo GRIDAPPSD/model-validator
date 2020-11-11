@@ -8,13 +8,18 @@
 
 #SIMREQ={\"power_system_config\":{\"Line_name\":\"_AAE94E4A-2465-6F5E-37B1-3E72183A4E44\"},\"service_configs\":[{\"id\":\"state-estimator\",\"user_options\":{\"use-sensors-for-estimates\":false}}]} # test9500new using simulation
 
-if [ -z "$SIMREQ" ]; then
+if [[ -z "$SIMREQ" ]]; then
 #   invocation when sim_starter.py will start the simulation
     read -d "\n" SIMID SIMREQ <<< $(sim_starter/sim_starter.py $1)
     # need to wait after starting a simulation so that it's initialized to
     # the point it will respond to queries/subscriptions
-    echo "Sleeping 10 seconds to allow simulation to initialize..."
-    sleep 10
+    if [[ $1 -eq 9500 ]]; then
+        echo "Sleeping 40 seconds to allow simulation to initialize..."
+        sleep 40
+    else
+        echo "Sleeping 10 seconds to allow simulation to initialize..."
+        sleep 10
+    fi
 else
 #   invocation when simulation is already started from platform viz
     SIMID=$1
@@ -27,11 +32,15 @@ fi
 pkill -f microservices.py -U $USER
 
 # only start microservices if not already running
-if ! pgrep -f microservices.py -U $USER > /dev/null
-then
+if ! pgrep -f microservices.py -U $USER > /dev/null; then
     python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
-    echo "Sleeping 10 seconds to allow microservices to initialize..."
-    sleep 10
+    if [[ $1 -eq 9500 ]]; then
+        echo "Sleeping 40 seconds to allow microservices to initialize..."
+        sleep 40
+    else
+        echo "Sleeping 10 seconds to allow microservices to initialize..."
+        sleep 10
+    fi
 fi
 
 ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
