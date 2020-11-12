@@ -134,7 +134,8 @@ def start(log_file, feeder_mrid, model_api_topic):
             message = dict(name = xfm_name,                           
                            kVA_total = math.sqrt(totalP**2 + totalQ**2),
                            tot_loads = count,
-                           rating = float(xfm_dict['ratedS'])/1000.)
+                           rating = float(xfm_dict['ratedS'])/1000.,
+                           loading = math.sqrt(totalP**2 + totalQ**2)/(float(xfm_dict['ratedS'])/1000.))
             report_xfmr.append(message)
 
     xfmr_df = pd.DataFrame(report_xfmr)
@@ -146,6 +147,22 @@ def start(log_file, feeder_mrid, model_api_topic):
         print('TRANSFORMER_CAPACITY output:', file=log_file)
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush=True)
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
+        # Report based on loading. Remove loading which are near zero
+        loading_xfmr = []
+        Loading = [x for x in xfmr_df['loading'] if x > 0.01]
+        normal = [l for l in Loading if l < 0.90]
+        acceptable = [l for l in Loading if l >= 0.90 and l <=1]
+        needatt = [l for l in Loading if l > 1]
+        message = dict(VI = (len(Loading) -len(needatt))/len(Loading),                           
+                       Minimum = min(Loading),
+                       Maximum = max(Loading),
+                       Average = sum(Loading)/len(Loading))
+        loading_xfmr.append(message)
+        loading_df = pd.DataFrame(loading_xfmr)
+        print('TRANSFORMER_CAPACITY report:')
+        print('TRANSFORMER_CAPACITY report:', file=log_file)
+        print(tabulate(loading_df, headers = 'keys', tablefmt = 'psql'), flush=True)
+        print(tabulate(loading_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
     return
 
 def _main():
