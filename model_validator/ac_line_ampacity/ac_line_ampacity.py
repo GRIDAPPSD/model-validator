@@ -88,10 +88,28 @@ def on_message(headers, message):
                 measid = df_acline_measA['measid'][k]
                 pamp = meas_value[measid]['magnitude']
                 df_acline_measA.loc[df_acline_measA.index == k, 'flow'] = pamp
-            print('AC_LINE_AMPACITY output:', flush = True)
+                loading = float(pamp)/(float(df_acline_measA['rating'][k]))
+                df_acline_measA.loc[df_acline_measA.index == k, 'loading'] = loading
+            print('AC_LINE_AMPACITY output:', flush = True,)
             print('AC_LINE_AMPACITY output:', file=logfile)
             print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), flush=True)
             print(tabulate(df_acline_measA, headers = 'keys', tablefmt = 'psql'), file=logfile)
+            # Report based on loading. Remove loading which are near zero
+            loading_line = []
+            Loading = [x for x in df_acline_measA['loading'] if x > 0.0001]
+            normal = [l for l in Loading if l < 0.90]
+            acceptable = [l for l in Loading if l >= 0.90 and l <= 1]
+            needatt = [l for l in Loading if l > 1]
+            message = dict(VI = (len(Loading) - len(needatt))/len(Loading),                           
+                        Minimum = min(Loading),
+                        Maximum = max(Loading),
+                        Average = sum(Loading)/len(Loading))
+            loading_line.append(message)
+            loading_df = pd.DataFrame(loading_line)
+            print('AC_LINE_AMPACITY report:')
+            print('AC_LINE_AMPACITY report:', file=logfile)
+            print(tabulate(loading_df, headers = 'keys', tablefmt = 'psql'), flush=True)
+            print(tabulate(loading_df, headers = 'keys', tablefmt = 'psql'), file=logfile)
         except:
             print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', flush=True)
             print('AC_LINE_AMPACITY simulation Output and Object MeasID Mismatch', file=logfile)
