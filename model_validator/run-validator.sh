@@ -45,10 +45,11 @@ fi
 
 ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 
-# kill microservices so that it starts up with the new simulation next time
-pkill -f microservices.py -U $USER
-
-# standalone invocations of model validation modules
+# standalone invocations of model validation modules--comment out supervisor.py
+# call above if invoking any of these
 #python3 transformer_capacity/transformer_capacity.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 ac_line_ampacity/ac_line_ampacity.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
 #python3 topology_validator/topology_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+
+# kill microservices so that it starts up with the new simulation next time
+pkill -f microservices.py -U $USER
