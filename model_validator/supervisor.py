@@ -98,7 +98,7 @@ def start_mod(args):
 
     with open(mod_name+'.log', 'w') as log_file:
         print('MV_SUPERVISOR about to call start function for: ' + mod_name, flush=True)
-        log_file.write('Supervisor starting module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
+        log_file.write('MV_SUPERVISOR starting module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
 
         try:
             if op_flag:
@@ -106,12 +106,12 @@ def start_mod(args):
             else:
                 start_func(log_file, feeder_mrid, model_api_topic)
 
-            print('MV_SUPERVISOR finished start function for: ' + mod_name, flush=True)
-            log_file.write('Supervisor finished module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
+            print('MV_SUPERVISOR finished module: ' + mod_name, flush=True)
+            log_file.write('MV_SUPERVISOR finished module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
 
         except:
             print('MV_SUPERVISOR failed to call start function for: ' + mod_name, flush=True)
-            log_file.write('Supervisor failed to call start function for module: ' + mod_name + '\n')
+            log_file.write('MV_SUPERVISOR failed to call start function for: ' + mod_name + '\n')
 
 
 def _main():
