@@ -82,10 +82,10 @@ def start(log_file, feeder_mrid, model_api_topic):
     print("\nTOPOLOGY_VALIDATOR starting!!!------------------------------------------------------------", file=logfile)
 
     gapps = GridAPPSD()
-    #TODO don't hardwire modelID to the 123-node model
+    # NOTE: Use of modelType as STATIC or OPERATIONAL will change the response
     message = {"modelId": feeder_mrid,
                    "requestType": "LOOPS",
-                   "modelType": "STATIC",
+                   "modelType": "OPERATIONAL",
                    "resultFormat": "JSON"}
     out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
     gapps.subscribe(out_topic, on_message)
