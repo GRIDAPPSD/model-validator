@@ -65,26 +65,6 @@ gapps = None
 appName = None
 sim_id = None
 feeder_mrid = None
-lastStatus = None
-exitFlag = False
-
-
-def simOutputCallback(header, message):
-    msgdict = message['message']
-    ts = msgdict['timestamp']
-    print('MV_SUPERVISOR simulation output timestamp: ' + str(ts), flush=True)
-
-
-def simLogCallback(header, message):
-    global lastStatus, exitFlag
-
-    status = message['processStatus']
-    if status != lastStatus:
-        lastStatus = status
-        print('MV_SUPERVISOR simulation status change: ' + str(status), flush=True)
-        if status=='COMPLETE' or status=='CLOSED':
-            print('MV_SUPERVISOR simulation done, exiting', flush=True)
-            exitFlag = True
 
 
 def start_mod(args):
@@ -177,20 +157,7 @@ Optional command line arguments:
                 except:
                     print('MV_SUPERVISOR unable to start thread for module: ' + mod_name, flush=True)
 
-    # TODO need to block here to avoid hitting the disconnect and exiting
-    # depending on what we want the model-validator supervisor to do,
-    # that could be as simple as just a while loop that calls sleep repeatedly
-    # like the sample app allowing the other threads that process messages
-    # to get the needed CPU time
-    #while not exitFlag:
-    #    time.sleep(0.1)
-
-    # for an app with a GUI though, it should enter the GUI event processing
-    # loop at this point
-    #plt.show()
-
-    # depending on what is done to block above, this disconnect may never
-    # be reached.  It will for a GUI app though so it's nice to free resources
+    # friendly platform disconnect
     gapps.disconnect()
 
 
