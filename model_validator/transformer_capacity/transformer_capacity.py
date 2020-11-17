@@ -78,6 +78,7 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
+    openSW = sparql_mgr.opensw()
     print('TRANSFORMER_CAPACITY conectivity information obtained', flush=True)
     print('TRANSFORMER_CAPACITY conectivity information obtained', file=log_file)
     
@@ -88,7 +89,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     # Form a graph G(V,E)
     G = nx.Graph()     
     for g in undirected_graph:
-        G.add_edge(g['bus1'], g['bus2'])
+        if g['eqname'] not in openSW:
+            G.add_edge(g['bus1'], g['bus2'])
 
     # TODO: For the Substation transformer, the radiality has to be enforced. 
     # For service transformer, it is assumed that there is no loop after the service xfmr
@@ -116,9 +118,9 @@ def start(log_file, feeder_mrid, model_api_topic):
     for xfm in xfm_df.itertuples(index=False):
         xfm_dict = xfm._asdict()
         xfm_name = xfm_dict['pname']
-        if xfm_name not in checked and 'reg' not in xfm_dict['xfmrcode']:
+        if xfm_name not in checked and 'Reg' not in xfm_dict['pname']:
             index = xfm_df.pname[xfm_df.pname == xfm_name].index.tolist()
-            node = xfm_df.bus[max(index)]
+            node = xfm_df.bus[index[1]]
             checked.append(xfm_name)
             des = [node]
             children = descendant(fr, to, node, des)

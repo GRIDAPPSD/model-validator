@@ -36,25 +36,55 @@ class SPARQLManager:
     def query_transformers(self):
         """Get information on transformers in the feeder."""
         # Perform the query.
-        XFMR_QUERY = """
+        PowerTransformerEnd_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?pname ?vgrp ?enum ?bus ?ratedS ?ratedU  WHERE {
+        VALUES ?fdrid {"%s"}  # 9500 node
+        ?p c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?p r:type c:PowerTransformer.
+        ?p c:IdentifiedObject.name ?pname.
+        ?p c:PowerTransformer.vectorGroup ?vgrp.
+        ?end c:PowerTransformerEnd.PowerTransformer ?p.
+        ?end c:TransformerEnd.endNumber ?enum.
+        ?end c:PowerTransformerEnd.ratedS ?ratedS.
+        ?end c:PowerTransformerEnd.ratedU ?ratedU.
+        ?end c:PowerTransformerEnd.phaseAngleClock ?ang.
+        ?end c:PowerTransformerEnd.connectionKind ?connraw.  
+        bind(strafter(str(?connraw),"WindingConnection.") as ?conn)
+        ?end c:TransformerEnd.Terminal ?trm.
+        ?trm c:Terminal.ConnectivityNode ?cn. 
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        ORDER BY ?pname ?enum
+        """% self.feeder_mrid
+        results = self.gad.query_data(PowerTransformerEnd_QUERY)
+        bindings = results['data']['results']['bindings']
+        pte = []
+        for obj in bindings:
+            pte.append({k:v['value'] for (k, v) in obj.items()})
+        # output = pd.DataFrame(list_of_dicts)
+
+        TransformerTank_QUERY = """
         PREFIX r: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c: <http://iec.ch/TC57/CIM100#>
-        SELECT ?pname ?tname ?xfmrcode ?bus ?vgrp ?enum ?ratedS ?ratedU WHERE {
-        VALUES ?fdrid {"%s"}
+        SELECT ?pname ?vgrp ?enum ?bus  ?ratedS ?ratedU WHERE {
+        VALUES ?fdrid {"%s"} # 9500 node
         ?p r:type c:PowerTransformer.
         ?p c:Equipment.EquipmentContainer ?fdr.
         ?fdr c:IdentifiedObject.mRID ?fdrid.
         ?p c:IdentifiedObject.name ?pname.
         ?p c:PowerTransformer.vectorGroup ?vgrp.
         ?t c:TransformerTank.PowerTransformer ?p.
-        ?t c:IdentifiedObject.name ?tname.
         ?asset c:Asset.PowerSystemResources ?t.
         ?asset c:Asset.AssetInfo ?inf.
         ?inf c:IdentifiedObject.name ?xfmrcode.
         ?end c:TransformerTankEnd.TransformerTank ?t.
         ?end c:TransformerTankEnd.phases ?phsraw.
+        bind(strafter(str(?phsraw),"PhaseCode.") as ?phs)
         ?end c:TransformerEnd.endNumber ?enum.
-        ?end c:TransformerEnd.Terminal ?trm.
+        ?end c:TransformerEnd.Terminal ?trm.  
         ?trm c:Terminal.ConnectivityNode ?cn. 
         ?cn c:IdentifiedObject.name ?bus.
         ?asset c:Asset.PowerSystemResources ?t.
@@ -66,12 +96,13 @@ class SPARQLManager:
         }
         ORDER BY ?pname ?tname ?enum
         """% self.feeder_mrid
-        results = self.gad.query_data(XFMR_QUERY)
+        results = self.gad.query_data(TransformerTank_QUERY)
         bindings = results['data']['results']['bindings']
-        list_of_dicts = []
+        tte = []
         for obj in bindings:
-            list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
-        output = pd.DataFrame(list_of_dicts)
+            tte.append({k:v['value'] for (k, v) in obj.items()})
+        all_Transformers = pte + tte
+        output = pd.DataFrame(all_Transformers)
         return output
     
     def query_energyconsumer(self):
@@ -207,6 +238,33 @@ class SPARQLManager:
         for obj in bindings:
             list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
         graph_query = pd.DataFrame(list_of_dicts)
+        return list_of_dicts
+        
+    def opensw(self):
+        OPENSW_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?open WHERE {
+        ?s r:type c:LoadBreakSwitch.
+        VALUES ?fdrid {"%s"} 
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:Switch.normalOpen ?open.
+        ?t c:Terminal.ConductingEquipment ?s.
+        ?t c:Terminal.ConnectivityNode ?cn. 
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        GROUP BY ?name ?basev ?open ?fdrid ?continuous ?breaking
+        ORDER BY ?name 
+        """% self.feeder_mrid
+        results = self.gad.query_data(OPENSW_QUERY)
+        bindings = results['data']['results']['bindings']
+        list_of_dicts = []
+        for obj in bindings:
+            list_of_dicts.append({k:v['value'] for (k, v) in obj.items()})
+        # filter the open switches
+        list_of_dicts = [sw['name'] for sw in list_of_dicts if sw['open'] == 'true']
         return list_of_dicts
     
     def sourcebus_query(self):
