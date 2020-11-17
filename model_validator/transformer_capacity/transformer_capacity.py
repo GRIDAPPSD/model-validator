@@ -155,24 +155,20 @@ def start(log_file, feeder_mrid, model_api_topic):
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
         # Report based on loading. Remove loading which are near zero
         loading_xfmr = []
-        Loading = [x for x in xfmr_df['loading'] if x > 0.01]
+        Loading = [x for x in xfmr_df['loading'] if x >= 0]
         normal = [l for l in Loading if l < 0.90]
         acceptable = [l for l in Loading if l >= 0.90 and l <=1]
         needatt = [l for l in Loading if l > 1]
-        try:
-            message = dict(VI = (len(Loading) - len(needatt))/len(Loading),                           
-                        Minimum = min(Loading),
-                        Maximum = max(Loading),
-                        Average = sum(Loading)/len(Loading))
-            loading_xfmr.append(message)
-            loading_df = pd.DataFrame(loading_xfmr)
-            print('TRANSFORMER_CAPACITY report:')
-            print('TRANSFORMER_CAPACITY report:', file=log_file)
-            print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), flush=True)
-            print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), file=log_file)
-        except:
-            print('TRANSFORMER_CAPACITY unable to generate a report', flush = True)
-            print('TRANSFORMER_CAPACITY unable to generate a report:', file=log_file)
+        message = dict(VI = (len(Loading) - len(needatt))/len(Loading),                           
+                    Minimum = min(Loading),
+                    Maximum = max(Loading),
+                    Average = sum(Loading)/len(Loading))
+        loading_xfmr.append(message)
+        loading_df = pd.DataFrame(loading_xfmr)
+        print('TRANSFORMER_CAPACITY report:')
+        print('TRANSFORMER_CAPACITY report:', file=log_file)
+        print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), flush=True)
+        print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), file=log_file)
     return
 
 def _main():
