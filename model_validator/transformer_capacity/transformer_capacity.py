@@ -86,7 +86,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     print('TRANSFORMER_CAPACITY load data obtained', flush=True)
     print('TRANSFORMER_CAPACITY load data obtained', file=log_file)
 
-    # Form a graph G(V,E)
+    # Form a graph G(V,E). Exclude the open switches from CIM
+    # NOTE: This check works for planning model only.
     G = nx.Graph()     
     for g in undirected_graph:
         if g['eqname'] not in openSW:
