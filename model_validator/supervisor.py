@@ -69,7 +69,7 @@ feeder_mrid = None
 
 def start_mod(args):
     # retrieve the arguments from the tuple
-    mod_name, op_flag, feeder_mrid, model_api_topic, sim_id = args
+    mod_name, online_flag, feeder_mrid, model_api_topic, sim_id = args
 
     # import the module given by the configuration file
     mod_import = importlib.import_module(mod_name+'.'+mod_name)
@@ -81,7 +81,7 @@ def start_mod(args):
         log_file.write('MV_SUPERVISOR starting module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
 
         try:
-            if op_flag:
+            if online_flag:
                 start_func(log_file, feeder_mrid, model_api_topic, sim_id)
             else:
                 start_func(log_file, feeder_mrid, model_api_topic)
@@ -145,14 +145,15 @@ Optional command line arguments:
         with ThreadPoolExecutor(max_workers=num_modules) as executor:
             for mod in mod_json['module_configs']:
                 mod_name = mod['module']
-                op_flag = mod['operational']
+                online_flag = mod['online']
 
                 try:
                     # invoke local start_mod function within its own thread,
                     # which will then invoke the validator module start function
                     # with standardized arguments depending on whether it's a
-                    # static or operational module
-                    future = executor.submit(start_mod, (mod_name, op_flag, feeder_mrid, model_api_topic, sim_id))
+                    # offline (no simulation required) or online (needs running
+                    # simulation) module
+                    future = executor.submit(start_mod, (mod_name, online_flag, feeder_mrid, model_api_topic, sim_id))
 
                 except:
                     print('MV_SUPERVISOR unable to start thread for module: ' + mod_name, flush=True)

@@ -1,13 +1,13 @@
 {
     "module_configs":[
-        {"module":"transformer_capacity", "operational":false},
-        {"module":"topology_validator", "operational":false},
-        {"module":"ac_line_ampacity", "operational":true}
+        {"module":"transformer_capacity", "online":false},
+        {"module":"topology_validator", "online":false},
+        {"module":"ac_line_ampacity", "online":true}
     ],
 
     "all_configs_to_swap_in_and_out_above":[
-        {"module":"transformer_capacity", "operational":false},
-        {"module":"topology_validator", "operational":false},
-        {"module":"ac_line_ampacity", "operational":true}
+        {"module":"transformer_capacity", "online":false},
+        {"module":"topology_validator", "online":false},
+        {"module":"ac_line_ampacity", "online":true}
     ]
 }
