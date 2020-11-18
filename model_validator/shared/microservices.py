@@ -61,7 +61,7 @@ from tabulate import tabulate
 from gridappsd import GridAPPSD, topics, utils
 from gridappsd.topics import simulation_output_topic, simulation_log_topic, service_output_topic
 
-global undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status, openSW, lock_flag, feeder_id
+global undirected_graph, loadbreaksw, exit_flag, measid_lbs, sw_status, openSW, lock_flag, feeder_id, openSW_CIM, sourcebus
 global logfile
 
 
@@ -128,7 +128,26 @@ def find_all_cycles():
         ind += 1
     cycles = {'feeder_id': feeder_id, 'total_loops': len(output_cycles), 'loops':  list_of_cycles}
     return cycles
+    
+def graph():
+    global undirected_graph, openSW_CIM, sourcebus
+    G = nx.Graph()     
+    for g in undirected_graph:
+        if g['eqname'] not in openSW_CIM:
+            G.add_edge(g['bus1'], g['bus2'])
 
+    # TODO: For the Substation transformer, the radiality has to be enforced. 
+    # For service transformer, it is assumed that there is no loop after the service xfmr
+    # How to find the name of sourcebus 
+    print('MICROSERVICES the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), flush=True)
+    print('MICROSERVICES the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), file=logfile)
+    T = list(nx.bfs_tree(G, source = sourcebus).edges())
+    Nodes = list(nx.bfs_tree(G, source = sourcebus).nodes())
+    fr, to = zip(*T)
+    fr = list(fr)
+    to = list(to) 
+    graph_info = {'TREE': T, 'FROM': fr, 'TO':  to}
+    return graph_info
 
 def connected():
     global undirected_graph, G
@@ -173,14 +192,18 @@ def handle_request(headers, message):
     print("MICROSERVICES I got the request", file=logfile, flush=True)
     gapps = GridAPPSD()
 
-    out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
     if message['requestType'] == 'LOOPS':
+        out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
         if message['modelType'] == 'STATIC':
             openSW = []
             response = find_all_cycles()
         else:
             response = find_all_cycles()
+    elif message['requestType'] == 'GRAPH':
+        out_topic = "/topic/goss.gridappsd.model-validator.graph.out"
+        response = graph()
     elif message['requestType'] == 'ISOLATED_SECTIONS':
+        out_topic = "/topic/goss.gridappsd.model-validator.topology.out"
         response = {'Is the graph connected': connected()}
     else:
         response = 'Invalid request type'
@@ -191,7 +214,7 @@ def handle_request(headers, message):
     
 
 def check_topology(feeder_mrid, model_api_topic, simulation_id):
-    global measid_lbs, loadbreaksw, undirected_graph, openSW
+    global measid_lbs, loadbreaksw, undirected_graph, openSW, openSW_CIM, sourcebus
     global lock_flag, feeder_id
 
     feeder_id = feeder_mrid
@@ -206,6 +229,7 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     # Get graph connectivity    
     undirected_graph = sparql_mgr.graph_query()
     sourcebus = sparql_mgr.sourcebus_query()
+    openSW_CIM = sparql_mgr.opensw()
     print('MICROSERVICES conectivity information obtained', flush=True)
     print('MICROSERVICES conectivity information obtained', file=logfile, flush=True)
 
@@ -218,6 +242,9 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     print("MICROSERVICES setting initial lock", file=logfile, flush=True)
     sim_output_topic = simulation_output_topic(simulation_id)
     gapps.subscribe(sim_output_topic, on_message)
+
+    in_topic = "/topic/goss.gridappsd.model-validator.graph.in"
+    gapps.subscribe(in_topic, handle_request)
 
     in_topic = "/topic/goss.gridappsd.model-validator.topology.in"
     gapps.subscribe(in_topic, handle_request)

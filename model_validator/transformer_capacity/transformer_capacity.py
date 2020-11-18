@@ -43,15 +43,13 @@ Created on Sept 8, 2020
 @author: Shiva Poudel
 """""
 
-#from shared.sparql import SPARQLManager
-#from shared.glm import GLMManager
-
 import networkx as nx
 import pandas as pd
 import numpy as np
 import math
 import argparse
 import json
+import time
 import sys
 import os
 import importlib
@@ -59,53 +57,15 @@ from tabulate import tabulate
 
 from gridappsd import GridAPPSD
 
+global xfm_df, load_df, der_df, exit_flag
+global logfp
 
-def start(log_file, feeder_mrid, model_api_topic):
-    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------")
-    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------", file=log_file)
-
-    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-    #GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
-
-    gapps = GridAPPSD()
-
-    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
-
-    # Get service transformer, graph connectivity, and EnergyConsumer data
-    xfm_df = sparql_mgr.query_transformers()
-    print('TRANSFORMER_CAPACITY service transformer data obtained', flush=True)
-    print('TRANSFORMER_CAPACITY service transformer data obtained', file=log_file)
-
-    undirected_graph = sparql_mgr.graph_query()
-    sourcebus = sparql_mgr.sourcebus_query()
-    openSW = sparql_mgr.opensw()
-    print('TRANSFORMER_CAPACITY conectivity information obtained', flush=True)
-    print('TRANSFORMER_CAPACITY conectivity information obtained', file=log_file)
-    
-    load_df = sparql_mgr.query_energyconsumer()
-    der_df = sparql_mgr.query_der()
-    print('TRANSFORMER_CAPACITY load and DER data obtained', flush=True)
-    print('TRANSFORMER_CAPACITY load and DER data obtained', file=log_file)
-
-    # Form a graph G(V,E). Exclude the open switches from CIM
-    # NOTE: This check works for planning model only.
-    G = nx.Graph()     
-    for g in undirected_graph:
-        if g['eqname'] not in openSW:
-            G.add_edge(g['bus1'], g['bus2'])
-
-    # TODO: For the Substation transformer, the radiality has to be enforced. 
-    # For service transformer, it is assumed that there is no loop after the service xfmr
-    # How to find the name of sourcebus 
-    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), flush=True)
-    print('TRANSFORMER_CAPACITY the graph information--> Number of Nodes:', G.number_of_nodes(), 'and', " Number of Edges:", G.number_of_edges(), file=log_file)
-    T = list(nx.bfs_tree(G, source = sourcebus).edges())
-    Nodes = list(nx.bfs_tree(G, source = sourcebus).nodes())
-    fr, to = zip(*T)
-    fr = list(fr)
-    to = list(to) 
-
-    # A recursive function to find all descendent of a given node
+def callback(headers, message):
+    global exit_flag, xfm_df, load_df, der_df
+    fr = message['FROM']
+    to = message['TO']
+    print('\nTRANSFORMER_CAPACITY microservice response received', flush=True)
+    print('\nTRANSFORMER_CAPACITY microservice response received', file=logfp)
     def descendant (fr, to, node, des):
         ch = [n for n, e in enumerate(fr) if e == node]
         for k in ch:
@@ -147,24 +107,26 @@ def start(log_file, feeder_mrid, model_api_topic):
                         KVA_DER += float(der_df.iloc[k, 2])/1000.
                 except:
                     pass
+            loading_1 = math.sqrt(totalP**2 + totalQ**2)/(float(xfm_dict['ratedS'])/1000.)
+            loading_2 = KVA_DER/(float(xfm_dict['ratedS'])/1000.)
             message = dict(NAME = xfm_name,                           
-                           kVA_Load = math.sqrt(totalP**2 + totalQ**2),
-                           TOTAL_LOADS = count_Load,
+                           kVA_LOAD = math.sqrt(totalP**2 + totalQ**2),
+                           TOTAL_LOAD = count_Load,
                            kVA_DER = KVA_DER,
                            TOTAL_DER = count_DER,
                            XFMR_RATING = float(xfm_dict['ratedS'])/1000.,
-                           LOADING = math.sqrt(totalP**2 + totalQ**2)/(float(xfm_dict['ratedS'])/1000.))
+                           LOADING = max(loading_1, loading_2))
             report_xfmr.append(message)
 
     xfmr_df = pd.DataFrame(report_xfmr)
     if xfmr_df.empty:
         print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder')
-        print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder', file=log_file)
+        print('TRANSFORMER_CAPACITY there are no Service Transformers in the selected feeder', file=logfp)
     else:
         print('TRANSFORMER_CAPACITY output:')
-        print('TRANSFORMER_CAPACITY output:', file=log_file)
+        print('TRANSFORMER_CAPACITY output:', file=logfp)
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush=True)
-        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
+        print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=logfp)
         # Report based on loading. 
         loading_xfmr = []
         Loading = [x for x in xfmr_df['LOADING'] if x >= 0]
@@ -178,10 +140,54 @@ def start(log_file, feeder_mrid, model_api_topic):
         loading_xfmr.append(message)
         loading_df = pd.DataFrame(loading_xfmr)
         print('TRANSFORMER_CAPACITY report:')
-        print('TRANSFORMER_CAPACITY report:', file=log_file)
+        print('TRANSFORMER_CAPACITY report:', file=logfp)
         print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), flush=True)
-        print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), file=log_file)
-    return
+        print(tabulate(loading_df, headers = 'keys', showindex = False, tablefmt = 'psql'), file=logfp)
+    exit_flag = True
+
+def start(log_file, feeder_mrid, model_api_topic):
+    global logfp
+    logfp = log_file
+
+    global xfm_df, load_df, der_df
+    
+    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------")
+    print("\nTRANSFORMER_CAPACITY starting!!!------------------------------------------------", file=logfp)
+
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+
+    gapps = GridAPPSD()
+
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
+
+    # Get transformer data
+    xfm_df = sparql_mgr.query_transformers()
+    print('TRANSFORMER_CAPACITY transformer data obtained', flush=True)
+    print('TRANSFORMER_CAPACITY transformer data obtained', file=logfp)
+    
+    load_df = sparql_mgr.query_energyconsumer()
+    der_df = sparql_mgr.query_der()
+    print('TRANSFORMER_CAPACITY load and DER data obtained', flush=True)
+    print('TRANSFORMER_CAPACITY load and DER data obtained', file=logfp)
+
+    # Subscribe to microservice for getting the graph information
+    message = {"modelId": feeder_mrid,
+                   "requestType": "GRAPH",
+                   "modelType": "STATIC",
+                   "resultFormat": "JSON"}
+    out_topic = "/topic/goss.gridappsd.model-validator.graph.out"
+    gapps.subscribe(out_topic, callback)
+
+    in_topic = "/topic/goss.gridappsd.model-validator.graph.in"
+    gapps.send(in_topic, message)
+    print("TRANSFORMER_CAPACITY sent request to microservice; waiting for response\n", flush=True)
+    print("TRANSFORMER_CAPACITY sent request to microservice; waiting for response\n", file=logfp)
+
+    global exit_flag
+    exit_flag = False
+
+    while not exit_flag:
+        time.sleep(0.1)
 
 def _main():
     # for loading modules
