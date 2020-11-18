@@ -83,8 +83,9 @@ def start(log_file, feeder_mrid, model_api_topic):
     print('TRANSFORMER_CAPACITY conectivity information obtained', file=log_file)
     
     load_df = sparql_mgr.query_energyconsumer()
-    print('TRANSFORMER_CAPACITY load data obtained', flush=True)
-    print('TRANSFORMER_CAPACITY load data obtained', file=log_file)
+    der_df = sparql_mgr.query_der()
+    print('TRANSFORMER_CAPACITY load and DER data obtained', flush=True)
+    print('TRANSFORMER_CAPACITY load and DER data obtained', file=log_file)
 
     # Form a graph G(V,E). Exclude the open switches from CIM
     # NOTE: This check works for planning model only.
@@ -130,18 +131,29 @@ def start(log_file, feeder_mrid, model_api_topic):
             children = descendant(fr, to, node, des)
             totalP = 0.
             totalQ = 0.
-            count = 0
+            count_Load = 0
+            count_DER = 0
+            KVA_DER = 0
             for n in children:
-                index = load_df.bus[load_df.bus == n].index.tolist()
-                for k in index:
-                    count += 1
+                index_load = load_df.bus[load_df.bus == n].index.tolist()
+                for k in index_load:
+                    count_Load += 1
                     totalP += float(load_df.iloc[k, 3])/1000.
                     totalQ += float(load_df.iloc[k, 4])/1000.
-            message = dict(name = xfm_name,                           
-                           kVA_total = math.sqrt(totalP**2 + totalQ**2),
-                           tot_loads = count,
-                           rating = float(xfm_dict['ratedS'])/1000.,
-                           loading = math.sqrt(totalP**2 + totalQ**2)/(float(xfm_dict['ratedS'])/1000.))
+                try:
+                    index_der = der_df.bus[der_df.bus == n].index.tolist()
+                    for k in index_der:
+                        count_DER += 1
+                        KVA_DER += float(der_df.iloc[k, 2])/1000.
+                except:
+                    pass
+            message = dict(NAME = xfm_name,                           
+                           kVA_Load = math.sqrt(totalP**2 + totalQ**2),
+                           TOTAL_LOADS = count_Load,
+                           kVA_DER = KVA_DER,
+                           TOTAL_DER = count_DER,
+                           XFMR_RATING = float(xfm_dict['ratedS'])/1000.,
+                           LOADING = math.sqrt(totalP**2 + totalQ**2)/(float(xfm_dict['ratedS'])/1000.))
             report_xfmr.append(message)
 
     xfmr_df = pd.DataFrame(report_xfmr)
@@ -153,16 +165,16 @@ def start(log_file, feeder_mrid, model_api_topic):
         print('TRANSFORMER_CAPACITY output:', file=log_file)
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), flush=True)
         print(tabulate(xfmr_df, headers = 'keys', tablefmt = 'psql'), file=log_file)
-        # Report based on loading. Remove loading which are near zero
+        # Report based on loading. 
         loading_xfmr = []
-        Loading = [x for x in xfmr_df['loading'] if x >= 0]
+        Loading = [x for x in xfmr_df['LOADING'] if x >= 0]
         normal = [l for l in Loading if l < 0.90]
         acceptable = [l for l in Loading if l >= 0.90 and l <=1]
         needatt = [l for l in Loading if l > 1]
         message = dict(VI = (len(Loading) - len(needatt))/len(Loading),                           
-                    Minimum = min(Loading),
-                    Maximum = max(Loading),
-                    Average = sum(Loading)/len(Loading))
+                    MINIMUM = min(Loading),
+                    MAXIMUM = max(Loading),
+                    AVERAGE = sum(Loading)/len(Loading))
         loading_xfmr.append(message)
         loading_df = pd.DataFrame(loading_xfmr)
         print('TRANSFORMER_CAPACITY report:')

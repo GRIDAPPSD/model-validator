@@ -105,6 +105,60 @@ class SPARQLManager:
         output = pd.DataFrame(all_Transformers)
         return output
     
+    def query_der(self):
+        """Get information on all kinds of DERs in the feeder."""
+        # Perform the query.
+        inv_der_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?bus ?ratedS ?ratedU WHERE {
+        VALUES ?fdrid {"%s"}
+        ?s r:type c:PowerElectronicsConnection.
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:IdentifiedObject.mRID ?id.
+        ?s c:PowerElectronicsConnection.ratedS ?ratedS.
+        ?s c:PowerElectronicsConnection.ratedS ?ratedU.
+        ?t c:Terminal.ConductingEquipment ?s.
+        ?t c:Terminal.ConnectivityNode ?cn. 
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        ORDER BY ?name
+        """% self.feeder_mrid
+        results = self.gad.query_data(inv_der_QUERY)
+        bindings = results['data']['results']['bindings']
+        inv_der = []
+        for obj in bindings:
+            inv_der.append({k:v['value'] for (k, v) in obj.items()})
+
+        dermachine_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?bus ?ratedS ?ratedU WHERE {
+        VALUES ?fdrid {"%s"}
+        ?s r:type c:SynchronousMachine.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?s c:SynchronousMachine.ratedS ?ratedS.
+        ?s c:SynchronousMachine.ratedU ?ratedU.
+        ?t c:Terminal.ConductingEquipment ?s.
+        ?t c:Terminal.ConnectivityNode ?cn. 
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        GROUP by ?name ?bus ?ratedS ?ratedU ?p ?q ?id ?fdrid
+        ORDER by ?name
+        """% self.feeder_mrid
+        results = self.gad.query_data(dermachine_QUERY)
+        bindings = results['data']['results']['bindings']
+        machine_der = []
+        for obj in bindings:
+            machine_der.append({k:v['value'] for (k, v) in obj.items()})
+        all_der = inv_der + machine_der
+        output = pd.DataFrame(all_der)
+        return output
+    
     def query_energyconsumer(self):
         """Get information on loads in the feeder."""
         # Perform the query.
