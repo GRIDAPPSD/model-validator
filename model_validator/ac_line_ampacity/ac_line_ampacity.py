@@ -44,7 +44,6 @@ Created on Sept 8, 2020
 """""
 
 #from shared.sparql import SPARQLManager
-#from shared.glm import GLMManager
 
 import networkx as nx
 import pandas as pd
@@ -124,7 +123,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     print("\nAC_LINE_AMPACITY starting!!!----------------------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-    GLMManager = getattr(importlib.import_module('shared.glm'), 'GLMManager')
 
     gapps = GridAPPSD()
 
