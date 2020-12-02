@@ -402,15 +402,13 @@ class SPARQLManager:
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT ?name ?basev ?bus1 ?bus2 ?len ?lname ?fdrid ?seq ?phs
+        SELECT ?name ?bus1 ?bus2 ?len ?lname ?phs
         WHERE {
         VALUES ?fdrid {"%s"}
          ?s r:type c:ACLineSegment.
          ?s c:Equipment.EquipmentContainer ?fdr.
          ?fdr c:IdentifiedObject.mRID ?fdrid.
          ?s c:IdentifiedObject.name ?name.
-         ?s c:ConductingEquipment.BaseVoltage ?bv.
-         ?bv c:BaseVoltage.nominalVoltage ?basev.
          ?s c:Conductor.length ?len.
          ?s c:ACLineSegment.PerLengthImpedance ?lcode.
          ?lcode c:IdentifiedObject.name ?lname.
@@ -427,7 +425,7 @@ class SPARQLManager:
            ?acp c:ACLineSegmentPhase.sequenceNumber ?seq.
              bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs)}
         }
-        ORDER BY ?name ?seq ?phs
+        ORDER BY ?name ?phs
         """% self.feeder_mrid
 
         results = self.gad.query_data(LINES_QUERY)
