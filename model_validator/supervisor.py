@@ -90,8 +90,8 @@ def start_mod(args):
             log_file.write('MV_SUPERVISOR finished module: ' + mod_name + ' at: ' + str(datetime.now()) + '\n')
 
         except:
-            print('MV_SUPERVISOR failed to call start function for: ' + mod_name, flush=True)
-            log_file.write('MV_SUPERVISOR failed to call start function for: ' + mod_name + '\n')
+            print('MV_SUPERVISOR exception during call to start function for: ' + mod_name, flush=True)
+            log_file.write('MV_SUPERVISOR exception during call to start function for: ' + mod_name + '\n')
 
 
 def _main():
