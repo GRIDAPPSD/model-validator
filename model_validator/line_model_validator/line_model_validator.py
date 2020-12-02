@@ -59,7 +59,6 @@ from tabulate import tabulate
 
 from gridappsd import GridAPPSD
 
-global df_acline_measA 
 global logfile
 
 
@@ -76,29 +75,22 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    # AC Line segement rating check
-    global df_acline_measA
-    df_acline_measA = sparql_mgr.acline_measurements(logfile)    
-    # Combine measurement mrids for 'A' and rating together
-    df_acline_rating = sparql_mgr.acline_rating_query() 
-    if df_acline_measA is not None:
-        print('LINE_MODEL_VALIDATOR ACLineSegment measurements obtained', flush=True)
-        print('LINE_MODEL_VALIDATOR ACLineSegment measurements obtained', file=logfile)
-        df_acline_measA = df_acline_measA.assign(flow = np.zeros(df_acline_measA.shape[0]))   
-        for r in df_acline_rating.itertuples(index=False):
-            index = df_acline_measA.index[df_acline_measA['eqname'] == r.eqname].tolist()
-            rating = r.val
-            for k in index:
-                df_acline_measA.loc[df_acline_measA.index == k, 'rating'] = rating
-        print('LINE_MODEL_VALIDATOR ACLineSegment rating obtained', flush=True)
-        print('LINE_MODEL_VALIDATOR ACLineSegment rating obtained', file=logfile)
-        print('LINE_MODEL_VALIDATOR df_acline_measA: ' + str(df_acline_measA), flush=True)
-        print('LINE_MODEL_VALIDATOR df_acline_measA: ' + str(df_acline_measA), file=logfile)
-    else:
-        return
+    bindings = sparql_mgr.perLengthImpedence_lines_query()
+    print('LINE_MODEL_VALIDATOR lines query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR lines query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    bindings = sparql_mgr.perLengthImpedence_values_query()
+    print('LINE_MODEL_VALIDATOR values query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR values query results:', file=logfile)
+    print(bindings, file=logfile)
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
+
+    return
 
 
 def _main():

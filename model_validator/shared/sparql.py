@@ -397,3 +397,67 @@ class SPARQLManager:
         obj_msr_loadsw = obj_msr_loadsw['data']
         obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
         return obj_msr_loadsw
+
+    def perLengthImpedence_lines_query(self):
+        LINES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?basev ?bus1 ?bus2 ?len ?lname ?fdrid ?seq ?phs
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?s r:type c:ACLineSegment.
+         ?s c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?s c:IdentifiedObject.name ?name.
+         ?s c:ConductingEquipment.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?basev.
+         ?s c:Conductor.length ?len.
+         ?s c:ACLineSegment.PerLengthImpedance ?lcode.
+         ?lcode c:IdentifiedObject.name ?lname.
+         ?t1 c:Terminal.ConductingEquipment ?s.
+         ?t1 c:Terminal.ConnectivityNode ?cn1.
+         ?t1 c:ACDCTerminal.sequenceNumber "1".
+         ?cn1 c:IdentifiedObject.name ?bus1.
+         ?t2 c:Terminal.ConductingEquipment ?s.
+         ?t2 c:Terminal.ConnectivityNode ?cn2.
+         ?t2 c:ACDCTerminal.sequenceNumber "2".
+         ?cn2 c:IdentifiedObject.name ?bus2.
+         OPTIONAL {?acp c:ACLineSegmentPhase.ACLineSegment ?s.
+           ?acp c:ACLineSegmentPhase.phase ?phsraw.
+           ?acp c:ACLineSegmentPhase.sequenceNumber ?seq.
+             bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs)}
+        }
+        ORDER BY ?name ?seq ?phs
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(LINES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def perLengthImpedence_values_query(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT DISTINCT ?name ?cnt ?row ?col ?r ?x ?b WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq r:type c:ACLineSegment.
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?eq c:ACLineSegment.PerLengthImpedance ?s.
+         ?s r:type c:PerLengthPhaseImpedance.
+         ?s c:IdentifiedObject.name ?name.
+         ?s c:PerLengthPhaseImpedance.conductorCount ?cnt.
+         ?elm c:PhaseImpedanceData.PhaseImpedance ?s.
+         ?elm c:PhaseImpedanceData.row ?row.
+         ?elm c:PhaseImpedanceData.column ?col.
+         ?elm c:PhaseImpedanceData.r ?r.
+         ?elm c:PhaseImpedanceData.x ?x.
+         ?elm c:PhaseImpedanceData.b ?b
+        }
+        ORDER BY ?name ?row ?col
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
