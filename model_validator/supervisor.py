@@ -117,7 +117,9 @@ Optional command line arguments:
     appName = sys.argv[0]
 
     sim_req = sys.argv[1]
-    sim_id = sys.argv[2]
+
+    if len(sys.argv)>2:
+        sim_id = sys.argv[2]
 
     # example code for processing command line arguments, not currently used
     #for arg in sys.argv:
