@@ -75,17 +75,73 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    bindings = sparql_mgr.perLengthImpedence_lines_query()
-    print('LINE_MODEL_VALIDATOR lines query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR lines query results:', file=logfile)
-    print(bindings, file=logfile)
+    bindings = sparql_mgr.perLengthImpedence_line_configs()
+    #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR line_configs query results:', file=logfile)
+    #print(bindings, file=logfile)
 
-    bindings = sparql_mgr.perLengthImpedence_values_query()
-    print('LINE_MODEL_VALIDATOR values query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR values query results:', file=logfile)
-    print(bindings, file=logfile)
+    Zabc = {}
+    zeroi = complex(0,0)
+    for obj in bindings:
+        line_config = obj['line_config']['value']
+        count = int(obj['count']['value'])
+        row = int(obj['row']['value'])
+        col = int(obj['col']['value'])
+        r_ohm_per_m = float(obj['r_ohm_per_m']['value'])
+        x_ohm_per_m = float(obj['x_ohm_per_m']['value'])
+        b_S_per_m = float(obj['b_S_per_m']['value'])
+        #print('line_config: ' + line_config + ', count: ' + str(count) + ', row: ' + str(row) + ', col: ' + str(col) + ', r_ohm_per_m: ' + str(r_ohm_per_m) + ', x_ohm_per_m: ' + str(x_ohm_per_m) + ', b_S_per_m: ' + str(b_S_per_m))
+
+        if line_config not in Zabc:
+            if count == 1:
+                Zabc[line_config] = [[zeroi]]
+            elif count == 2:
+                Zabc[line_config] = [[zeroi, zeroi],[zeroi, zeroi]]
+            elif count == 3:
+                Zabc[line_config] = [[zeroi, zeroi, zeroi],[zeroi, zeroi, zeroi],[zeroi, zeroi, zeroi]]
+
+        Zabc[line_config][row-1][col-1] = complex(r_ohm_per_m, x_ohm_per_m)
+        if row != col:
+            Zabc[line_config][col-1][row-1] = complex(r_ohm_per_m, x_ohm_per_m)
+
+    for line_config in Zabc:
+        print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
+    print('')
+
+    bindings = sparql_mgr.perLengthImpedence_line_names()
+    #print('LINE_MODEL_VALIDATOR line_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    perLengthImpedenceLines = {}
+    for obj in bindings:
+        line_name = obj['line_name']['value']
+        bus1 = obj['bus1']['value']
+        bus2 = obj['bus2']['value']
+        length = float(obj['length']['value'])
+        line_config = obj['line_config']['value']
+        phase = obj['phase']['value']
+        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', phase: ' + phase)
+
+        if line_name not in perLengthImpedenceLines:
+            if line_config in Zabc:
+                # must use copy or it will modify the original Zabc instance
+                Zlength = Zabc[line_config].copy()
+                rowidx = 0
+                for row in Zlength:
+                    colidx = 0
+                    for colval in row:
+                        Zlength[rowidx][colidx] = colval*length
+                        colidx += 1
+                    rowidx += 1
+
+                perLengthImpedenceLines[line_name] = Zlength
+
+    for line_name in perLengthImpedenceLines:
+        print('perLengthImpedenceLines[' + line_name + ']: ' + str(perLengthImpedenceLines[line_name]))
+    print('')
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)

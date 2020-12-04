@@ -398,20 +398,20 @@ class SPARQLManager:
         obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
         return obj_msr_loadsw
 
-    def perLengthImpedence_lines_query(self):
+    def perLengthImpedence_line_names(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT ?name ?bus1 ?bus2 ?len ?lname ?phs
+        SELECT ?line_name ?bus1 ?bus2 ?length ?line_config ?phase
         WHERE {
         VALUES ?fdrid {"%s"}
          ?s r:type c:ACLineSegment.
          ?s c:Equipment.EquipmentContainer ?fdr.
          ?fdr c:IdentifiedObject.mRID ?fdrid.
-         ?s c:IdentifiedObject.name ?name.
-         ?s c:Conductor.length ?len.
+         ?s c:IdentifiedObject.name ?line_name.
+         ?s c:Conductor.length ?length.
          ?s c:ACLineSegment.PerLengthImpedance ?lcode.
-         ?lcode c:IdentifiedObject.name ?lname.
+         ?lcode c:IdentifiedObject.name ?line_config.
          ?t1 c:Terminal.ConductingEquipment ?s.
          ?t1 c:Terminal.ConnectivityNode ?cn1.
          ?t1 c:ACDCTerminal.sequenceNumber "1".
@@ -423,36 +423,36 @@ class SPARQLManager:
          OPTIONAL {?acp c:ACLineSegmentPhase.ACLineSegment ?s.
            ?acp c:ACLineSegmentPhase.phase ?phsraw.
            ?acp c:ACLineSegmentPhase.sequenceNumber ?seq.
-             bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs)}
+             bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phase)}
         }
-        ORDER BY ?name ?phs
+        ORDER BY ?line_name ?phase
         """% self.feeder_mrid
 
         results = self.gad.query_data(LINES_QUERY)
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def perLengthImpedence_values_query(self):
+    def perLengthImpedence_line_configs(self):
         VALUES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT DISTINCT ?name ?cnt ?row ?col ?r ?x ?b WHERE {
+        SELECT DISTINCT ?line_config ?count ?row ?col ?r_ohm_per_m ?x_ohm_per_m ?b_S_per_m WHERE {
         VALUES ?fdrid {"%s"}
          ?eq r:type c:ACLineSegment.
          ?eq c:Equipment.EquipmentContainer ?fdr.
          ?fdr c:IdentifiedObject.mRID ?fdrid.
          ?eq c:ACLineSegment.PerLengthImpedance ?s.
          ?s r:type c:PerLengthPhaseImpedance.
-         ?s c:IdentifiedObject.name ?name.
-         ?s c:PerLengthPhaseImpedance.conductorCount ?cnt.
+         ?s c:IdentifiedObject.name ?line_config.
+         ?s c:PerLengthPhaseImpedance.conductorCount ?count.
          ?elm c:PhaseImpedanceData.PhaseImpedance ?s.
          ?elm c:PhaseImpedanceData.row ?row.
          ?elm c:PhaseImpedanceData.column ?col.
-         ?elm c:PhaseImpedanceData.r ?r.
-         ?elm c:PhaseImpedanceData.x ?x.
-         ?elm c:PhaseImpedanceData.b ?b
+         ?elm c:PhaseImpedanceData.r ?r_ohm_per_m.
+         ?elm c:PhaseImpedanceData.x ?x_ohm_per_m.
+         ?elm c:PhaseImpedanceData.b ?b_S_per_m
         }
-        ORDER BY ?name ?row ?col
+        ORDER BY ?line_config ?row ?col
         """% self.feeder_mrid
 
         results = self.gad.query_data(VALUES_QUERY)
