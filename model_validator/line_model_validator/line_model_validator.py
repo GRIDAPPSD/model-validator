@@ -82,7 +82,6 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print(bindings, file=logfile)
 
     Zabc = {}
-    zeroi = complex(0,0)
     for obj in bindings:
         line_config = obj['line_config']['value']
         count = int(obj['count']['value'])
@@ -95,15 +94,15 @@ def start(log_file, feeder_mrid, model_api_topic):
 
         if line_config not in Zabc:
             if count == 1:
-                Zabc[line_config] = [[zeroi]]
+                Zabc[line_config] = np.zeros((1,1), dtype=complex)
             elif count == 2:
-                Zabc[line_config] = [[zeroi, zeroi],[zeroi, zeroi]]
+                Zabc[line_config] = np.zeros((2,2), dtype=complex)
             elif count == 3:
-                Zabc[line_config] = [[zeroi, zeroi, zeroi],[zeroi, zeroi, zeroi],[zeroi, zeroi, zeroi]]
+                Zabc[line_config] = np.zeros((3,3), dtype=complex)
 
-        Zabc[line_config][row-1][col-1] = complex(r_ohm_per_m, x_ohm_per_m)
+        Zabc[line_config][row-1,col-1] = complex(r_ohm_per_m, x_ohm_per_m)
         if row != col:
-            Zabc[line_config][col-1][row-1] = complex(r_ohm_per_m, x_ohm_per_m)
+            Zabc[line_config][col-1,row-1] = complex(r_ohm_per_m, x_ohm_per_m)
 
     for line_config in Zabc:
         print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
@@ -125,19 +124,8 @@ def start(log_file, feeder_mrid, model_api_topic):
         phase = obj['phase']['value']
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', phase: ' + phase)
 
-        if line_name not in perLengthImpedenceLines:
-            if line_config in Zabc:
-                # must use copy or it will modify the original Zabc instance
-                Zlength = Zabc[line_config].copy()
-                rowidx = 0
-                for row in Zlength:
-                    colidx = 0
-                    for colval in row:
-                        Zlength[rowidx][colidx] = colval*length
-                        colidx += 1
-                    rowidx += 1
-
-                perLengthImpedenceLines[line_name] = Zlength
+        if line_name not in perLengthImpedenceLines and line_config in Zabc:
+            perLengthImpedenceLines[line_name] = Zabc[line_config] * length
 
     for line_name in perLengthImpedenceLines:
         print('perLengthImpedenceLines[' + line_name + ']: ' + str(perLengthImpedenceLines[line_name]))
