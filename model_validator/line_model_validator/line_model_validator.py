@@ -125,7 +125,15 @@ def start(log_file, feeder_mrid, model_api_topic):
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', phase: ' + phase)
 
         if line_name not in perLengthImpedenceLines and line_config in Zabc:
-            perLengthImpedenceLines[line_name] = Zabc[line_config] * length
+            # multiply by scalar length
+            lenZabc = Zabc[line_config] * length
+            # invert the matrix
+            invZabc = np.linalg.inv(lenZabc)
+            # test if the inverse * original = identity
+            #identityTest = np.dot(lenZabc, invZabc)
+            #print('identity test for ' + line_name + ': ' + str(identityTest))
+            # negate the matrix and assign it back to the dictionary
+            perLengthImpedenceLines[line_name] = invZabc * -1
 
     for line_name in perLengthImpedenceLines:
         print('perLengthImpedenceLines[' + line_name + ']: ' + str(perLengthImpedenceLines[line_name]))
