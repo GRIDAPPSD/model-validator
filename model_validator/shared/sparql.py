@@ -459,3 +459,13 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
+    def ybus_export(self):
+        message = {
+        "configurationType": "YBus Export",
+        "parameters": {
+            "model_id": self.feeder_mrid}
+        }
+
+        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=180)
+        return results['data']['yParse'],results['data']['nodeList']
+

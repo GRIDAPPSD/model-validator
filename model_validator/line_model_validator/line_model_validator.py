@@ -122,7 +122,7 @@ def start(log_file, feeder_mrid, model_api_topic):
         length = float(obj['length']['value'])
         line_config = obj['line_config']['value']
         phase = obj['phase']['value']
-        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', phase: ' + phase)
+        print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name not in perLengthImpedenceLines and line_config in Zabc:
             # multiply by scalar length
@@ -138,6 +138,10 @@ def start(log_file, feeder_mrid, model_api_topic):
     for line_name in perLengthImpedenceLines:
         print('perLengthImpedenceLines[' + line_name + ']: ' + str(perLengthImpedenceLines[line_name]))
     print('')
+
+    ybus,nodelist = sparql_mgr.ybus_export()
+    print(ybus)
+    print(nodelist)
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
