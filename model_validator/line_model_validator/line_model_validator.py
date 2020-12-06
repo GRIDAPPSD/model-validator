@@ -75,6 +75,25 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
+    ysparse,nodelist = sparql_mgr.ybus_export()
+
+    ybus = {}
+    for obj in ysparse:
+        items = obj.split(',')
+        if items[0] == 'Row':
+            continue
+        if items[0] not in ybus:
+            ybus[items[0]] = {}
+        ybus[items[0]][items[1]] = complex(float(items[2]), float(items[3]))
+    print(ybus)
+
+    idx = 1
+    nodes = {}
+    for obj in nodelist:
+        nodes[obj] = idx
+        idx += 1
+    print(nodes)
+
     bindings = sparql_mgr.perLengthImpedence_line_configs()
     #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
     #print(bindings, flush=True)
@@ -114,7 +133,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    perLengthImpedenceLines = {}
+    perLengthImpedenceLinesPos = {}
+    perLengthImpedenceLinesNeg = {}
     for obj in bindings:
         line_name = obj['line_name']['value']
         bus1 = obj['bus1']['value']
@@ -124,7 +144,7 @@ def start(log_file, feeder_mrid, model_api_topic):
         phase = obj['phase']['value']
         print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
-        if line_name not in perLengthImpedenceLines and line_config in Zabc:
+        if line_name not in perLengthImpedenceLinesPos and line_config in Zabc:
             # multiply by scalar length
             lenZabc = Zabc[line_config] * length
             # invert the matrix
@@ -132,16 +152,14 @@ def start(log_file, feeder_mrid, model_api_topic):
             # test if the inverse * original = identity
             #identityTest = np.dot(lenZabc, invZabc)
             #print('identity test for ' + line_name + ': ' + str(identityTest))
+            perLengthImpedenceLinesPos[line_name] = invZabc
             # negate the matrix and assign it back to the dictionary
-            perLengthImpedenceLines[line_name] = invZabc * -1
+            perLengthImpedenceLinesNeg[line_name] = invZabc * -1
 
-    for line_name in perLengthImpedenceLines:
-        print('perLengthImpedenceLines[' + line_name + ']: ' + str(perLengthImpedenceLines[line_name]))
+    for line_name in perLengthImpedenceLinesPos:
+        print('perLengthImpedenceLinesPos[' + line_name + ']: ' + str(perLengthImpedenceLinesPos[line_name]))
+        print('perLengthImpedenceLinesNeg[' + line_name + ']: ' + str(perLengthImpedenceLinesNeg[line_name]))
     print('')
-
-    ybus,nodelist = sparql_mgr.ybus_export()
-    print(ybus)
-    print(nodelist)
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
