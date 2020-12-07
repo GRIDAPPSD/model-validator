@@ -71,7 +71,19 @@ def diffColor(diffValue):
         return 'YELLOW'
 
 
-def compareY(line_name, row, col, YbusValue, YprimValue):
+def compareY(line_name, pairA, pairB, YprimValue, Ybus):
+    if pairA in Ybus and pairB in Ybus[pairA]:
+        row = pairA
+        col = pairB
+    elif pairB in Ybus and pairA in Ybus[pairB]:
+        row = pairB
+        col = pairA
+    else:
+        print('*** Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']')
+        return
+
+    YbusValue = Ybus[row][col]
+
     print("\ti: " + row + ", j: " + col, flush=True)
     print("\ti: " + row + ", j: " + col, file=logfile)
 
@@ -156,57 +168,45 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
 
         # we now have the negated inverted matrix for comparison
         ybusIdx = ybusPhaseIdx[phase]
-        pair1 = bus1 + ybusIdx
-        pair2 = bus2 + ybusIdx
+        pairA = bus1 + ybusIdx
+        pairB = bus2 + ybusIdx
         line_idx += 1
 
-        if pair1 in Ybus and pair2 in Ybus[pair1]:
-            #print('Found forward Ybus match for Ybus[' + pair1 + '][' + pair2 + ']: ' + str(Ybus[pair1][pair2]))
-            row = pair1
-            col = pair2
-        elif pair2 in Ybus and pair1 in Ybus[pair2]:
-            #print('Found reverse Ybus match for Ybus[' + pair2 + '][' + pair1 + ']: ' + str(Ybus[pair2][pair1]))
-            row = pair2
-            col = pair1
-        else:
-            print('*** Ybus match NOT FOUND for Ybus[' + pair1 + '][' + pair2 + ']')
-            continue
-
         if Yprim.size == 1:
-            row1 = row
-            col1 = col
             # do comparisons now
-            compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
+            compareY(line_name, pairA, pairB, Yprim[0,0], Ybus)
 
         elif Yprim.size == 4:
             if line_idx == 1:
-                row1 = row
-                col1 = col
+                pair1A = pairA
+                pair1B = pairB
             else:
-                row2 = row
-                col2 = col
+                pair2A = pairA
+                pair2B = pairB
+
                 # do comparisons now
-                compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
-                compareY(line_name, row2, col1, Ybus[row2][col1], Yprim[1,0])
-                compareY(line_name, row2, col2, Ybus[row2][col2], Yprim[1,1])
+                compareY(line_name, pair1A, pair1B, Yprim[0,0], Ybus)
+                compareY(line_name, pair2A, pair1B, Yprim[1,0], Ybus)
+                compareY(line_name, pair2A, pair2B, Yprim[1,1], Ybus)
 
         elif Yprim.size == 9:
             if line_idx == 1:
-                row1 = row
-                col1 = col
+                pair1A = pairA
+                pair1B = pairB
             elif line_idx == 2:
-                row2 = row
-                col2 = col
+                pair2A = pairA
+                pair2B = pairB
             else:
-                row3 = row
-                col3 = col
+                pair3A = pairA
+                pair3B = pairB
+
                 # do comparisons now
-                compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
-                compareY(line_name, row2, col1, Ybus[row2][col1], Yprim[1,0])
-                compareY(line_name, row2, col2, Ybus[row2][col2], Yprim[1,1])
-                compareY(line_name, row3, col1, Ybus[row3][col1], Yprim[2,0])
-                compareY(line_name, row3, col2, Ybus[row3][col2], Yprim[2,1])
-                compareY(line_name, row3, col3, Ybus[row3][col3], Yprim[2,2])
+                compareY(line_name, pair1A, pair1B, Yprim[0,0], Ybus)
+                compareY(line_name, pair2A, pair1B, Yprim[1,0], Ybus)
+                compareY(line_name, pair2A, pair2B, Yprim[1,1], Ybus)
+                compareY(line_name, pair3A, pair1B, Yprim[2,0], Ybus)
+                compareY(line_name, pair3A, pair2B, Yprim[2,1], Ybus)
+                compareY(line_name, pair3A, pair3B, Yprim[2,2], Ybus)
 
     return
 
