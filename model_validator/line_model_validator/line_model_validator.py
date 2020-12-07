@@ -62,6 +62,25 @@ from gridappsd import GridAPPSD
 global logfile
 
 
+def diffColor(diffValue):
+    if diffValue < 1e-3:
+        return 'GREEN'
+    elif diffValue > 1e-2:
+        return 'RED'
+    else:
+        return 'YELLOW'
+
+
+def compareY(line_name, row, col, YbusValue, YprimValue):
+    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col)
+
+    realDiff = abs(YprimValue.real - YbusValue.real)
+    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff))
+
+    imagDiff = abs(YprimValue.imag - YbusValue.imag)
+    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff))
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -77,22 +96,22 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     ysparse,nodelist = sparql_mgr.ybus_export()
 
-    ybus = {}
+    idx = 1
+    nodes = {}
+    for obj in nodelist:
+        nodes[idx] = obj.strip('\"')
+        idx += 1
+    #print(nodes)
+
+    Ybus = {}
     for obj in ysparse:
         items = obj.split(',')
         if items[0] == 'Row':
             continue
-        if items[0] not in ybus:
-            ybus[items[0]] = {}
-        ybus[items[0]][items[1]] = complex(float(items[2]), float(items[3]))
-    print(ybus)
-
-    idx = 1
-    nodes = {}
-    for obj in nodelist:
-        nodes[obj] = idx
-        idx += 1
-    print(nodes)
+        if nodes[int(items[0])] not in Ybus:
+            Ybus[nodes[int(items[0])]] = {}
+        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+    #print(Ybus)
 
     bindings = sparql_mgr.perLengthImpedence_line_configs()
     #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
@@ -123,9 +142,9 @@ def start(log_file, feeder_mrid, model_api_topic):
         if row != col:
             Zabc[line_config][col-1,row-1] = complex(r_ohm_per_m, x_ohm_per_m)
 
-    for line_config in Zabc:
-        print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
-    print('')
+    #for line_config in Zabc:
+    #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
+    #print('')
 
     bindings = sparql_mgr.perLengthImpedence_line_names()
     #print('LINE_MODEL_VALIDATOR line_names query results:', flush=True)
@@ -133,18 +152,23 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    perLengthImpedenceLinesPos = {}
-    perLengthImpedenceLinesNeg = {}
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
+    yprimPhaseIdx = {'A': 0, 'B': 1, 'C': 2}
+
+    last_name = ''
     for obj in bindings:
         line_name = obj['line_name']['value']
-        bus1 = obj['bus1']['value']
-        bus2 = obj['bus2']['value']
+        bus1 = obj['bus1']['value'].upper()
+        bus2 = obj['bus2']['value'].upper()
         length = float(obj['length']['value'])
         line_config = obj['line_config']['value']
         phase = obj['phase']['value']
-        print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
+        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
-        if line_name not in perLengthImpedenceLinesPos and line_config in Zabc:
+        if line_name!=last_name and line_config in Zabc:
+            last_name = line_name
+            line_idx = 0
+
             # multiply by scalar length
             lenZabc = Zabc[line_config] * length
             # invert the matrix
@@ -152,14 +176,62 @@ def start(log_file, feeder_mrid, model_api_topic):
             # test if the inverse * original = identity
             #identityTest = np.dot(lenZabc, invZabc)
             #print('identity test for ' + line_name + ': ' + str(identityTest))
-            perLengthImpedenceLinesPos[line_name] = invZabc
-            # negate the matrix and assign it back to the dictionary
-            perLengthImpedenceLinesNeg[line_name] = invZabc * -1
+            # negate the matrix and assign it to Yprim
+            Yprim = invZabc * -1
 
-    for line_name in perLengthImpedenceLinesPos:
-        print('perLengthImpedenceLinesPos[' + line_name + ']: ' + str(perLengthImpedenceLinesPos[line_name]))
-        print('perLengthImpedenceLinesNeg[' + line_name + ']: ' + str(perLengthImpedenceLinesNeg[line_name]))
-    print('')
+        # we now have the negated inverted matrix for comparison
+        ybusIdx = ybusPhaseIdx[phase]
+        pair1 = bus1 + ybusIdx
+        pair2 = bus2 + ybusIdx
+        line_idx += 1
+
+        if pair1 in Ybus and pair2 in Ybus[pair1]:
+            #print('Found forward Ybus match for Ybus[' + pair1 + '][' + pair2 + ']: ' + str(Ybus[pair1][pair2]))
+            row = pair1
+            col = pair2
+        elif pair2 in Ybus and pair1 in Ybus[pair2]:
+            #print('Found reverse Ybus match for Ybus[' + pair2 + '][' + pair1 + ']: ' + str(Ybus[pair2][pair1]))
+            row = pair2
+            col = pair1
+        else:
+            print('*** Ybus match NOT FOUND for Ybus[' + pair1 + '][' + pair2 + ']')
+            continue
+
+        if Yprim.size == 1:
+            row1 = row
+            col1 = col
+            # do comparisons now
+            compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
+
+        elif Yprim.size == 4:
+            if line_idx == 1:
+                row1 = row
+                col1 = col
+            else:
+                row2 = row
+                col2 = col
+                # do comparisons now
+                compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
+                compareY(line_name, row2, col1, Ybus[row2][col1], Yprim[1,0])
+                compareY(line_name, row2, col2, Ybus[row2][col2], Yprim[1,1])
+
+        elif Yprim.size == 9:
+            if line_idx == 1:
+                row1 = row
+                col1 = col
+            elif line_idx == 2:
+                row2 = row
+                col2 = col
+            else:
+                row3 = row
+                col3 = col
+                # do comparisons now
+                compareY(line_name, row1, col1, Ybus[row1][col1], Yprim[0,0])
+                compareY(line_name, row2, col1, Ybus[row2][col1], Yprim[1,0])
+                compareY(line_name, row2, col2, Ybus[row2][col2], Yprim[1,1])
+                compareY(line_name, row3, col1, Ybus[row3][col1], Yprim[2,0])
+                compareY(line_name, row3, col2, Ybus[row3][col2], Yprim[2,1])
+                compareY(line_name, row3, col3, Ybus[row3][col3], Yprim[2,2])
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
