@@ -71,6 +71,38 @@ def diffColor(diffValue):
         return 'YELLOW'
 
 
+def diffPercentReal(YprimValue, YbusValue):
+    global minPercentDiffReal, maxPercentDiffReal
+
+    ratio = YprimValue/YbusValue
+
+    if ratio > 1.0:
+        percent = 100.0*(ratio - 1.0)
+    else:
+        percent = 100.0*(1.0 - ratio)
+
+    minPercentDiffReal = min(minPercentDiffReal, percent)
+    maxPercentDiffReal = max(maxPercentDiffReal, percent)
+
+    return percent
+
+
+def diffPercentImag(YprimValue, YbusValue):
+    global minPercentDiffImag, maxPercentDiffImag
+
+    ratio = YprimValue/YbusValue
+
+    if ratio > 1.0:
+        percent = 100.0*(ratio - 1.0)
+    else:
+        percent = 100.0*(1.0 - ratio)
+
+    minPercentDiffImag = min(minPercentDiffImag, percent)
+    maxPercentDiffImag = max(maxPercentDiffImag, percent)
+
+    return percent
+
+
 def compareY(line_name, pairA, pairB, YprimValue, Ybus):
     if pairA in Ybus and pairB in Ybus[pairA]:
         row = pairA
@@ -79,21 +111,24 @@ def compareY(line_name, pairA, pairB, YprimValue, Ybus):
         row = pairB
         col = pairA
     else:
-        print('*** Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']')
+        print('*** ERROR: Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']', flush=True)
+        print('*** ERROR: Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']', file=logfile)
         return
 
     YbusValue = Ybus[row][col]
 
-    print("\ti: " + row + ", j: " + col, flush=True)
-    print("\ti: " + row + ", j: " + col, file=logfile)
+    print("    between i: " + row + ", and j: " + col, flush=True)
+    print("    between i: " + row + ", and j: " + col, file=logfile)
 
     realDiff = abs(YprimValue.real - YbusValue.real)
-    print("\t\tReal Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", " + diffColor(realDiff), flush=True)
-    print("\t\tReal Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", " + diffColor(realDiff), file=logfile)
+    realPer = diffPercentReal(YprimValue.real, YbusValue.real)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", % diff:" + "{:10.6f}".format(realPer) + ", " + diffColor(realDiff), flush=True)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", % diff:" + "{:10.6f}".format(realPer) + ", " + diffColor(realDiff), file=logfile)
 
     imagDiff = abs(YprimValue.imag - YbusValue.imag)
-    print("\t\tImag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", " + diffColor(imagDiff), flush=True)
-    print("\t\tImag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", " + diffColor(imagDiff), file=logfile)
+    imagPer = diffPercentImag(YprimValue.imag, YbusValue.imag)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", % diff:" + "{:10.6f}".format(imagPer) + ", " + diffColor(imagDiff), flush=True)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", % diff:" + "{:10.6f}".format(imagPer) + ", " + diffColor(imagDiff), file=logfile)
 
 
 def check_perLengthImpedence_lines(sparql_mgr, Ybus):
@@ -139,6 +174,13 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
     yprimPhaseIdx = {'A': 0, 'B': 1, 'C': 2}
 
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = 100.0
+    maxPercentDiffReal = 0.0
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = 100.0
+    maxPercentDiffImag = 0.0
+
     last_name = ''
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -146,12 +188,21 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
         bus2 = obj['bus2']['value'].upper()
         length = float(obj['length']['value'])
         line_config = obj['line_config']['value']
+
+        if 'phase' not in obj:
+            print("*** ERROR: No phase for line_name: " + line_name, flush=True)
+            print("*** ERROR: No phase for line_name: " + line_name, file=logfile)
+            continue
         phase = obj['phase']['value']
+        if phase!='A' and phase!='B' and phase!='C':
+            print("*** ERROR: Phase value other than A,B,C for line_name: " + line_name + ", phase: " + phase, flush=True)
+            print("*** ERROR: Phase value other than A,B,C for line_name: " + line_name + ", phase: " + phase, file=logfile)
+            continue
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
-            print("\nline_name: " + line_name, flush=True)
-            print("\nline_name: " + line_name, file=logfile)
+            print("\nValidating line_name: " + line_name, flush=True)
+            print("\nValidating line_name: " + line_name, file=logfile)
 
             last_name = line_name
             line_idx = 0
@@ -208,6 +259,16 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
                 compareY(line_name, pair3A, pair2B, Yprim[2,1], Ybus)
                 compareY(line_name, pair3A, pair3B, Yprim[2,2], Ybus)
 
+    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), file=logfile)
+
+    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+
     return
 
 
@@ -245,8 +306,8 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     check_perLengthImpedence_lines(sparql_mgr, Ybus)
 
-    print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
-    print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
+    print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
+    print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
 
     return
 
