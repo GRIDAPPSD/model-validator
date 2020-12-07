@@ -72,16 +72,16 @@ def diffColor(diffValue):
 
 
 def compareY(line_name, row, col, YbusValue, YprimValue):
-    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col, flush=True)
-    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col, file=logfile)
+    print("\ti: " + row + ", j: " + col, flush=True)
+    print("\ti: " + row + ", j: " + col, file=logfile)
 
     realDiff = abs(YprimValue.real - YbusValue.real)
-    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff), flush=True)
-    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff), file=logfile)
+    print("\t\tReal Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", " + diffColor(realDiff), flush=True)
+    print("\t\tReal Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", " + diffColor(realDiff), file=logfile)
 
     imagDiff = abs(YprimValue.imag - YbusValue.imag)
-    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff), flush=True)
-    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff), file=logfile)
+    print("\t\tImag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", " + diffColor(imagDiff), flush=True)
+    print("\t\tImag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", " + diffColor(imagDiff), file=logfile)
 
 
 def check_perLengthImpedence_lines(sparql_mgr, Ybus):
@@ -138,6 +138,9 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
+            print("\nline_name: " + line_name, flush=True)
+            print("\nline_name: " + line_name, file=logfile)
+
             last_name = line_name
             line_idx = 0
 
