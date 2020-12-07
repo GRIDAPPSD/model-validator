@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------
-# Copyright (c) 2017, Battelle Memorial Institute All rights reserved.
+# Copyright (c) 2020, Battelle Memorial Institute All rights reserved.
 # Battelle Memorial Institute (hereinafter Battelle) hereby grants permission to any person or entity
 # lawfully obtaining a copy of this software and associated documentation files (hereinafter the
 # Software) to redistribute and use the Software in source and binary forms, with or without modification.
@@ -72,47 +72,19 @@ def diffColor(diffValue):
 
 
 def compareY(line_name, row, col, YbusValue, YprimValue):
-    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col)
+    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col, flush=True)
+    print("Checking line_name: " + line_name + ", from: " + row + ", to: " + col, file=logfile)
 
     realDiff = abs(YprimValue.real - YbusValue.real)
-    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff))
+    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff), flush=True)
+    print("\tReal difference: " + str(realDiff) + ", color: " + diffColor(realDiff), file=logfile)
 
     imagDiff = abs(YprimValue.imag - YbusValue.imag)
-    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff))
+    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff), flush=True)
+    print("\tImag difference: " + str(imagDiff) + ", color: " + diffColor(imagDiff), file=logfile)
 
 
-def start(log_file, feeder_mrid, model_api_topic):
-    global logfile
-    logfile = log_file
-
-    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------")
-    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------", file=logfile)
-
-    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-
-    gapps = GridAPPSD()
-
-    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
-
-    ysparse,nodelist = sparql_mgr.ybus_export()
-
-    idx = 1
-    nodes = {}
-    for obj in nodelist:
-        nodes[idx] = obj.strip('\"')
-        idx += 1
-    #print(nodes)
-
-    Ybus = {}
-    for obj in ysparse:
-        items = obj.split(',')
-        if items[0] == 'Row':
-            continue
-        if nodes[int(items[0])] not in Ybus:
-            Ybus[nodes[int(items[0])]] = {}
-        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
-    #print(Ybus)
-
+def check_perLengthImpedence_lines(sparql_mgr, Ybus):
     bindings = sparql_mgr.perLengthImpedence_line_configs()
     #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
     #print(bindings, flush=True)
@@ -232,6 +204,43 @@ def start(log_file, feeder_mrid, model_api_topic):
                 compareY(line_name, row3, col1, Ybus[row3][col1], Yprim[2,0])
                 compareY(line_name, row3, col2, Ybus[row3][col2], Yprim[2,1])
                 compareY(line_name, row3, col3, Ybus[row3][col3], Yprim[2,2])
+
+    return
+
+
+def start(log_file, feeder_mrid, model_api_topic):
+    global logfile
+    logfile = log_file
+
+    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------")
+    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------", file=logfile)
+
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+
+    gapps = GridAPPSD()
+
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
+
+    ysparse,nodelist = sparql_mgr.ybus_export()
+
+    idx = 1
+    nodes = {}
+    for obj in nodelist:
+        nodes[idx] = obj.strip('\"')
+        idx += 1
+    #print(nodes)
+
+    Ybus = {}
+    for obj in ysparse:
+        items = obj.split(',')
+        if items[0] == 'Row':
+            continue
+        if nodes[int(items[0])] not in Ybus:
+            Ybus[nodes[int(items[0])]] = {}
+        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+    #print(Ybus)
+
+    check_perLengthImpedence_lines(sparql_mgr, Ybus)
 
     print('LINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('LINE_MODEL_VALIDATOR DONE!!!', file=logfile)
