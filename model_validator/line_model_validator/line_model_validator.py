@@ -62,32 +62,32 @@ from gridappsd import GridAPPSD
 global logfile
 
 
-def diffColorReal(absDiff, perDiff):
+def diffColorReal(absDiff, perDiff, colorFlag):
     global greenCountReal, yellowCountReal, redCountReal
 
     if absDiff<1e-3 and perDiff<0.01:
-        greenCountReal += 1
-        return 'GREEN'
+        if colorFlag: greenCountReal += 1
+        return '\u001b[32mGREEN\u001b[37m' if colorFlag else 'GREEN'
     elif absDiff>=1e-2 or perDiff>=0.1:
-        redCountReal += 1
-        return 'RED'
+        if colorFlag: redCountReal += 1
+        return '\u001b[31mRED\u001b[37m' if colorFlag else 'RED'
     else:
-        yellowCountReal += 1
-        return 'YELLOW'
+        if colorFlag: yellowCountReal += 1
+        return '\u001b[33mYELLOW\u001b[37m' if colorFlag else 'YELLOW'
 
 
-def diffColorImag(absDiff, perDiff):
+def diffColorImag(absDiff, perDiff, colorFlag):
     global greenCountImag, yellowCountImag, redCountImag
 
     if absDiff<1e-3 and perDiff<0.01:
-        greenCountImag += 1
-        return 'GREEN'
+        if colorFlag: greenCountImag += 1
+        return '\u001b[32mGREEN\u001b[37m' if colorFlag else 'GREEN'
     elif absDiff>=1e-2 or perDiff>=0.1:
-        redCountImag += 1
-        return 'RED'
+        if colorFlag: redCountImag += 1
+        return '\u001b[31mRED\u001b[37m' if colorFlag else 'RED'
     else:
-        yellowCountImag += 1
-        return 'YELLOW'
+        if colorFlag: yellowCountImag += 1
+        return '\u001b[33mYELLOW\u001b[37m' if colorFlag else 'YELLOW'
 
 
 def diffPercentReal(YprimValue, YbusValue):
@@ -141,13 +141,13 @@ def compareY(line_name, pairA, pairB, YprimValue, Ybus):
 
     realAbsDiff = abs(YprimValue.real - YbusValue.real)
     realPerDiff = diffPercentReal(YprimValue.real, YbusValue.real)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff), flush=True)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff), file=logfile)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, True), flush=True)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, False), file=logfile)
 
     imagAbsDiff = abs(YprimValue.imag - YbusValue.imag)
     imagPerDiff = diffPercentImag(YprimValue.imag, YbusValue.imag)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff), flush=True)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff), file=logfile)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, True), flush=True)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
 
 
 def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
@@ -283,18 +283,18 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nReal GREEN count:  " + str(greenCountReal), flush=True)
+    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
     print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
-    print("Real YELLOW count: " + str(yellowCountReal), flush=True)
+    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
     print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
-    print("Real RED count:    " + str(redCountReal), flush=True)
+    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
     print("Real RED count:    " + str(redCountReal), file=logfile)
 
-    print("\nImag GREEN count:  " + str(greenCountImag), flush=True)
+    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
     print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
-    print("Imag YELLOW count: " + str(yellowCountImag), flush=True)
+    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
     print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
-    print("Imag RED count:    " + str(redCountImag), flush=True)
+    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
 
     return
