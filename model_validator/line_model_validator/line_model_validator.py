@@ -62,12 +62,31 @@ from gridappsd import GridAPPSD
 global logfile
 
 
-def diffColor(diffValue):
-    if diffValue < 1e-3:
+def diffColorReal(absDiff, perDiff):
+    global greenCountReal, yellowCountReal, redCountReal
+
+    if absDiff<1e-3 and perDiff<0.01:
+        greenCountReal += 1
         return 'GREEN'
-    elif diffValue > 1e-2:
+    elif absDiff>=1e-2 or perDiff>=0.1:
+        redCountReal += 1
         return 'RED'
     else:
+        yellowCountReal += 1
+        return 'YELLOW'
+
+
+def diffColorImag(absDiff, perDiff):
+    global greenCountImag, yellowCountImag, redCountImag
+
+    if absDiff<1e-3 and perDiff<0.01:
+        greenCountImag += 1
+        return 'GREEN'
+    elif absDiff>=1e-2 or perDiff>=0.1:
+        redCountImag += 1
+        return 'RED'
+    else:
+        yellowCountImag += 1
         return 'YELLOW'
 
 
@@ -120,15 +139,15 @@ def compareY(line_name, pairA, pairB, YprimValue, Ybus):
     print("    between i: " + row + ", and j: " + col, flush=True)
     print("    between i: " + row + ", and j: " + col, file=logfile)
 
-    realDiff = abs(YprimValue.real - YbusValue.real)
-    realPer = diffPercentReal(YprimValue.real, YbusValue.real)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", % diff:" + "{:10.6f}".format(realPer) + ", " + diffColor(realDiff), flush=True)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + ", % diff:" + "{:10.6f}".format(realPer) + ", " + diffColor(realDiff), file=logfile)
+    realAbsDiff = abs(YprimValue.real - YbusValue.real)
+    realPerDiff = diffPercentReal(YprimValue.real, YbusValue.real)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff), flush=True)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff), file=logfile)
 
-    imagDiff = abs(YprimValue.imag - YbusValue.imag)
-    imagPer = diffPercentImag(YprimValue.imag, YbusValue.imag)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", % diff:" + "{:10.6f}".format(imagPer) + ", " + diffColor(imagDiff), flush=True)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", % diff:" + "{:10.6f}".format(imagPer) + ", " + diffColor(imagDiff), file=logfile)
+    imagAbsDiff = abs(YprimValue.imag - YbusValue.imag)
+    imagPerDiff = diffPercentImag(YprimValue.imag, YbusValue.imag)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff), flush=True)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff), file=logfile)
 
 
 def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
@@ -180,6 +199,10 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     global minPercentDiffImag, maxPercentDiffImag
     minPercentDiffImag = 100.0
     maxPercentDiffImag = 0.0
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
 
     last_name = ''
     for obj in bindings:
@@ -259,6 +282,20 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
     print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+
+    print("\nReal GREEN count:  " + str(greenCountReal), flush=True)
+    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
+    print("Real YELLOW count: " + str(yellowCountReal), flush=True)
+    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
+    print("Real RED count:    " + str(redCountReal), flush=True)
+    print("Real RED count:    " + str(redCountReal), file=logfile)
+
+    print("\nImag GREEN count:  " + str(greenCountImag), flush=True)
+    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
+    print("Imag YELLOW count: " + str(yellowCountImag), flush=True)
+    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
+    print("Imag RED count:    " + str(redCountImag), flush=True)
+    print("Imag RED count:    " + str(redCountImag), file=logfile)
 
     return
 
