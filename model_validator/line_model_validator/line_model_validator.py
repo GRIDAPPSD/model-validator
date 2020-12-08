@@ -172,7 +172,6 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
-    yprimPhaseIdx = {'A': 0, 'B': 1, 'C': 2}
 
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = 100.0
