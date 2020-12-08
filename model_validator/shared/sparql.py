@@ -398,7 +398,7 @@ class SPARQLManager:
         obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
         return obj_msr_loadsw
 
-    def perLengthImpedence_line_names(self):
+    def perLengthPhaseImpedence_line_names(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -411,6 +411,7 @@ class SPARQLManager:
          ?s c:IdentifiedObject.name ?line_name.
          ?s c:Conductor.length ?length.
          ?s c:ACLineSegment.PerLengthImpedance ?lcode.
+         ?lcode r:type c:PerLengthPhaseImpedance.
          ?lcode c:IdentifiedObject.name ?line_config.
          ?t1 c:Terminal.ConductingEquipment ?s.
          ?t1 c:Terminal.ConnectivityNode ?cn1.
@@ -432,7 +433,7 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def perLengthImpedence_line_configs(self):
+    def perLengthPhaseImpedence_line_configs(self):
         VALUES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>

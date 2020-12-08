@@ -131,8 +131,8 @@ def compareY(line_name, pairA, pairB, YprimValue, Ybus):
     print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + ", % diff:" + "{:10.6f}".format(imagPer) + ", " + diffColor(imagDiff), file=logfile)
 
 
-def check_perLengthImpedence_lines(sparql_mgr, Ybus):
-    bindings = sparql_mgr.perLengthImpedence_line_configs()
+def check_perLengthPhaseImpedence_lines(sparql_mgr, Ybus):
+    bindings = sparql_mgr.perLengthPhaseImpedence_line_configs()
     #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
     #print(bindings, flush=True)
     #print('LINE_MODEL_VALIDATOR line_configs query results:', file=logfile)
@@ -165,7 +165,7 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
     #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
     #print('')
 
-    bindings = sparql_mgr.perLengthImpedence_line_names()
+    bindings = sparql_mgr.perLengthPhaseImpedence_line_names()
     #print('LINE_MODEL_VALIDATOR line_names query results:', flush=True)
     #print(bindings, flush=True)
     #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
@@ -188,11 +188,6 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
         bus2 = obj['bus2']['value'].upper()
         length = float(obj['length']['value'])
         line_config = obj['line_config']['value']
-
-        if 'phase' not in obj:
-            print("*** ERROR: No phase for line_name: " + line_name + ", line_config: " + line_config, flush=True)
-            print("*** ERROR: No phase for line_name: " + line_name + ", line_config: " + line_config, file=logfile)
-            continue
         phase = obj['phase']['value']
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
@@ -300,7 +295,7 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    check_perLengthImpedence_lines(sparql_mgr, Ybus)
+    check_perLengthPhaseImpedence_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
