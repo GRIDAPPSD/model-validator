@@ -171,7 +171,8 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
     #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
+    # map line_name query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = 100.0
@@ -189,14 +190,10 @@ def check_perLengthImpedence_lines(sparql_mgr, Ybus):
         line_config = obj['line_config']['value']
 
         if 'phase' not in obj:
-            print("*** ERROR: No phase for line_name: " + line_name, flush=True)
-            print("*** ERROR: No phase for line_name: " + line_name, file=logfile)
+            print("*** ERROR: No phase for line_name: " + line_name + ", line_config: " + line_config, flush=True)
+            print("*** ERROR: No phase for line_name: " + line_name + ", line_config: " + line_config, file=logfile)
             continue
         phase = obj['phase']['value']
-        if phase!='A' and phase!='B' and phase!='C':
-            print("*** ERROR: Phase value other than A,B,C for line_name: " + line_name + ", phase: " + phase, flush=True)
-            print("*** ERROR: Phase value other than A,B,C for line_name: " + line_name + ", phase: " + phase, file=logfile)
-            continue
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
