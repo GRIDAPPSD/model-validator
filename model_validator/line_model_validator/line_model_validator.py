@@ -90,10 +90,10 @@ def diffColorImag(absDiff, perDiff, colorFlag):
         return '\u001b[33mYELLOW\u001b[37m' if colorFlag else 'YELLOW'
 
 
-def diffPercentReal(YprimValue, YbusValue):
+def diffPercentReal(YcompValue, YbusValue):
     global minPercentDiffReal, maxPercentDiffReal
 
-    ratio = YprimValue/YbusValue
+    ratio = YcompValue/YbusValue
 
     if ratio > 1.0:
         percent = 100.0*(ratio - 1.0)
@@ -106,10 +106,10 @@ def diffPercentReal(YprimValue, YbusValue):
     return percent
 
 
-def diffPercentImag(YprimValue, YbusValue):
+def diffPercentImag(YcompValue, YbusValue):
     global minPercentDiffImag, maxPercentDiffImag
 
-    ratio = YprimValue/YbusValue
+    ratio = YcompValue/YbusValue
 
     if ratio > 1.0:
         percent = 100.0*(ratio - 1.0)
@@ -122,7 +122,7 @@ def diffPercentImag(YprimValue, YbusValue):
     return percent
 
 
-def compareY(line_name, pairA, pairB, YprimValue, Ybus):
+def compareY(line_name, pairA, pairB, YcompValue, Ybus):
     if pairA in Ybus and pairB in Ybus[pairA]:
         row = pairA
         col = pairB
@@ -139,15 +139,15 @@ def compareY(line_name, pairA, pairB, YprimValue, Ybus):
     print("    between i: " + row + ", and j: " + col, flush=True)
     print("    between i: " + row + ", and j: " + col, file=logfile)
 
-    realAbsDiff = abs(YprimValue.real - YbusValue.real)
-    realPerDiff = diffPercentReal(YprimValue.real, YbusValue.real)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, True), flush=True)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YprimValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, False), file=logfile)
+    realAbsDiff = abs(YcompValue.real - YbusValue.real)
+    realPerDiff = diffPercentReal(YcompValue.real, YbusValue.real)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YcompValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, True), flush=True)
+    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YcompValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, False), file=logfile)
 
-    imagAbsDiff = abs(YprimValue.imag - YbusValue.imag)
-    imagPerDiff = diffPercentImag(YprimValue.imag, YbusValue.imag)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, True), flush=True)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YprimValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
+    imagAbsDiff = abs(YcompValue.imag - YbusValue.imag)
+    imagPerDiff = diffPercentImag(YcompValue.imag, YbusValue.imag)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, True), flush=True)
+    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
 
 
 def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
@@ -228,8 +228,8 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
             # test if the inverse * original = identity
             #identityTest = np.dot(lenZabc, invZabc)
             #print('identity test for ' + line_name + ': ' + str(identityTest))
-            # negate the matrix and assign it to Yprim
-            Yprim = invZabc * -1
+            # negate the matrix and assign it to Ycomp
+            Ycomp = invZabc * -1
 
         # we now have the negated inverted matrix for comparison
         ybusIdx = ybusPhaseIdx[phase]
@@ -237,11 +237,11 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
         pairB = bus2 + ybusIdx
         line_idx += 1
 
-        if Yprim.size == 1:
+        if Ycomp.size == 1:
             # do comparisons now
-            compareY(line_name, pairA, pairB, Yprim[0,0], Ybus)
+            compareY(line_name, pairA, pairB, Ycomp[0,0], Ybus)
 
-        elif Yprim.size == 4:
+        elif Ycomp.size == 4:
             if line_idx == 1:
                 pair1A = pairA
                 pair1B = pairB
@@ -250,11 +250,11 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair2B = pairB
 
                 # do comparisons now
-                compareY(line_name, pair1A, pair1B, Yprim[0,0], Ybus)
-                compareY(line_name, pair2A, pair1B, Yprim[1,0], Ybus)
-                compareY(line_name, pair2A, pair2B, Yprim[1,1], Ybus)
+                compareY(line_name, pair1A, pair1B, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2A, pair1B, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2A, pair2B, Ycomp[1,1], Ybus)
 
-        elif Yprim.size == 9:
+        elif Ycomp.size == 9:
             if line_idx == 1:
                 pair1A = pairA
                 pair1B = pairB
@@ -266,12 +266,12 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair3B = pairB
 
                 # do comparisons now
-                compareY(line_name, pair1A, pair1B, Yprim[0,0], Ybus)
-                compareY(line_name, pair2A, pair1B, Yprim[1,0], Ybus)
-                compareY(line_name, pair2A, pair2B, Yprim[1,1], Ybus)
-                compareY(line_name, pair3A, pair1B, Yprim[2,0], Ybus)
-                compareY(line_name, pair3A, pair2B, Yprim[2,1], Ybus)
-                compareY(line_name, pair3A, pair3B, Yprim[2,2], Ybus)
+                compareY(line_name, pair1A, pair1B, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2A, pair1B, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2A, pair2B, Ycomp[1,1], Ybus)
+                compareY(line_name, pair3A, pair1B, Ycomp[2,0], Ybus)
+                compareY(line_name, pair3A, pair2B, Ycomp[2,1], Ybus)
+                compareY(line_name, pair3A, pair3B, Ycomp[2,2], Ybus)
 
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
