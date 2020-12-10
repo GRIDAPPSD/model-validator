@@ -152,9 +152,9 @@ def compareY(line_name, pairA, pairB, YcompValue, Ybus):
 
 def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     bindings = sparql_mgr.perLengthPhaseImpedance_line_configs()
-    #print('LINE_MODEL_VALIDATOR line_configs query results:', flush=True)
+    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_configs query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR line_configs query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_configs query results:', file=logfile)
     #print(bindings, file=logfile)
 
     Zabc = {}
@@ -185,9 +185,9 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     #print('')
 
     bindings = sparql_mgr.perLengthPhaseImpedance_line_names()
-    #print('LINE_MODEL_VALIDATOR line_names query results:', flush=True)
+    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_names query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR line_names query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
     # map line_name query phase values to nodelist indexes
@@ -300,6 +300,22 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     return
 
 
+def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
+    bindings = sparql_mgr.perLengthSequenceImpedance_line_configs()
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_configs query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_configs query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    bindings = sparql_mgr.perLengthSequenceImpedance_line_names()
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    return
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -333,6 +349,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print(Ybus)
 
     check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+
+    check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
