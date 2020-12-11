@@ -210,11 +210,11 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
     global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = 100.0
-    maxPercentDiffReal = 0.0
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
     global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = 100.0
-    maxPercentDiffImag = 0.0
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
     global greenCountReal, yellowCountReal, redCountReal
     greenCountReal = yellowCountReal = redCountReal = 0
     global greenCountImag, yellowCountImag, redCountImag
@@ -358,10 +358,10 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     #print('')
 
     bindings = sparql_mgr.perLengthSequenceImpedance_line_names()
-    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
-    print(bindings, file=logfile)
+    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
+    #print(bindings, file=logfile)
 
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', flush=True)
@@ -369,11 +369,11 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         return
 
     global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = 100.0
-    maxPercentDiffReal = 0.0
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
     global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = 100.0
-    maxPercentDiffImag = 0.0
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
     global greenCountReal, yellowCountReal, redCountReal
     greenCountReal = yellowCountReal = redCountReal = 0
     global greenCountImag, yellowCountImag, redCountImag
@@ -446,10 +446,10 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
 
     bindings = sparql_mgr.ACLineSegment_line_names()
-    print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', file=logfile)
-    print(bindings, file=logfile)
+    #print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', file=logfile)
+    #print(bindings, file=logfile)
 
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', flush=True)
@@ -457,11 +457,11 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         return
 
     global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = 100.0
-    maxPercentDiffReal = 0.0
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
     global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = 100.0
-    maxPercentDiffImag = 0.0
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
     global greenCountReal, yellowCountReal, redCountReal
     greenCountReal = yellowCountReal = redCountReal = 0
     global greenCountImag, yellowCountImag, redCountImag
@@ -479,7 +479,7 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         r0 = float(obj['r0_Ohm']['value'])
         x0 = float(obj['x0_Ohm']['value'])
         #b0 = float(obj['b0_S']['value'])
-        print('line_name: ' + line_name + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', r0: ' + str(r0) + ', x0: ' + str(x0))
+        #print('line_name: ' + line_name + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', r0: ' + str(r0) + ', x0: ' + str(x0))
 
         print("\nValidating ACLineSegment line_name: " + line_name, flush=True)
         print("\nValidating ACLineSegment line_name: " + line_name, file=logfile)
@@ -488,10 +488,11 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         Zm = complex((r0 - r1)/3.0, (x0 - x1)/3.0)
 
         Zabc = np.array([(Zs, Zm, Zm), (Zm, Zs, Zm), (Zm, Zm, Zs)], dtype=complex)
-        print('Zabc: ' + str(Zabc) + '\n')
+        #print('Zabc: ' + str(Zabc) + '\n')
 
         # multiply by scalar length
         lenZabc = Zabc * length
+        #lenZabc = Zabc * length * 3.3 # Kludge to get arount units issue (ft vs. m)
         # invert the matrix
         invZabc = np.linalg.inv(lenZabc)
         # test if the inverse * original = identity
@@ -499,7 +500,7 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         #print('identity test for ' + line_name + ': ' + str(identityTest))
         # negate the matrix and assign it to Ycomp
         Ycomp = invZabc * -1
-        print('Ycomp: ' + str(Ycomp) + '\n')
+        #print('Ycomp: ' + str(Ycomp) + '\n')
 
         # do comparisons now
         compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
