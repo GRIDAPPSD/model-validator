@@ -93,6 +93,9 @@ def diffColorImag(absDiff, perDiff, colorFlag):
 def diffPercentReal(YcompValue, YbusValue):
     global minPercentDiffReal, maxPercentDiffReal
 
+    if YbusValue == 0.0:
+        return 0.0
+
     ratio = YcompValue/YbusValue
 
     if ratio > 1.0:
@@ -453,39 +456,6 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', file=logfile)
         return
 
-    return
-
-    Zabc = {}
-    for obj in bindings:
-        line_config = obj['line_config']['value']
-        r1 = float(obj['r1_ohm_per_m']['value'])
-        x1 = float(obj['x1_ohm_per_m']['value'])
-        #b1 = float(obj['b1_S_per_m']['value'])
-        r0 = float(obj['r0_ohm_per_m']['value'])
-        x0 = float(obj['x0_ohm_per_m']['value'])
-        #b0 = float(obj['b0_S_per_m']['value'])
-        #print('line_config: ' + line_config + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', b1: ' + str(b1) + ', r0: ' + str(r0) + ', x0: ' + str(x0) + ', b0: ' + str(b0))
-
-        Zs = complex((r0 + 2.0*r1)/3.0, (x0 + 2.0*x1)/3.0)
-        Zm = complex((r0 - r1)/3.0, (x0 - x1)/3.0)
-
-        Zabc[line_config] = np.array([(Zs, Zm, Zm), (Zm, Zs, Zm), (Zm, Zm, Zs)], dtype=complex)
-
-    #for line_config in Zabc:
-    #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
-    #print('')
-
-    bindings = sparql_mgr.perLengthSequenceImpedance_line_names()
-    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
-    print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
-        return
-
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = 100.0
     maxPercentDiffReal = 0.0
@@ -499,17 +469,29 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
 
     for obj in bindings:
         line_name = obj['line_name']['value']
+        #basev = float(obj['basev']['value'])
         bus1 = obj['bus1']['value'].upper()
         bus2 = obj['bus2']['value'].upper()
         length = float(obj['length']['value'])
-        line_config = obj['line_config']['value']
-        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2)
+        r1 = float(obj['r1_Ohm']['value'])
+        x1 = float(obj['x1_Ohm']['value'])
+        #b1 = float(obj['b1_S']['value'])
+        r0 = float(obj['r0_Ohm']['value'])
+        x0 = float(obj['x0_Ohm']['value'])
+        #b0 = float(obj['b0_S']['value'])
+        print('line_name: ' + line_name + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', r0: ' + str(r0) + ', x0: ' + str(x0))
 
         print("\nValidating ACLineSegment line_name: " + line_name, flush=True)
         print("\nValidating ACLineSegment line_name: " + line_name, file=logfile)
 
+        Zs = complex((r0 + 2.0*r1)/3.0, (x0 + 2.0*x1)/3.0)
+        Zm = complex((r0 - r1)/3.0, (x0 - x1)/3.0)
+
+        Zabc = np.array([(Zs, Zm, Zm), (Zm, Zs, Zm), (Zm, Zm, Zs)], dtype=complex)
+        print('Zabc: ' + str(Zabc) + '\n')
+
         # multiply by scalar length
-        lenZabc = Zabc[line_config] * length
+        lenZabc = Zabc * length
         # invert the matrix
         invZabc = np.linalg.inv(lenZabc)
         # test if the inverse * original = identity
@@ -517,6 +499,7 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
         #print('identity test for ' + line_name + ': ' + str(identityTest))
         # negate the matrix and assign it to Ycomp
         Ycomp = invZabc * -1
+        print('Ycomp: ' + str(Ycomp) + '\n')
 
         # do comparisons now
         compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
