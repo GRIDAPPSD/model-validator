@@ -228,8 +228,8 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
-            print("\nValidating line_name: " + line_name, flush=True)
-            print("\nValidating line_name: " + line_name, file=logfile)
+            print("\nValidating perLengthPhaseImpedance line_name: " + line_name, flush=True)
+            print("\nValidating perLengthPhaseImpedance line_name: " + line_name, file=logfile)
 
             last_name = line_name
             line_idx = 0
@@ -286,6 +286,9 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 compareY(line_name, pair3A, pair2B, Ycomp[2,1], Ybus)
                 compareY(line_name, pair3A, pair3B, Ycomp[2,2], Ybus)
 
+    print("\nSummary for perLengthPhaseImpedance lines:", flush=True)
+    print("\nSummary for perLengthPhaseImpedance lines:", file=logfile)
+
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
     print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
@@ -309,6 +312,9 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for perLengthPhaseImpedance lines", flush=True)
+    print("\nFinished validation for perLengthPhaseImpedance lines", file=logfile)
 
     return
 
@@ -378,8 +384,8 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         line_config = obj['line_config']['value']
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2)
 
-        print("\nValidating line_name: " + line_name, flush=True)
-        print("\nValidating line_name: " + line_name, file=logfile)
+        print("\nValidating perLengthSequenceImpedance line_name: " + line_name, flush=True)
+        print("\nValidating perLengthSequenceImpedance line_name: " + line_name, file=logfile)
 
         # multiply by scalar length
         lenZabc = Zabc[line_config] * length
@@ -398,6 +404,9 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+
+    print("\nSummary for perLengthSequenceImpedance lines:", flush=True)
+    print("\nSummary for perLengthSequenceImpedance lines:", file=logfile)
 
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
@@ -422,6 +431,130 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for perLengthSequenceImpedance lines", flush=True)
+    print("\nFinished validation for perLengthSequenceImpedance lines", file=logfile)
+
+    return
+
+
+def check_ACLineSegment_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
+
+    bindings = sparql_mgr.ACLineSegment_line_names()
+    print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', file=logfile)
+        return
+
+    return
+
+    Zabc = {}
+    for obj in bindings:
+        line_config = obj['line_config']['value']
+        r1 = float(obj['r1_ohm_per_m']['value'])
+        x1 = float(obj['x1_ohm_per_m']['value'])
+        #b1 = float(obj['b1_S_per_m']['value'])
+        r0 = float(obj['r0_ohm_per_m']['value'])
+        x0 = float(obj['x0_ohm_per_m']['value'])
+        #b0 = float(obj['b0_S_per_m']['value'])
+        #print('line_config: ' + line_config + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', b1: ' + str(b1) + ', r0: ' + str(r0) + ', x0: ' + str(x0) + ', b0: ' + str(b0))
+
+        Zs = complex((r0 + 2.0*r1)/3.0, (x0 + 2.0*x1)/3.0)
+        Zm = complex((r0 - r1)/3.0, (x0 - x1)/3.0)
+
+        Zabc[line_config] = np.array([(Zs, Zm, Zm), (Zm, Zs, Zm), (Zm, Zm, Zs)], dtype=complex)
+
+    #for line_config in Zabc:
+    #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
+    #print('')
+
+    bindings = sparql_mgr.perLengthSequenceImpedance_line_names()
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
+        return
+
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = 100.0
+    maxPercentDiffReal = 0.0
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = 100.0
+    maxPercentDiffImag = 0.0
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+
+    for obj in bindings:
+        line_name = obj['line_name']['value']
+        bus1 = obj['bus1']['value'].upper()
+        bus2 = obj['bus2']['value'].upper()
+        length = float(obj['length']['value'])
+        line_config = obj['line_config']['value']
+        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2)
+
+        print("\nValidating ACLineSegment line_name: " + line_name, flush=True)
+        print("\nValidating ACLineSegment line_name: " + line_name, file=logfile)
+
+        # multiply by scalar length
+        lenZabc = Zabc[line_config] * length
+        # invert the matrix
+        invZabc = np.linalg.inv(lenZabc)
+        # test if the inverse * original = identity
+        #identityTest = np.dot(lenZabc, invZabc)
+        #print('identity test for ' + line_name + ': ' + str(identityTest))
+        # negate the matrix and assign it to Ycomp
+        Ycomp = invZabc * -1
+
+        # do comparisons now
+        compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
+        compareY(line_name, bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
+        compareY(line_name, bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
+        compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
+        compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
+        compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+
+    print("\nSummary for ACLineSegment lines:", flush=True)
+    print("\nSummary for ACLineSegment lines:", file=logfile)
+
+    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), file=logfile)
+
+    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
+    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
+    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
+    print("Real RED count:    " + str(redCountReal), file=logfile)
+
+    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+
+    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
+    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
+    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
+    print("Imag RED count:    " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for ACLineSegment lines", flush=True)
+    print("\nFinished validation for ACLineSegment lines", file=logfile)
 
     return
 
@@ -461,6 +594,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
     check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+
+    check_ACLineSegment_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
