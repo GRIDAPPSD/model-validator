@@ -112,6 +112,9 @@ def diffPercentReal(YcompValue, YbusValue):
 def diffPercentImag(YcompValue, YbusValue):
     global minPercentDiffImag, maxPercentDiffImag
 
+    if YbusValue == 0.0:
+        return 0.0
+
     ratio = YcompValue/YbusValue
 
     if ratio > 1.0:
@@ -126,21 +129,29 @@ def diffPercentImag(YcompValue, YbusValue):
 
 
 def compareY(line_name, pairA, pairB, YcompValue, Ybus):
+    noEntryFlag = False
     if pairA in Ybus and pairB in Ybus[pairA]:
         row = pairA
         col = pairB
+        YbusValue = Ybus[row][col]
     elif pairB in Ybus and pairA in Ybus[pairB]:
         row = pairB
         col = pairA
+        YbusValue = Ybus[row][col]
     else:
-        print('*** ERROR: Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']', flush=True)
-        print('*** ERROR: Ybus match NOT FOUND for Ybus[' + pairA + '][' + pairB + ']', file=logfile)
-        return
+        row = pairA
+        col = pairB
+        YbusValue = complex(0.0, 0.0)
+        noEntryFlag = True
 
-    YbusValue = Ybus[row][col]
+    #YbusValue = Ybus[row][col]
 
     print("    between i: " + row + ", and j: " + col, flush=True)
     print("    between i: " + row + ", and j: " + col, file=logfile)
+
+    if noEntryFlag:
+        print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', flush=True)
+        print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', file=logfile)
 
     realAbsDiff = abs(YcompValue.real - YbusValue.real)
     realPerDiff = diffPercentReal(YcompValue.real, YbusValue.real)
@@ -292,10 +303,10 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("\nSummary for perLengthPhaseImpedance lines:", flush=True)
     print("\nSummary for perLengthPhaseImpedance lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), file=logfile)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
     print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
     print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
@@ -304,10 +315,10 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
     print("Real RED count:    " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
     print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
     print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
@@ -411,10 +422,10 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("\nSummary for perLengthSequenceImpedance lines:", flush=True)
     print("\nSummary for perLengthSequenceImpedance lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), file=logfile)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
     print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
     print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
@@ -423,10 +434,10 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
     print("Real RED count:    " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
     print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
     print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
@@ -513,10 +524,10 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     print("\nSummary for ACLineSegment lines:", flush=True)
     print("\nSummary for ACLineSegment lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:10.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:10.6f}".format(maxPercentDiffReal), file=logfile)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
     print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
     print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
@@ -525,10 +536,10 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
     print("Real RED count:    " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:10.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:10.6f}".format(maxPercentDiffImag), file=logfile)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
     print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
     print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
