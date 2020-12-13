@@ -575,6 +575,12 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', file=logfile)
     print(bindings, file=logfile)
 
+    bindings = sparql_mgr.WireInfo_overhead()
+    print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', file=logfile)
+    print(bindings, file=logfile)
+
     return
 
 
