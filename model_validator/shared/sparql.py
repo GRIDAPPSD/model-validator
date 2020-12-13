@@ -398,7 +398,7 @@ class SPARQLManager:
         obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
         return obj_msr_loadsw
 
-    def perLengthPhaseImpedance_line_names(self):
+    def PerLengthPhaseImpedance_line_names(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -433,7 +433,7 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def perLengthPhaseImpedance_line_configs(self):
+    def PerLengthPhaseImpedance_line_configs(self):
         VALUES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -460,7 +460,7 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def perLengthSequenceImpedance_line_names(self):
+    def PerLengthSequenceImpedance_line_names(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -491,7 +491,7 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def perLengthSequenceImpedance_line_configs(self):
+    def PerLengthSequenceImpedance_line_configs(self):
         VALUES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -548,6 +548,75 @@ class SPARQLManager:
         }
         GROUP BY ?line_name ?basev ?bus1 ?bus2 ?length ?r1_Ohm ?x1_Ohm ?b1_S ?r0_Ohm ?x0_Ohm ?b0_S
         ORDER BY ?line_name
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(LINES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def WireInfo_line_names(self):
+        LINES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?line_name ?basev ?bus1 ?bus2 ?length ?wire_spacing_info ?phase ?wire_cn_ts ?wireinfo
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?s r:type c:ACLineSegment.
+         ?s c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?s c:IdentifiedObject.name ?line_name.
+         ?s c:ConductingEquipment.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?basev.
+         ?s c:Conductor.length ?length.
+         ?s c:ACLineSegment.WireSpacingInfo ?inf.
+         ?inf c:IdentifiedObject.name ?wire_spacing_info.
+         ?t1 c:Terminal.ConductingEquipment ?s.
+         ?t1 c:Terminal.ConnectivityNode ?cn1.
+         ?t1 c:ACDCTerminal.sequenceNumber "1".
+         ?cn1 c:IdentifiedObject.name ?bus1.
+         ?t2 c:Terminal.ConductingEquipment ?s.
+         ?t2 c:Terminal.ConnectivityNode ?cn2.
+         ?t2 c:ACDCTerminal.sequenceNumber "2".
+         ?cn2 c:IdentifiedObject.name ?bus2.
+         ?acp c:ACLineSegmentPhase.ACLineSegment ?s.
+         ?acp c:ACLineSegmentPhase.phase ?phsraw.
+          bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phase)
+         ?acp c:ACLineSegmentPhase.WireInfo ?phinf.
+         ?phinf c:IdentifiedObject.name ?wire_cn_ts.
+         ?phinf a ?phclassraw.
+          bind(strafter(str(?phclassraw),"CIM100#") as ?wireinfo)
+        }
+        ORDER BY ?line_name ?phase
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(LINES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def WireInfo_spacing(self):
+        LINES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT DISTINCT ?wire_spacing_info ?cable ?usage ?bundle_count ?bundle_sep ?seq ?xCoord ?yCoord
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq r:type c:ACLineSegment.
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?eq c:ACLineSegment.WireSpacingInfo ?w.
+         ?w c:IdentifiedObject.name ?wire_spacing_info.
+          bind(strafter(str(?w),"#") as ?id)
+         ?pos c:WirePosition.WireSpacingInfo ?w.
+         ?pos c:WirePosition.xCoord ?xCoord.
+         ?pos c:WirePosition.yCoord ?yCoord.
+         ?pos c:WirePosition.sequenceNumber ?seq.
+         ?w c:WireSpacingInfo.isCable ?cable.
+         ?w c:WireSpacingInfo.phaseWireCount ?bundle_count.
+         ?w c:WireSpacingInfo.phaseWireSpacing ?bundle_sep.
+         ?w c:WireSpacingInfo.usage ?useraw.
+          bind(strafter(str(?useraw),"WireUsageKind.") as ?usage)
+        }
+        ORDER BY ?wire_spacing_info ?seq
         """% self.feeder_mrid
 
         results = self.gad.query_data(LINES_QUERY)

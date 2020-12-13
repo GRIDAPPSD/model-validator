@@ -164,19 +164,19 @@ def compareY(line_name, pairA, pairB, YcompValue, Ybus):
     print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
 
 
-def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance validation...', file=logfile)
+def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
 
-    bindings = sparql_mgr.perLengthPhaseImpedance_line_configs()
-    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_configs query results:', flush=True)
+    bindings = sparql_mgr.PerLengthPhaseImpedance_line_configs()
+    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_configs query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_configs query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_configs query results:', file=logfile)
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
         return
 
     Zabc = {}
@@ -206,15 +206,15 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
     #print('')
 
-    bindings = sparql_mgr.perLengthPhaseImpedance_line_names()
-    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_names query results:', flush=True)
+    bindings = sparql_mgr.PerLengthPhaseImpedance_line_names()
+    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_names query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR perLengthPhaseImpedance line_names query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR perLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
         return
 
     # map line_name query phase values to nodelist indexes
@@ -242,8 +242,8 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
-            print("\nValidating perLengthPhaseImpedance line_name: " + line_name, flush=True)
-            print("\nValidating perLengthPhaseImpedance line_name: " + line_name, file=logfile)
+            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, flush=True)
+            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, file=logfile)
 
             last_name = line_name
             line_idx = 0
@@ -300,8 +300,8 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 compareY(line_name, pair3A, pair2B, Ycomp[2,1], Ybus)
                 compareY(line_name, pair3A, pair3B, Ycomp[2,2], Ybus)
 
-    print("\nSummary for perLengthPhaseImpedance lines:", flush=True)
-    print("\nSummary for perLengthPhaseImpedance lines:", file=logfile)
+    print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
+    print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
 
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
@@ -327,25 +327,25 @@ def check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for perLengthPhaseImpedance lines", flush=True)
-    print("\nFinished validation for perLengthPhaseImpedance lines", file=logfile)
+    print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
+    print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
 
     return
 
 
-def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance validation...', file=logfile)
+def check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', file=logfile)
 
-    bindings = sparql_mgr.perLengthSequenceImpedance_line_configs()
-    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_configs query results:', flush=True)
+    bindings = sparql_mgr.PerLengthSequenceImpedance_line_configs()
+    #print('LINE_MODEL_VALIDATOR PerLengthSequenceImpedance line_configs query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_configs query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR PerLengthSequenceImpedance line_configs query results:', file=logfile)
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
         return
 
     Zabc = {}
@@ -368,15 +368,15 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
     #print('')
 
-    bindings = sparql_mgr.perLengthSequenceImpedance_line_names()
-    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', flush=True)
+    bindings = sparql_mgr.PerLengthSequenceImpedance_line_names()
+    #print('LINE_MODEL_VALIDATOR PerLengthSequenceImpedance line_names query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR perLengthSequenceImpedance line_names query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR PerLengthSequenceImpedance line_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR perLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
         return
 
     global minPercentDiffReal, maxPercentDiffReal
@@ -398,8 +398,8 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         line_config = obj['line_config']['value']
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2)
 
-        print("\nValidating perLengthSequenceImpedance line_name: " + line_name, flush=True)
-        print("\nValidating perLengthSequenceImpedance line_name: " + line_name, file=logfile)
+        print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, flush=True)
+        print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, file=logfile)
 
         # multiply by scalar length
         lenZabc = Zabc[line_config] * length
@@ -419,8 +419,8 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
 
-    print("\nSummary for perLengthSequenceImpedance lines:", flush=True)
-    print("\nSummary for perLengthSequenceImpedance lines:", file=logfile)
+    print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
+    print("\nSummary for PerLengthSequenceImpedance lines:", file=logfile)
 
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
@@ -446,8 +446,8 @@ def check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for perLengthSequenceImpedance lines", flush=True)
-    print("\nFinished validation for perLengthSequenceImpedance lines", file=logfile)
+    print("\nFinished validation for PerLengthSequenceImpedance lines", flush=True)
+    print("\nFinished validation for PerLengthSequenceImpedance lines", file=logfile)
 
     return
 
@@ -554,6 +554,30 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
+def check_WireInfo_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
+
+    bindings = sparql_mgr.WireInfo_line_names()
+    print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
+        return
+
+    bindings = sparql_mgr.WireInfo_spacing()
+    print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
+    print(bindings, flush=True)
+    print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    return
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -586,11 +610,13 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    check_perLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    check_perLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
     check_ACLineSegment_lines(sparql_mgr, Ybus)
+
+    check_WireInfo_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
