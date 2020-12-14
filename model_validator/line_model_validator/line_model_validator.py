@@ -554,32 +554,128 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
+def build_Dij(last_info, last_seq, XSpc, YSpc, Dij):
+    Dij[last_info] = {}
+    Dij[last_info][1] = {}
+    Dij[last_info][2] = {}
+    Dij[last_info][2][1] = math.sqrt(math.pow(XSpc[2]-XSpc[1],2) + math.pow(YSpc[2]-YSpc[1],2))
+
+    if last_seq > 2:
+        Dij[last_info][3] = {}
+        Dij[last_info][3][1] = math.sqrt(math.pow(XSpc[3]-XSpc[1],2) + math.pow(YSpc[3]-YSpc[1],2))
+        Dij[last_info][3][2] = math.sqrt(math.pow(XSpc[3]-XSpc[2],2) + math.pow(YSpc[3]-YSpc[2],2))
+
+        if last_seq > 3:
+            Dij[last_info][4] = {}
+            Dij[last_info][4][1] = math.sqrt(math.pow(XSpc[4]-XSpc[1],2) + math.pow(YSpc[4]-YSpc[1],2))
+            Dij[last_info][4][2] = math.sqrt(math.pow(XSpc[4]-XSpc[2],2) + math.pow(YSpc[4]-YSpc[2],2))
+            Dij[last_info][4][3] = math.sqrt(math.pow(XSpc[4]-XSpc[3],2) + math.pow(YSpc[4]-YSpc[3],2))
+
+    print('Built Dij for: ' + last_info + ', with high seq: ' + str(last_seq))
+    print(Dij[last_info])
+
+
 def check_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
 
+    bindings = sparql_mgr.WireInfo_spacing()
+    #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    # create Dij dictionary (via XSpc and YSpc spacing dictionaries) from spacing query
+    XSpc = {}
+    YSpc = {}
+    Dij = {}
+    last_info = None
+    for obj in bindings:
+        wire_spacing_info = obj['wire_spacing_info']['value']
+        #cable = obj['cable']['value']
+        #usage = obj['usage']['value']
+        #bundle_count = int(obj['bundle_count']['value'])
+        #bundle_sep = int(obj['bundle_sep']['value'])
+        seq = int(obj['seq']['value'])
+        xCoord = float(obj['xCoord']['value'])
+        yCoord = float(obj['yCoord']['value'])
+
+        if seq == 1:
+            # process the previous wire_spacing_info
+            if last_info:
+                build_Dij(last_info, last_seq, XSpc, YSpc, Dij)
+
+                # clear existing entries to get ready for the new data
+                XSpc.clear()
+                YSpc.clear()
+
+        XSpc[seq] = xCoord
+        YSpc[seq] = yCoord
+        last_info = wire_spacing_info
+        last_seq = seq
+
+    if last_info:
+        build_Dij(last_info, last_seq, XSpc, YSpc, Dij)
+
+    bindings = sparql_mgr.WireInfo_overhead()
+    #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    GMR = {}
+    R25 = {}
+    for obj in bindings:
+        wire_cn_ts = obj['wire_cn_ts']['value']
+        #radius = float(obj['radius']['value'])
+        #coreRadius = float(obj['coreRadius']['value'])
+        gmr = float(obj['gmr']['value'])
+        #rdc = float(obj['rdc']['value'])
+        r25 = float(obj['r25']['value'])
+        #r50 = float(obj['r50']['value'])
+        #r75 = float(obj['r75']['value'])
+        #amps = int(obj['amps']['value'])
+        print('wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25))
+
+        GMR[wire_cn_ts] = gmr
+        R25[wire_cn_ts] = r25
+
     bindings = sparql_mgr.WireInfo_line_names()
-    print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', file=logfile)
-    print(bindings, file=logfile)
+    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', file=logfile)
+    #print(bindings, file=logfile)
 
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
         return
 
-    bindings = sparql_mgr.WireInfo_spacing()
-    print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', file=logfile)
-    print(bindings, file=logfile)
+    # define all the constants needed for Zprim
+    pi = 3.141592653589793
+    u0 = pi * 4.0e-7
+    w = pi*2.0 * 60.0
+    p = 100.0
+    f = 60.0
+    Rg = (u0 * w)/8.0
+    X0 = (u0 * w)/(pi*2.0)
+    Xg = X0 * math.log(658.5 * math.sqrt(p/f))
 
-    bindings = sparql_mgr.WireInfo_overhead()
-    print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
-    print(bindings, flush=True)
-    print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', file=logfile)
-    print(bindings, file=logfile)
+    for obj in bindings:
+        line_name = obj['line_name']['value']
+        #basev = float(obj['basev']['value'])
+        bus1 = obj['bus1']['value'].upper()
+        bus2 = obj['bus2']['value'].upper()
+        length = float(obj['length']['value'])
+        wire_spacing_info = obj['wire_spacing_info']['value']
+        phase = obj['phase']['value'].upper()
+        wire_cn_ts = obj['wire_cn_ts']['value']
+        wireinfo = obj['wireinfo']['value']
+        print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
+
+        # simple way to bail out for now since only OverheadWireInfo is implemented
+        if wireinfo != 'OverheadWireInfo':
+            return
 
     return
 
