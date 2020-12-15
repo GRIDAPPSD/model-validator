@@ -549,28 +549,28 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
-def build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0):
-    Xij[last_info] = {}
-    Xij[last_info][1] = {}
-    Xij[last_info][2] = {}
+def build_Xij(wire_info, max_seq, XSpc, YSpc, Xij, X0):
+    Xij[wire_info] = {}
+    Xij[wire_info][1] = {}
+    Xij[wire_info][2] = {}
     dist = math.sqrt(math.pow(XSpc[2]-XSpc[1],2) + math.pow(YSpc[2]-YSpc[1],2))
-    Xij[last_info][2][1] = X0 * math.log(1.0/dist)
+    Xij[wire_info][2][1] = X0 * math.log(1.0/dist)
 
-    if last_seq > 2:
-        Xij[last_info][3] = {}
+    if max_seq > 2:
+        Xij[wire_info][3] = {}
         dist = math.sqrt(math.pow(XSpc[3]-XSpc[1],2) + math.pow(YSpc[3]-YSpc[1],2))
-        Xij[last_info][3][1] = X0 * math.log(1.0/dist)
+        Xij[wire_info][3][1] = X0 * math.log(1.0/dist)
         dist = math.sqrt(math.pow(XSpc[3]-XSpc[2],2) + math.pow(YSpc[3]-YSpc[2],2))
-        Xij[last_info][3][2] = X0 * math.log(1.0/dist)
+        Xij[wire_info][3][2] = X0 * math.log(1.0/dist)
 
-        if last_seq > 3:
-            Xij[last_info][4] = {}
+        if max_seq > 3:
+            Xij[wire_info][4] = {}
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[1],2) + math.pow(YSpc[4]-YSpc[1],2))
-            Xij[last_info][4][1] = X0 * math.log(1.0/dist)
+            Xij[wire_info][4][1] = X0 * math.log(1.0/dist)
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[2],2) + math.pow(YSpc[4]-YSpc[2],2))
-            Xij[last_info][4][2] = X0 * math.log(1.0/dist)
+            Xij[wire_info][4][2] = X0 * math.log(1.0/dist)
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[3],2) + math.pow(YSpc[4]-YSpc[3],2))
-            Xij[last_info][4][3] = X0 * math.log(1.0/dist)
+            Xij[wire_info][4][3] = X0 * math.log(1.0/dist)
 
 
 def check_WireInfo_lines(sparql_mgr, Ybus):
@@ -597,7 +597,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     XSpc = {}
     YSpc = {}
     Xij = {}
-    last_info = None
+    last_wire_info = None
     for obj in bindings:
         wire_spacing_info = obj['wire_spacing_info']['value']
         #cable = obj['cable']['value']
@@ -610,8 +610,8 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
 
         if seq == 1:
             # process the previous wire_spacing_info
-            if last_info:
-                build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0)
+            if last_wire_info:
+                build_Xij(last_wire_info, last_seq, XSpc, YSpc, Xij, X0)
 
                 # clear existing entries to get ready for the new data
                 XSpc.clear()
@@ -619,11 +619,11 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
 
         XSpc[seq] = xCoord
         YSpc[seq] = yCoord
-        last_info = wire_spacing_info
+        last_wire_info = wire_spacing_info
         last_seq = seq
 
-    if last_info:
-        build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0)
+    if last_wire_info:
+        build_Xij(last_wire_info, last_seq, XSpc, YSpc, Xij, X0)
 
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
@@ -845,11 +845,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    #check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    #check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    check_ACLineSegment_lines(sparql_mgr, Ybus)
+    #check_ACLineSegment_lines(sparql_mgr, Ybus)
 
     check_WireInfo_lines(sparql_mgr, Ybus)
 
