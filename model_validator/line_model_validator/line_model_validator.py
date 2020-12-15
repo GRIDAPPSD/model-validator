@@ -572,9 +572,6 @@ def build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0):
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[3],2) + math.pow(YSpc[4]-YSpc[3],2))
             Xij[last_info][4][3] = X0 * math.log(1.0/dist)
 
-    print('Built Xij for: ' + last_info + ', with high seq: ' + str(last_seq))
-    print(Xij[last_info])
-
 
 def check_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
@@ -646,7 +643,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         #r50 = float(obj['r50']['value'])
         #r75 = float(obj['r75']['value'])
         #amps = int(obj['amps']['value'])
-        print('wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25))
+        #print('wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25))
 
         GMR[wire_cn_ts] = X0 * math.log(1.0/gmr)
         R25[wire_cn_ts] = r25
@@ -665,6 +662,17 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
 
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+
     phaseIdx = 0
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -676,7 +684,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         phase = obj['phase']['value'].upper()
         wire_cn_ts = obj['wire_cn_ts']['value']
         wireinfo = obj['wireinfo']['value']
-        print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
+        #print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
 
         # simple way to bail out for now since only OverheadWireInfo is implemented
         if wireinfo != 'OverheadWireInfo':
@@ -727,6 +735,9 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         # item processed for a line_name so a good way to know when to trigger
         # the Ybus comparison code
         if phase == 'N':
+            print("\nValidating OverheadWireInfo line_name: " + line_name, flush=True)
+            print("\nValidating OverheadWireInfo line_name: " + line_name, file=logfile)
+
             # create the Z-hat matrices to then compute Zabc for Ybus comparisons
             Zij = Zprim[:phaseIdx,:phaseIdx]
             Zin = Zprim[:phaseIdx,phaseIdx:]
@@ -748,12 +759,56 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             #print('identity test for ' + line_name + ': ' + str(identityTest))
             # negate the matrix and assign it to Ycomp
             Ycomp = invZabc * -1
-            print('Ycomp for: ' + line_name)
-            print(Ycomp)
+
+            if Ycomp.size == 1:
+                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+
+            elif Ycomp.size == 4:
+                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
+
+            elif Ycomp.size == 9:
+                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair3b1, pair1b2, Ycomp[2,0], Ybus)
+                compareY(line_name, pair3b1, pair2b2, Ycomp[2,1], Ybus)
+                compareY(line_name, pair3b1, pair3b2, Ycomp[2,2], Ybus)
 
             phaseIdx = 0
         else:
             phaseIdx += 1
+
+    print("\nSummary for WireInfo lines:", flush=True)
+    print("\nSummary for WireInfo lines:", file=logfile)
+
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+
+    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
+    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
+    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
+    print("Real RED count:    " + str(redCountReal), file=logfile)
+
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+
+    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
+    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
+    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
+    print("Imag RED count:    " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for WireInfo lines", flush=True)
+    print("\nFinished validation for WireInfo lines", file=logfile)
 
     return
 
