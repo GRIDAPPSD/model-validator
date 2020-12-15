@@ -551,7 +551,7 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
 
 def build_Xij(wire_info, max_seq, XSpc, YSpc, Xij, X0):
     Xij[wire_info] = {}
-    Xij[wire_info][1] = {}
+    Xij[wire_info][1] = {} # this is only done so the len() call returns the expected value
     Xij[wire_info][2] = {}
     dist = math.sqrt(math.pow(XSpc[2]-XSpc[1],2) + math.pow(YSpc[2]-YSpc[1],2))
     Xij[wire_info][2][1] = X0 * math.log(1.0/dist)
