@@ -300,6 +300,9 @@ def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 compareY(line_name, pair3A, pair2B, Ycomp[2,1], Ybus)
                 compareY(line_name, pair3A, pair3B, Ycomp[2,2], Ybus)
 
+    # free allocated memory
+    Zabc.clear()
+
     print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
     print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
 
@@ -418,6 +421,9 @@ def check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+
+    # free allocated memory
+    Zabc.clear()
 
     print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
     print("\nSummary for PerLengthSequenceImpedance lines:", file=logfile)
@@ -633,6 +639,10 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     if last_info:
         build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0)
 
+    # free allocated memory
+    XSpc.clear()
+    YSpc.clear()
+
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
     #print(bindings, flush=True)
@@ -667,7 +677,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
         return
 
-    Zprim = {}
+    phaseIdx = 0
     for obj in bindings:
         line_name = obj['line_name']['value']
         #basev = float(obj['basev']['value'])
@@ -684,43 +694,73 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         if wireinfo != 'OverheadWireInfo':
             break
 
-        if line_name not in Zprim:
-            phaseIdx = 0
-            if len(Xij[wire_spacing_info]) == 2:
-                Zprim[line_name] = np.empty((2,2), dtype=complex)
-            elif len(Xij[wire_spacing_info]) == 3:
-                Zprim[line_name] = np.empty((3,3), dtype=complex)
-            elif len(Xij[wire_spacing_info]) == 4:
-                Zprim[line_name] = np.empty((4,4), dtype=complex)
-
         if phaseIdx == 0:
-            Zprim[line_name][0,0] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            if len(Xij[wire_spacing_info]) == 2:
+                Zprim = np.empty((2,2), dtype=complex)
+            elif len(Xij[wire_spacing_info]) == 3:
+                Zprim = np.empty((3,3), dtype=complex)
+            elif len(Xij[wire_spacing_info]) == 4:
+                Zprim = np.empty((4,4), dtype=complex)
+
+            Zprim[0,0] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+
         elif phaseIdx == 1:
-            Zprim[line_name][1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
-            Zprim[line_name][0,1] = Zprim[line_name][1,0]
-            Zprim[line_name][1,1] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
+            Zprim[0,1] = Zprim[1,0]
+            Zprim[1,1] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+
         elif phaseIdx == 2:
-            Zprim[line_name][2,0] = complex(Rg, Xij[wire_spacing_info][3][1] + Xg)
-            Zprim[line_name][0,2] = Zprim[line_name][2,0]
-            Zprim[line_name][2,1] = complex(Rg, Xij[wire_spacing_info][3][2] + Xg)
-            Zprim[line_name][1,2] = Zprim[line_name][2,1]
-            Zprim[line_name][2,2] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[2,0] = complex(Rg, Xij[wire_spacing_info][3][1] + Xg)
+            Zprim[0,2] = Zprim[2,0]
+            Zprim[2,1] = complex(Rg, Xij[wire_spacing_info][3][2] + Xg)
+            Zprim[1,2] = Zprim[2,1]
+            Zprim[2,2] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+
         elif phaseIdx == 3:
-            Zprim[line_name][3,0] = complex(Rg, Xij[wire_spacing_info][4][1] + Xg)
-            Zprim[line_name][0,3] = Zprim[line_name][3,0]
-            Zprim[line_name][3,1] = complex(Rg, Xij[wire_spacing_info][4][2] + Xg)
-            Zprim[line_name][1,3] = Zprim[line_name][3,1]
-            Zprim[line_name][3,2] = complex(Rg, Xij[wire_spacing_info][4][3] + Xg)
-            Zprim[line_name][2,3] = Zprim[line_name][3,2]
-            Zprim[line_name][3,3] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[3,0] = complex(Rg, Xij[wire_spacing_info][4][1] + Xg)
+            Zprim[0,3] = Zprim[3,0]
+            Zprim[3,1] = complex(Rg, Xij[wire_spacing_info][4][2] + Xg)
+            Zprim[1,3] = Zprim[3,1]
+            Zprim[3,2] = complex(Rg, Xij[wire_spacing_info][4][3] + Xg)
+            Zprim[2,3] = Zprim[3,2]
+            Zprim[3,3] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
-        phaseIdx += 1
+        # take advantage that there is always a phase N and it's always the last
+        # item processed for a line_name so a good way to know when to trigger
+        # the Ybus comparison code
+        if phase == 'N':
+            # create the Z-hat matrices to then compute Zabc for Ybus comparisons
+            Zij = Zprim[:phaseIdx,:phaseIdx]
+            Zin = Zprim[:phaseIdx,phaseIdx:]
+            Znj = Zprim[phaseIdx:,:phaseIdx]
+            invZnn = np.linalg.inv(Zprim[phaseIdx:,phaseIdx:])
 
-    for line_name in Zprim:
-        print('Zprim for: ' + line_name)
-        print(Zprim[line_name])
+            # finally, compute Zabc from Z-hat matrices
+            Zabc = Zij - Zin*invZnn*Znj
+            # note this can also be done as follows through numpy methods, but
+            # the end results are the same so stick with the one that looks simpler
+            #Zabc = np.subtract(Zij, np.matmul(np.matmul(Zin, invZnn), Znj))
 
-        # create the Z-hat matrices to then create Zabc for Ybus comparisons
+            # multiply by scalar length
+            lenZabc = Zabc * length
+            # invert the matrix
+            invZabc = np.linalg.inv(lenZabc)
+            # test if the inverse * original = identity
+            #identityTest = np.dot(lenZabc, invZabc)
+            #print('identity test for ' + line_name + ': ' + str(identityTest))
+            # negate the matrix and assign it to Ycomp
+            Ycomp = invZabc * -1
+            print('Ycomp for: ' + line_name)
+            print(Ycomp)
+
+            phaseIdx = 0
+        else:
+            phaseIdx += 1
+
+    # free allocated memory
+    Xij.clear()
+    GMR.clear()
+    R25.clear()
 
     return
 
@@ -757,11 +797,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    #check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    #check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    check_ACLineSegment_lines(sparql_mgr, Ybus)
+    #check_ACLineSegment_lines(sparql_mgr, Ybus)
 
     check_WireInfo_lines(sparql_mgr, Ybus)
 
