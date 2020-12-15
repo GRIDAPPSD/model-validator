@@ -578,13 +578,12 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
 
     # define all the constants needed for WireInfo
-    pi = 3.141592653589793
-    u0 = pi * 4.0e-7
-    w = pi*2.0 * 60.0
+    u0 = math.pi * 4.0e-7
+    w = math.pi*2.0 * 60.0
     p = 100.0
     f = 60.0
     Rg = (u0 * w)/8.0
-    X0 = (u0 * w)/(pi*2.0)
+    X0 = (u0 * w)/(math.pi*2.0)
     Xg = X0 * math.log(658.5 * math.sqrt(p/f))
 
     bindings = sparql_mgr.WireInfo_spacing()
