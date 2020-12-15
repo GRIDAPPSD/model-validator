@@ -128,23 +128,21 @@ def diffPercentImag(YcompValue, YbusValue):
     return percent
 
 
-def compareY(line_name, pairA, pairB, YcompValue, Ybus):
+def compareY(line_name, pairb1, pairb2, YcompValue, Ybus):
     noEntryFlag = False
-    if pairA in Ybus and pairB in Ybus[pairA]:
-        row = pairA
-        col = pairB
+    if pairb1 in Ybus and pairb2 in Ybus[pairb1]:
+        row = pairb1
+        col = pairb2
         YbusValue = Ybus[row][col]
-    elif pairB in Ybus and pairA in Ybus[pairB]:
-        row = pairB
-        col = pairA
+    elif pairb2 in Ybus and pairb1 in Ybus[pairb2]:
+        row = pairb2
+        col = pairb1
         YbusValue = Ybus[row][col]
     else:
-        row = pairA
-        col = pairB
+        row = pairb1
+        col = pairb2
         YbusValue = complex(0.0, 0.0)
         noEntryFlag = True
-
-    #YbusValue = Ybus[row][col]
 
     print("    between i: " + row + ", and j: " + col, flush=True)
     print("    between i: " + row + ", and j: " + col, file=logfile)
@@ -259,49 +257,43 @@ def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
             Ycomp = invZabc * -1
 
         # we now have the negated inverted matrix for comparison
-        ybusIdx = ybusPhaseIdx[phase]
-        pairA = bus1 + ybusIdx
-        pairB = bus2 + ybusIdx
         line_idx += 1
 
         if Ycomp.size == 1:
             # do comparisons now
-            compareY(line_name, pairA, pairB, Ycomp[0,0], Ybus)
+            compareY(line_name, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
 
         elif Ycomp.size == 4:
             if line_idx == 1:
-                pair1A = pairA
-                pair1B = pairB
+                pair1b1 = bus1 + ybusPhaseIdx[phase]
+                pair1b2 = bus2 + ybusPhaseIdx[phase]
             else:
-                pair2A = pairA
-                pair2B = pairB
+                pair2b1 = bus1 + ybusPhaseIdx[phase]
+                pair2b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                compareY(line_name, pair1A, pair1B, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2A, pair1B, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2A, pair2B, Ycomp[1,1], Ybus)
+                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
 
         elif Ycomp.size == 9:
             if line_idx == 1:
-                pair1A = pairA
-                pair1B = pairB
+                pair1b1 = bus1 + ybusPhaseIdx[phase]
+                pair1b2 = bus2 + ybusPhaseIdx[phase]
             elif line_idx == 2:
-                pair2A = pairA
-                pair2B = pairB
+                pair2b1 = bus1 + ybusPhaseIdx[phase]
+                pair2b2 = bus2 + ybusPhaseIdx[phase]
             else:
-                pair3A = pairA
-                pair3B = pairB
+                pair3b1 = bus1 + ybusPhaseIdx[phase]
+                pair3b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                compareY(line_name, pair1A, pair1B, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2A, pair1B, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2A, pair2B, Ycomp[1,1], Ybus)
-                compareY(line_name, pair3A, pair1B, Ycomp[2,0], Ybus)
-                compareY(line_name, pair3A, pair2B, Ycomp[2,1], Ybus)
-                compareY(line_name, pair3A, pair3B, Ycomp[2,2], Ybus)
-
-    # free allocated memory
-    Zabc.clear()
+                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair3b1, pair1b2, Ycomp[2,0], Ybus)
+                compareY(line_name, pair3b1, pair2b2, Ycomp[2,1], Ybus)
+                compareY(line_name, pair3b1, pair3b2, Ycomp[2,2], Ybus)
 
     print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
     print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
@@ -421,9 +413,6 @@ def check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
         compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
-
-    # free allocated memory
-    Zabc.clear()
 
     print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
     print("\nSummary for PerLengthSequenceImpedance lines:", file=logfile)
@@ -639,10 +628,6 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     if last_info:
         build_Xij(last_info, last_seq, XSpc, YSpc, Xij, X0)
 
-    # free allocated memory
-    XSpc.clear()
-    YSpc.clear()
-
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
     #print(bindings, flush=True)
@@ -677,6 +662,9 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
         return
 
+    # map line_name query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
+
     phaseIdx = 0
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -695,6 +683,9 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             break
 
         if phaseIdx == 0:
+            pair1b1 = bus1 + ybusPhaseIdx[phase]
+            pair1b2 = bus2 + ybusPhaseIdx[phase]
+
             if len(Xij[wire_spacing_info]) == 2:
                 Zprim = np.empty((2,2), dtype=complex)
             elif len(Xij[wire_spacing_info]) == 3:
@@ -705,11 +696,17 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             Zprim[0,0] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
         elif phaseIdx == 1:
+            pair2b1 = bus1 + ybusPhaseIdx[phase]
+            pair2b2 = bus2 + ybusPhaseIdx[phase]
+
             Zprim[1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
             Zprim[0,1] = Zprim[1,0]
             Zprim[1,1] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
         elif phaseIdx == 2:
+            pair3b1 = bus1 + ybusPhaseIdx[phase]
+            pair3b2 = bus2 + ybusPhaseIdx[phase]
+
             Zprim[2,0] = complex(Rg, Xij[wire_spacing_info][3][1] + Xg)
             Zprim[0,2] = Zprim[2,0]
             Zprim[2,1] = complex(Rg, Xij[wire_spacing_info][3][2] + Xg)
@@ -717,6 +714,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             Zprim[2,2] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
         elif phaseIdx == 3:
+            # this can only be phase 'N' so no need to store 'pair' values
             Zprim[3,0] = complex(Rg, Xij[wire_spacing_info][4][1] + Xg)
             Zprim[0,3] = Zprim[3,0]
             Zprim[3,1] = complex(Rg, Xij[wire_spacing_info][4][2] + Xg)
@@ -757,11 +755,6 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         else:
             phaseIdx += 1
 
-    # free allocated memory
-    Xij.clear()
-    GMR.clear()
-    R25.clear()
-
     return
 
 
@@ -797,11 +790,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    #check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    #check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    #check_ACLineSegment_lines(sparql_mgr, Ybus)
+    check_ACLineSegment_lines(sparql_mgr, Ybus)
 
     check_WireInfo_lines(sparql_mgr, Ybus)
 
