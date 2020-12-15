@@ -128,19 +128,19 @@ def diffPercentImag(YcompValue, YbusValue):
     return percent
 
 
-def compareY(line_name, pairb1, pairb2, YcompValue, Ybus):
+def compareY(line_name, pair_b1, pair_b2, YcompValue, Ybus):
     noEntryFlag = False
-    if pairb1 in Ybus and pairb2 in Ybus[pairb1]:
-        row = pairb1
-        col = pairb2
+    if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
+        row = pair_b1
+        col = pair_b2
         YbusValue = Ybus[row][col]
-    elif pairb2 in Ybus and pairb1 in Ybus[pairb2]:
-        row = pairb2
-        col = pairb1
+    elif pair_b2 in Ybus and pair_b1 in Ybus[pair_b2]:
+        row = pair_b2
+        col = pair_b1
         YbusValue = Ybus[row][col]
     else:
-        row = pairb1
-        col = pairb2
+        row = pair_b1
+        col = pair_b2
         YbusValue = complex(0.0, 0.0)
         noEntryFlag = True
 
@@ -265,35 +265,35 @@ def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
         elif Ycomp.size == 4:
             if line_idx == 1:
-                pair1b1 = bus1 + ybusPhaseIdx[phase]
-                pair1b2 = bus2 + ybusPhaseIdx[phase]
+                pair_i0b1 = bus1 + ybusPhaseIdx[phase]
+                pair_i0b2 = bus2 + ybusPhaseIdx[phase]
             else:
-                pair2b1 = bus1 + ybusPhaseIdx[phase]
-                pair2b2 = bus2 + ybusPhaseIdx[phase]
+                pair_i1b1 = bus1 + ybusPhaseIdx[phase]
+                pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
 
         elif Ycomp.size == 9:
             if line_idx == 1:
-                pair1b1 = bus1 + ybusPhaseIdx[phase]
-                pair1b2 = bus2 + ybusPhaseIdx[phase]
+                pair_i0b1 = bus1 + ybusPhaseIdx[phase]
+                pair_i0b2 = bus2 + ybusPhaseIdx[phase]
             elif line_idx == 2:
-                pair2b1 = bus1 + ybusPhaseIdx[phase]
-                pair2b2 = bus2 + ybusPhaseIdx[phase]
+                pair_i1b1 = bus1 + ybusPhaseIdx[phase]
+                pair_i1b2 = bus2 + ybusPhaseIdx[phase]
             else:
-                pair3b1 = bus1 + ybusPhaseIdx[phase]
-                pair3b2 = bus2 + ybusPhaseIdx[phase]
+                pair_i2b1 = bus1 + ybusPhaseIdx[phase]
+                pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
-                compareY(line_name, pair3b1, pair1b2, Ycomp[2,0], Ybus)
-                compareY(line_name, pair3b1, pair2b2, Ycomp[2,1], Ybus)
-                compareY(line_name, pair3b1, pair3b2, Ycomp[2,2], Ybus)
+                compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                compareY(line_name, pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                compareY(line_name, pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
 
     print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
     print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
@@ -691,8 +691,8 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             break
 
         if phaseIdx == 0:
-            pair1b1 = bus1 + ybusPhaseIdx[phase]
-            pair1b2 = bus2 + ybusPhaseIdx[phase]
+            pair_i0b1 = bus1 + ybusPhaseIdx[phase]
+            pair_i0b2 = bus2 + ybusPhaseIdx[phase]
 
             if len(Xij[wire_spacing_info]) == 2:
                 Zprim = np.empty((2,2), dtype=complex)
@@ -704,16 +704,16 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             Zprim[0,0] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
         elif phaseIdx == 1:
-            pair2b1 = bus1 + ybusPhaseIdx[phase]
-            pair2b2 = bus2 + ybusPhaseIdx[phase]
+            pair_i1b1 = bus1 + ybusPhaseIdx[phase]
+            pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             Zprim[1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
             Zprim[0,1] = Zprim[1,0]
             Zprim[1,1] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
 
         elif phaseIdx == 2:
-            pair3b1 = bus1 + ybusPhaseIdx[phase]
-            pair3b2 = bus2 + ybusPhaseIdx[phase]
+            pair_i2b1 = bus1 + ybusPhaseIdx[phase]
+            pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
             Zprim[2,0] = complex(Rg, Xij[wire_spacing_info][3][1] + Xg)
             Zprim[0,2] = Zprim[2,0]
@@ -761,20 +761,20 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
             Ycomp = invZabc * -1
 
             if Ycomp.size == 1:
-                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
 
             elif Ycomp.size == 4:
-                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
 
             elif Ycomp.size == 9:
-                compareY(line_name, pair1b1, pair1b2, Ycomp[0,0], Ybus)
-                compareY(line_name, pair2b1, pair1b2, Ycomp[1,0], Ybus)
-                compareY(line_name, pair2b1, pair2b2, Ycomp[1,1], Ybus)
-                compareY(line_name, pair3b1, pair1b2, Ycomp[2,0], Ybus)
-                compareY(line_name, pair3b1, pair2b2, Ycomp[2,1], Ybus)
-                compareY(line_name, pair3b1, pair3b2, Ycomp[2,2], Ybus)
+                compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                compareY(line_name, pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                compareY(line_name, pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                compareY(line_name, pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
 
             phaseIdx = 0
         else:
