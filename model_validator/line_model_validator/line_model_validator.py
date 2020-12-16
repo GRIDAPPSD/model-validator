@@ -162,7 +162,7 @@ def compareY(line_name, pair_b1, pair_b2, YcompValue, Ybus):
     print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
 
 
-def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
+def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
 
@@ -328,7 +328,7 @@ def check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     return
 
 
-def check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
+def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', file=logfile)
 
@@ -447,7 +447,7 @@ def check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     return
 
 
-def check_ACLineSegment_lines(sparql_mgr, Ybus):
+def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
 
@@ -549,7 +549,7 @@ def check_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
-def build_Xij(wire_info, max_seq, XSpc, YSpc, Xij, X0):
+def build_Xij(wire_info, max_seq, cableFlag, XSpc, YSpc, Xij, X0):
     Xij[wire_info] = {}
     Xij[wire_info][1] = {} # this is only done so the len() call returns the expected value
     Xij[wire_info][2] = {}
@@ -563,7 +563,9 @@ def build_Xij(wire_info, max_seq, XSpc, YSpc, Xij, X0):
         dist = math.sqrt(math.pow(XSpc[3]-XSpc[2],2) + math.pow(YSpc[3]-YSpc[2],2))
         Xij[wire_info][3][2] = X0 * math.log(1.0/dist)
 
-        if max_seq > 3:
+        # 4th row is calculated differently if cableFlag is true and we need
+        # more query results to do that
+        if max_seq>3 and not cableFlag:
             Xij[wire_info][4] = {}
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[1],2) + math.pow(YSpc[4]-YSpc[1],2))
             Xij[wire_info][4][1] = X0 * math.log(1.0/dist)
@@ -573,7 +575,7 @@ def build_Xij(wire_info, max_seq, XSpc, YSpc, Xij, X0):
             Xij[wire_info][4][3] = X0 * math.log(1.0/dist)
 
 
-def check_WireInfo_lines(sparql_mgr, Ybus):
+def validate_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
 
@@ -599,18 +601,19 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
     last_wire_info = None
     for obj in bindings:
         wire_spacing_info = obj['wire_spacing_info']['value']
-        #cable = obj['cable']['value']
+        cableFlag = obj['cable']['value'].upper() == 'TRUE' # don't depend on lowercase
         #usage = obj['usage']['value']
         #bundle_count = int(obj['bundle_count']['value'])
         #bundle_sep = int(obj['bundle_sep']['value'])
         seq = int(obj['seq']['value'])
         xCoord = float(obj['xCoord']['value'])
         yCoord = float(obj['yCoord']['value'])
+        #print('wire_spacing_info: ' + wire_spacing_info + ', cable: ' + str(cableFlag) + ', seq: ' + str(seq) + ', xCoord: ' + str(xCoord) + ', yCoord: ' + str(yCoord))
 
         if seq == 1:
             # process the previous wire_spacing_info
             if last_wire_info:
-                build_Xij(last_wire_info, last_seq, XSpc, YSpc, Xij, X0)
+                build_Xij(last_wire_info, last_seq, cableFlag, XSpc, YSpc, Xij, X0)
 
                 # clear existing entries to get ready for the new data
                 XSpc.clear()
@@ -622,7 +625,7 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
         last_seq = seq
 
     if last_wire_info:
-        build_Xij(last_wire_info, last_seq, XSpc, YSpc, Xij, X0)
+        build_Xij(last_wire_info, last_seq, cableFlag, XSpc, YSpc, Xij, X0)
 
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
@@ -646,6 +649,36 @@ def check_WireInfo_lines(sparql_mgr, Ybus):
 
         GMR[wire_cn_ts] = X0 * math.log(1.0/gmr)
         R25[wire_cn_ts] = r25
+
+    bindings = sparql_mgr.WireInfo_concentric()
+    #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    for obj in bindings:
+        wire_cn_ts = obj['wire_cn_ts']['value']
+        #radius = float(obj['radius']['value'])
+        #coreRadius = float(obj['coreRadius']['value'])
+        gmr = float(obj['gmr']['value'])
+        #rdc = float(obj['rdc']['value'])
+        r25 = float(obj['r25']['value'])
+        #r50 = float(obj['r50']['value'])
+        #r75 = float(obj['r75']['value'])
+        #amps = int(obj['amps']['value'])
+        #insulationFlag = obj['amps']['value'].upper() == 'TRUE'
+        #insulation_thickness = float(obj['insulation_thickness']['value'])
+        #diameter_core = float(obj['diameter_core']['value'])
+        #diameter_insulation = float(obj['diameter_insulation']['value'])
+        #diameter_screen = float(obj['diameter_screen']['value'])
+        diameter_jacket = float(obj['diameter_jacket']['value'])
+        #diameter_neutral = float(obj['diameter_neutral']['value'])
+        #sheathneutral = obj['sheathneutral']['value'].upper()=='TRUE'
+        strand_count = int(obj['strand_count']['value'])
+        strand_radius = float(obj['strand_radius']['value'])
+        strand_gmr = float(obj['strand_gmr']['value'])
+        strand_rdc = float(obj['strand_rdc']['value'])
+        print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25) + ', diameter_jacket: ' + str(diameter_jacket) + ', strand_count: ' + str(strand_count) + ', strand_radius: ' + str(strand_radius) + ', strand_gmr: ' + str(strand_gmr) + ', strand_rdc: ' + str(strand_rdc))
 
     bindings = sparql_mgr.WireInfo_line_names()
     #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
@@ -844,13 +877,13 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    #check_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    #validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    #check_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    #validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    #check_ACLineSegment_lines(sparql_mgr, Ybus)
+    #validate_ACLineSegment_lines(sparql_mgr, Ybus)
 
-    check_WireInfo_lines(sparql_mgr, Ybus)
+    validate_WireInfo_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
