@@ -668,6 +668,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
         return
 
+    tape_line = None
     phaseIdx = 0
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -679,10 +680,16 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         phase = obj['phase']['value'].upper()
         wire_cn_ts = obj['wire_cn_ts']['value']
         wireinfo = obj['wireinfo']['value']
-        #print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
+        print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
 
-        # simple way to bail out for now since only OverheadWireInfo is implemented
-        if wireinfo != 'OverheadWireInfo':
+        # simple way to keep from processing TapeShieldCableInfo for now
+        if wireinfo=='TapeShieldCableInfo' or line_name==tape_line:
+            tape_line = line_name
+            continue
+
+        tape_line = None
+
+        if wireinfo == 'ConcentricNeutralCableInfo':
             break
 
         if phaseIdx == 0:
@@ -690,11 +697,20 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i0b2 = bus2 + ybusPhaseIdx[phase]
 
             if len(XCoord[wire_spacing_info]) == 2:
-                Zprim = np.empty((2,2), dtype=complex)
+                if wireinfo == 'OverheadWireInfo':
+                    Zprim = np.empty((2,2), dtype=complex)
+                elif wireinfo == 'ConcentricNeutralCableInfo':
+                    Zprim = np.empty((4,4), dtype=complex)
             elif len(XCoord[wire_spacing_info]) == 3:
-                Zprim = np.empty((3,3), dtype=complex)
+                if wireinfo == 'OverheadWireInfo':
+                    Zprim = np.empty((3,3), dtype=complex)
+                elif wireinfo == 'ConcentricNeutralCableInfo':
+                    Zprim = np.empty((5,5), dtype=complex)
             elif len(XCoord[wire_spacing_info]) == 4:
-                Zprim = np.empty((4,4), dtype=complex)
+                if wireinfo == 'OverheadWireInfo':
+                    Zprim = np.empty((4,4), dtype=complex)
+                elif wireinfo == 'ConcentricNeutralCableInfo':
+                    Zprim = np.empty((6,6), dtype=complex)
 
             Zprim[0,0] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
