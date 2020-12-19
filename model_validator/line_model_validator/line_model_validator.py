@@ -549,31 +549,6 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
-def build_Xij(wire_info, max_seq, cableFlag, XSpc, YSpc, Xij, X0):
-    Xij[wire_info] = {}
-    Xij[wire_info][1] = {} # this is only done so the len() call returns the expected value
-    Xij[wire_info][2] = {}
-    dist = math.sqrt(math.pow(XSpc[2]-XSpc[1],2) + math.pow(YSpc[2]-YSpc[1],2))
-    Xij[wire_info][2][1] = X0 * math.log(1.0/dist)
-
-    if max_seq > 2:
-        Xij[wire_info][3] = {}
-        dist = math.sqrt(math.pow(XSpc[3]-XSpc[1],2) + math.pow(YSpc[3]-YSpc[1],2))
-        Xij[wire_info][3][1] = X0 * math.log(1.0/dist)
-        dist = math.sqrt(math.pow(XSpc[3]-XSpc[2],2) + math.pow(YSpc[3]-YSpc[2],2))
-        Xij[wire_info][3][2] = X0 * math.log(1.0/dist)
-
-        # 4th row is calculated differently (and later) if cableFlag is true
-        if max_seq>3 and not cableFlag:
-            Xij[wire_info][4] = {}
-            dist = math.sqrt(math.pow(XSpc[4]-XSpc[1],2) + math.pow(YSpc[4]-YSpc[1],2))
-            Xij[wire_info][4][1] = X0 * math.log(1.0/dist)
-            dist = math.sqrt(math.pow(XSpc[4]-XSpc[2],2) + math.pow(YSpc[4]-YSpc[2],2))
-            Xij[wire_info][4][2] = X0 * math.log(1.0/dist)
-            dist = math.sqrt(math.pow(XSpc[4]-XSpc[3],2) + math.pow(YSpc[4]-YSpc[3],2))
-            Xij[wire_info][4][3] = X0 * math.log(1.0/dist)
-
-
 def validate_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
@@ -593,11 +568,8 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    # create Xij dictionary (via XSpc and YSpc spacing dictionaries) from spacing query
-    XSpc = {}
-    YSpc = {}
-    Xij = {}
-    last_wire_info = None
+    XCoord = {}
+    YCoord = {}
     for obj in bindings:
         wire_spacing_info = obj['wire_spacing_info']['value']
         cableFlag = obj['cable']['value'].upper() == 'TRUE' # don't depend on lowercase
@@ -605,26 +577,13 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         #bundle_count = int(obj['bundle_count']['value'])
         #bundle_sep = int(obj['bundle_sep']['value'])
         seq = int(obj['seq']['value'])
-        xCoord = float(obj['xCoord']['value'])
-        yCoord = float(obj['yCoord']['value'])
-        #print('wire_spacing_info: ' + wire_spacing_info + ', cable: ' + str(cableFlag) + ', seq: ' + str(seq) + ', xCoord: ' + str(xCoord) + ', yCoord: ' + str(yCoord))
-
         if seq == 1:
-            # process the previous wire_spacing_info
-            if last_wire_info:
-                build_Xij(last_wire_info, last_seq, cableFlag, XSpc, YSpc, Xij, X0)
+            XCoord[wire_spacing_info] = {}
+            YCoord[wire_spacing_info] = {}
 
-                # clear existing entries to get ready for the new data
-                XSpc.clear()
-                YSpc.clear()
-
-        XSpc[seq] = xCoord
-        YSpc[seq] = yCoord
-        last_wire_info = wire_spacing_info
-        last_seq = seq
-
-    if last_wire_info:
-        build_Xij(last_wire_info, last_seq, cableFlag, XSpc, YSpc, Xij, X0)
+        XCoord[wire_spacing_info][seq] = float(obj['xCoord']['value'])
+        YCoord[wire_spacing_info][seq] = float(obj['yCoord']['value'])
+        #print('wire_spacing_info: ' + wire_spacing_info + ', cable: ' + str(cableFlag) + ', seq: ' + str(seq) + ', xCoord: ' + str(xCoord) + ', yCoord: ' + str(yCoord))
 
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
@@ -730,11 +689,11 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i0b1 = bus1 + ybusPhaseIdx[phase]
             pair_i0b2 = bus2 + ybusPhaseIdx[phase]
 
-            if len(Xij[wire_spacing_info]) == 2:
+            if len(XCoord[wire_spacing_info]) == 2:
                 Zprim = np.empty((2,2), dtype=complex)
-            elif len(Xij[wire_spacing_info]) == 3:
+            elif len(XCoord[wire_spacing_info]) == 3:
                 Zprim = np.empty((3,3), dtype=complex)
-            elif len(Xij[wire_spacing_info]) == 4:
+            elif len(XCoord[wire_spacing_info]) == 4:
                 Zprim = np.empty((4,4), dtype=complex)
 
             Zprim[0,0] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
@@ -743,7 +702,8 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
-            Zprim[1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
+            Zprim[1,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[0,1] = Zprim[1,0]
             Zprim[1,1] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
@@ -751,19 +711,24 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
-            Zprim[2,0] = complex(Rg, Xij[wire_spacing_info][3][1] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
+            Zprim[2,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[0,2] = Zprim[2,0]
-            Zprim[2,1] = complex(Rg, Xij[wire_spacing_info][3][2] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
+            Zprim[2,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[1,2] = Zprim[2,1]
             Zprim[2,2] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
-            Zprim[3,0] = complex(Rg, Xij[wire_spacing_info][4][1] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
+            Zprim[3,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[0,3] = Zprim[3,0]
-            Zprim[3,1] = complex(Rg, Xij[wire_spacing_info][4][2] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
+            Zprim[3,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[1,3] = Zprim[3,1]
-            Zprim[3,2] = complex(Rg, Xij[wire_spacing_info][4][3] + Xg)
+            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
+            Zprim[3,2] = complex(Rg, X0*math.log(1.0/dist) + Xg)
             Zprim[2,3] = Zprim[3,2]
             Zprim[3,3] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
