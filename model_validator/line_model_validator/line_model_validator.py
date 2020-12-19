@@ -689,6 +689,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
 
         tape_line = None
 
+        # don't remove this failsafe until we are really ready to test logic
         if wireinfo == 'ConcentricNeutralCableInfo':
             break
 
@@ -696,57 +697,62 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i0b1 = bus1 + ybusPhaseIdx[phase]
             pair_i0b2 = bus2 + ybusPhaseIdx[phase]
 
-            if len(XCoord[wire_spacing_info]) == 2:
-                if wireinfo == 'OverheadWireInfo':
+            if wireinfo == 'OverheadWireInfo':
+                if len(XCoord[wire_spacing_info]) == 2:
                     Zprim = np.empty((2,2), dtype=complex)
-                elif wireinfo == 'ConcentricNeutralCableInfo':
-                    Zprim = np.empty((4,4), dtype=complex)
-            elif len(XCoord[wire_spacing_info]) == 3:
-                if wireinfo == 'OverheadWireInfo':
+                elif len(XCoord[wire_spacing_info]) == 3:
                     Zprim = np.empty((3,3), dtype=complex)
-                elif wireinfo == 'ConcentricNeutralCableInfo':
-                    Zprim = np.empty((5,5), dtype=complex)
-            elif len(XCoord[wire_spacing_info]) == 4:
-                if wireinfo == 'OverheadWireInfo':
+                elif len(XCoord[wire_spacing_info]) == 4:
                     Zprim = np.empty((4,4), dtype=complex)
-                elif wireinfo == 'ConcentricNeutralCableInfo':
+
+                Zprim[0,0] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
+
+            elif wireinfo == 'ConcentricNeutralCableInfo':
+                if len(XCoord[wire_spacing_info]) == 2:
+                    Zprim = np.empty((4,4), dtype=complex)
+                elif len(XCoord[wire_spacing_info]) == 3:
+                    Zprim = np.empty((5,5), dtype=complex)
+                elif len(XCoord[wire_spacing_info]) == 4:
                     Zprim = np.empty((6,6), dtype=complex)
 
-            Zprim[0,0] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
+                Zprim[0,0] = complex(CN_r25[wire_cn_ts] + Rg, X0*math.log(1.0/CN_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 1:
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
-            Zprim[1,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[0,1] = Zprim[1,0]
-            Zprim[1,1] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
+            if wireinfo == 'OverheadWireInfo':
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
+                Zprim[1,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[0,1] = Zprim[1,0]
+                Zprim[1,1] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 2:
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
-            Zprim[2,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[0,2] = Zprim[2,0]
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
-            Zprim[2,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[1,2] = Zprim[2,1]
-            Zprim[2,2] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
+            if wireinfo == 'OverheadWireInfo':
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
+                Zprim[2,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[0,2] = Zprim[2,0]
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
+                Zprim[2,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[1,2] = Zprim[2,1]
+                Zprim[2,2] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
-            Zprim[3,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[0,3] = Zprim[3,0]
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
-            Zprim[3,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[1,3] = Zprim[3,1]
-            dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
-            Zprim[3,2] = complex(Rg, X0*math.log(1.0/dist) + Xg)
-            Zprim[2,3] = Zprim[3,2]
-            Zprim[3,3] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
+            if wireinfo == 'OverheadWireInfo':
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
+                Zprim[3,0] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[0,3] = Zprim[3,0]
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
+                Zprim[3,1] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[1,3] = Zprim[3,1]
+                dist = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
+                Zprim[3,2] = complex(Rg, X0*math.log(1.0/dist) + Xg)
+                Zprim[2,3] = Zprim[3,2]
+                Zprim[3,3] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         # take advantage that there is always a phase N and it's always the last
         # item processed for a line_name so a good way to know when to trigger
