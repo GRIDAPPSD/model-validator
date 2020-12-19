@@ -563,8 +563,7 @@ def build_Xij(wire_info, max_seq, cableFlag, XSpc, YSpc, Xij, X0):
         dist = math.sqrt(math.pow(XSpc[3]-XSpc[2],2) + math.pow(YSpc[3]-YSpc[2],2))
         Xij[wire_info][3][2] = X0 * math.log(1.0/dist)
 
-        # 4th row is calculated differently if cableFlag is true and we need
-        # more query results to do that
+        # 4th row is calculated differently (and later) if cableFlag is true
         if max_seq>3 and not cableFlag:
             Xij[wire_info][4] = {}
             dist = math.sqrt(math.pow(XSpc[4]-XSpc[1],2) + math.pow(YSpc[4]-YSpc[1],2))
@@ -633,22 +632,19 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    GMR = {}
-    R25 = {}
+    OH_gmr = {}
+    OH_r25 = {}
     for obj in bindings:
         wire_cn_ts = obj['wire_cn_ts']['value']
         #radius = float(obj['radius']['value'])
         #coreRadius = float(obj['coreRadius']['value'])
-        gmr = float(obj['gmr']['value'])
+        OH_gmr[wire_cn_ts] = float(obj['gmr']['value'])
         #rdc = float(obj['rdc']['value'])
-        r25 = float(obj['r25']['value'])
+        OH_r25[wire_cn_ts] = float(obj['r25']['value'])
         #r50 = float(obj['r50']['value'])
         #r75 = float(obj['r75']['value'])
         #amps = int(obj['amps']['value'])
-        #print('wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25))
-
-        GMR[wire_cn_ts] = X0 * math.log(1.0/gmr)
-        R25[wire_cn_ts] = r25
+        #print('wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(OH_gmr[wire_cn_ts]) + ', r25: ' + str(OH_r25[wire_cn_ts]))
 
     bindings = sparql_mgr.WireInfo_concentric()
     #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', flush=True)
@@ -656,13 +652,20 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', file=logfile)
     #print(bindings, file=logfile)
 
+    CN_gmr = {}
+    CN_r25 = {}
+    CN_diameter_jacket = {}
+    CN_strand_count = {}
+    CN_strand_radius = {}
+    CN_strand_gmr = {}
+    CN_strand_rdc = {}
     for obj in bindings:
         wire_cn_ts = obj['wire_cn_ts']['value']
         #radius = float(obj['radius']['value'])
         #coreRadius = float(obj['coreRadius']['value'])
-        gmr = float(obj['gmr']['value'])
+        CN_gmr[wire_cn_ts] = float(obj['gmr']['value'])
         #rdc = float(obj['rdc']['value'])
-        r25 = float(obj['r25']['value'])
+        CN_r25[wire_cn_ts] = float(obj['r25']['value'])
         #r50 = float(obj['r50']['value'])
         #r75 = float(obj['r75']['value'])
         #amps = int(obj['amps']['value'])
@@ -671,25 +674,15 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         #diameter_core = float(obj['diameter_core']['value'])
         #diameter_insulation = float(obj['diameter_insulation']['value'])
         #diameter_screen = float(obj['diameter_screen']['value'])
-        diameter_jacket = float(obj['diameter_jacket']['value'])
+        CN_diameter_jacket[wire_cn_ts] = float(obj['diameter_jacket']['value'])
         #diameter_neutral = float(obj['diameter_neutral']['value'])
         #sheathneutral = obj['sheathneutral']['value'].upper()=='TRUE'
-        strand_count = int(obj['strand_count']['value'])
-        strand_radius = float(obj['strand_radius']['value'])
-        strand_gmr = float(obj['strand_gmr']['value'])
-        strand_rdc = float(obj['strand_rdc']['value'])
-        print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(gmr) + ', r25: ' + str(r25) + ', diameter_jacket: ' + str(diameter_jacket) + ', strand_count: ' + str(strand_count) + ', strand_radius: ' + str(strand_radius) + ', strand_gmr: ' + str(strand_gmr) + ', strand_rdc: ' + str(strand_rdc))
+        CN_strand_count[wire_cn_ts] = int(obj['strand_count']['value'])
+        CN_strand_radius[wire_cn_ts] = float(obj['strand_radius']['value'])
+        CN_strand_gmr[wire_cn_ts] = float(obj['strand_gmr']['value'])
+        CN_strand_rdc[wire_cn_ts] = float(obj['strand_rdc']['value'])
+        print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(CN_gmr[wire_cn_ts]) + ', r25: ' + str(CN_r25[wire_cn_ts]) + ', diameter_jacket: ' + str(CN_diameter_jacket[wire_cn_ts]) + ', strand_count: ' + str(CN_strand_count[wire_cn_ts]) + ', strand_radius: ' + str(CN_strand_radius[wire_cn_ts]) + ', strand_gmr: ' + str(CN_strand_gmr[wire_cn_ts]) + ', strand_rdc: ' + str(CN_strand_rdc[wire_cn_ts]))
 
-    bindings = sparql_mgr.WireInfo_line_names()
-    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
-        return
 
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
@@ -704,6 +697,17 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     greenCountReal = yellowCountReal = redCountReal = 0
     global greenCountImag, yellowCountImag, redCountImag
     greenCountImag = yellowCountImag = redCountImag = 0
+
+    bindings = sparql_mgr.WireInfo_line_names()
+    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
+        return
 
     phaseIdx = 0
     for obj in bindings:
@@ -733,7 +737,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             elif len(Xij[wire_spacing_info]) == 4:
                 Zprim = np.empty((4,4), dtype=complex)
 
-            Zprim[0,0] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[0,0] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 1:
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
@@ -741,7 +745,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
 
             Zprim[1,0] = complex(Rg, Xij[wire_spacing_info][2][1] + Xg)
             Zprim[0,1] = Zprim[1,0]
-            Zprim[1,1] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[1,1] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 2:
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
@@ -751,7 +755,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             Zprim[0,2] = Zprim[2,0]
             Zprim[2,1] = complex(Rg, Xij[wire_spacing_info][3][2] + Xg)
             Zprim[1,2] = Zprim[2,1]
-            Zprim[2,2] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[2,2] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
@@ -761,7 +765,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             Zprim[1,3] = Zprim[3,1]
             Zprim[3,2] = complex(Rg, Xij[wire_spacing_info][4][3] + Xg)
             Zprim[2,3] = Zprim[3,2]
-            Zprim[3,3] = complex(R25[wire_cn_ts] + Rg, GMR[wire_cn_ts] + Xg)
+            Zprim[3,3] = complex(OH_r25[wire_cn_ts] + Rg, X0*math.log(1.0/OH_gmr[wire_cn_ts]) + Xg)
 
         # take advantage that there is always a phase N and it's always the last
         # item processed for a line_name so a good way to know when to trigger
