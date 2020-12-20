@@ -631,17 +631,6 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         CN_strand_rdc[wire_cn_ts] = float(obj['strand_rdc']['value'])
         #print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_jacket: ' + str(CN_diameter_jacket[wire_cn_ts]) + ', strand_count: ' + str(CN_strand_count[wire_cn_ts]) + ', strand_radius: ' + str(CN_strand_radius[wire_cn_ts]) + ', strand_gmr: ' + str(CN_strand_gmr[wire_cn_ts]) + ', strand_rdc: ' + str(CN_strand_rdc[wire_cn_ts]))
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-
     bindings = sparql_mgr.WireInfo_line_names()
     #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
     #print(bindings, flush=True)
@@ -652,6 +641,18 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
         return
+
+    # initialize summary statistics
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
 
     # define all the constants needed below
     u0 = math.pi * 4.0e-7
@@ -665,7 +666,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
 
-    tape_line = None
+    tape_line = None # temporary variable to know when to skip processing
     phaseIdx = 0
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -718,6 +719,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 2
+            # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
             dist10 = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
             Zprim[1,0] = complex(Rg, X0*math.log(1.0/dist10) + Xg)
             Zprim[0,1] = Zprim[1,0]
@@ -729,6 +731,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 3
+            # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
             dist20 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
             dist21 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
 
