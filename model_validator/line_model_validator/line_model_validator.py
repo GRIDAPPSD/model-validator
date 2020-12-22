@@ -666,6 +666,14 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
 
+    # map between numpy array indices and 1-based formulas so everything lines up
+    i1 = j1 = 0
+    i2 = j2 = 1
+    i3 = j3 = 2
+    i4 = j4 = 3
+    i5 = j5 = 4
+    i6 = j6 = 5
+
     tape_line = None # temporary variable to know when to skip processing
     phaseIdx = 0
     for obj in bindings:
@@ -712,106 +720,117 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
                     Zprim = np.empty((6,6), dtype=complex)
 
             # row 1
-            Zprim[0,0] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+            Zprim[i1,j1] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
 
         elif phaseIdx == 1:
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 2
-            # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
-            dist10 = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
-            Zprim[1,0] = complex(Rg, X0*math.log(1.0/dist10) + Xg)
-            Zprim[0,1] = Zprim[1,0]
+            if wireinfo=='ConcentricNeutralCableInfo' and phase=='N':
+                R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+                dist_i2j1 = R
 
-            Zprim[1,1] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+                k = CN_strand_count[wire_cn_ts]
+                Rcn = CN_strand_rdc[wire_cn_ts]/k
+                Rk1 = math.pow(R,k-1)
+                distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
+                Zprim[i2,j2] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+
+            else:
+                dist_i2j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
+
+                Zprim[i2,j2] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+
+            Zprim[i2,j1] = Zprim[i1,j2] = complex(Rg, X0*math.log(1.0/dist_i2j1) + Xg)
 
         elif phaseIdx == 2:
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 3
-            # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
-            dist20 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
-            dist21 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
+            if wireinfo=='ConcentricNeutralCableInfo' and phase=='N':
+                # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
+                R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+                dist_i3j1 = R
 
-            Zprim[2,0] = complex(Rg, X0*math.log(1.0/dist20) + Xg)
-            Zprim[0,2] = Zprim[2,0]
-            Zprim[2,1] = complex(Rg, X0*math.log(1.0/dist21) + Xg)
-            Zprim[1,2] = Zprim[2,1]
+                k = CN_strand_count[wire_cn_ts]
+                Rk = math.pow(R,k)
+                dist_i3j2 = math.pow(math.pow(dist_i2j1,k) - Rk, 1.0/k)
 
-            Zprim[2,2] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+                k = CN_strand_count[wire_cn_ts]
+                Rcn = CN_strand_rdc[wire_cn_ts]/k
+                Rk1 = math.pow(R,k-1)
+                distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
+                Zprim[i3,j3] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+
+            else:
+                dist_i3j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
+                dist_i3j2 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
+
+                Zprim[i3,j3] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+
+            Zprim[i3,j1] = Zprim[i1,j3] = complex(Rg, X0*math.log(1.0/dist_i3j1) + Xg)
+            Zprim[i3,j2] = Zprim[i2,j3] = complex(Rg, X0*math.log(1.0/dist_i3j2) + Xg)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
             if wireinfo == 'OverheadWireInfo':
                 # row 4
-                dist30 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
-                dist31 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
-                dist32 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
+                dist_i4j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
+                dist_i4j2 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
+                dist_i4j3 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
 
-                Zprim[3,3] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+                Zprim[i4,j4] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
 
             elif wireinfo == 'ConcentricNeutralCableInfo':
                 # row 4
                 R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
-                dist30 = R
+                dist_i4j1 = R
                 k = CN_strand_count[wire_cn_ts]
                 Rk = math.pow(R,k)
-                dist31 = math.pow(math.pow(dist10,k) - Rk, 1.0/k)
-                dist32 = math.pow(math.pow(dist20,k) - Rk, 1.0/k)
+                dist_i4j2 = math.pow(math.pow(dist_i2j1,k) - Rk, 1.0/k)
+                dist_i4j3 = math.pow(math.pow(dist_i3j1,k) - Rk, 1.0/k)
 
                 Rcn = CN_strand_rdc[wire_cn_ts]/k
                 Rk1 = math.pow(R,k-1)
                 distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
-                Zprim[3,3] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+                Zprim[i4,j4] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
 
                 # row 5
-                dist40 = math.pow(math.pow(dist21,k) - Rk, 1.0/k)
-                Zprim[4,0] = complex(Rg, X0*math.log(1.0/dist40) + Xg)
-                Zprim[0,4] = Zprim[4,0]
+                dist_i5j1 = math.pow(math.pow(dist_i3j2,k) - Rk, 1.0/k)
+                Zprim[i5,j1] = Zprim[i1,j5] = complex(Rg, X0*math.log(1.0/dist_i5j1) + Xg)
 
-                dist41 = R
-                Zprim[4,1] = complex(Rg, X0*math.log(1.0/dist41) + Xg)
-                Zprim[1,4] = Zprim[4,1]
+                dist_i5j2 = R
+                Zprim[i5,j2] = Zprim[i2,j5] = complex(Rg, X0*math.log(1.0/dist_i5j2) + Xg)
 
-                dist42 = math.pow(math.pow(dist32,k) - Rk, 1.0/k)
-                Zprim[4,2] = complex(Rg, X0*math.log(1.0/dist42) + Xg)
-                Zprim[2,4] = Zprim[4,2]
+                dist_i5j3 = math.pow(math.pow(dist_i4j3,k) - Rk, 1.0/k)
+                Zprim[i5,j3] = Zprim[i3,j5] = complex(Rg, X0*math.log(1.0/dist_i5j3) + Xg)
 
-                Zprim[4,3] = complex(Rg, X0*math.log(1.0/dist21) + Xg)
-                Zprim[3,4] = Zprim[4,3]
+                Zprim[i5,j4] = Zprim[i4,j5] = complex(Rg, X0*math.log(1.0/dist_i3j2) + Xg)
 
-                Zprim[4,4] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+                Zprim[i5,j5] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
 
                 # row 6
-                dist50 = math.pow(math.pow(dist31,k) - Rk, 1.0/k)
-                Zprim[5,0] = complex(Rg, X0*math.log(1.0/dist50) + Xg)
-                Zprim[0,5] = Zprim[5,0]
+                dist_i6j1 = math.pow(math.pow(dist_i4j2,k) - Rk, 1.0/k)
+                Zprim[i6,j1] = Zprim[i1,j6] = complex(Rg, X0*math.log(1.0/dist_i6j1) + Xg)
 
-                dist51 = math.pow(math.pow(dist32,k) - Rk, 1.0/k)
-                Zprim[5,1] = complex(Rg, X0*math.log(1.0/dist51) + Xg)
-                Zprim[1,5] = Zprim[5,1]
+                dist_i6j2 = math.pow(math.pow(dist_i4j3,k) - Rk, 1.0/k)
+                Zprim[i6,j2] = Zprim[i2,j6] = complex(Rg, X0*math.log(1.0/dist_i6j2) + Xg)
 
-                dist52 = R
-                Zprim[5,2] = complex(Rg, X0*math.log(1.0/dist52) + Xg)
-                Zprim[2,5] = Zprim[5,2]
+                dist_i6j3 = R
+                Zprim[i6,j3] = Zprim[i3,j6] = complex(Rg, X0*math.log(1.0/dist_i6j3) + Xg)
 
-                Zprim[5,3] = complex(Rg, X0*math.log(1.0/dist31) + Xg)
-                Zprim[3,5] = Zprim[5,3]
+                Zprim[i6,j4] = Zprim[i4,j6] = complex(Rg, X0*math.log(1.0/dist_i4j2) + Xg)
 
-                Zprim[5,4] = complex(Rg, X0*math.log(1.0/dist32) + Xg)
-                Zprim[4,5] = Zprim[5,4]
+                Zprim[i6,j5] = Zprim[i5,j6] = complex(Rg, X0*math.log(1.0/dist_i4j3) + Xg)
 
-                Zprim[5,5] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+                Zprim[i6,i6] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
 
 
-            Zprim[3,0] = complex(Rg, X0*math.log(1.0/dist30) + Xg)
-            Zprim[0,3] = Zprim[3,0]
-            Zprim[3,1] = complex(Rg, X0*math.log(1.0/dist31) + Xg)
-            Zprim[1,3] = Zprim[3,1]
-            Zprim[3,2] = complex(Rg, X0*math.log(1.0/dist32) + Xg)
-            Zprim[2,3] = Zprim[3,2]
+            Zprim[i4,j1] = Zprim[i1,j4] = complex(Rg, X0*math.log(1.0/dist_i4j1) + Xg)
+            Zprim[i4,j2] = Zprim[i2,j4] = complex(Rg, X0*math.log(1.0/dist_i4j2) + Xg)
+            Zprim[i4,j3] = Zprim[i3,j4] = complex(Rg, X0*math.log(1.0/dist_i4j3) + Xg)
 
         # take advantage that there is always a phase N and it's always the last
         # item processed for a line_name so a good way to know when to trigger
