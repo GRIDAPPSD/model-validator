@@ -677,9 +677,9 @@ def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, 
     return Zprim
 
 
-def validate_LineInfo_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR LineInfo validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR LineInfo validation...', file=logfile)
+def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', file=logfile)
 
     bindings = sparql_mgr.WireInfo_spacing()
     #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
@@ -961,8 +961,8 @@ def validate_LineInfo_lines(sparql_mgr, Ybus):
         else:
             phaseIdx += 1
 
-    print("\nSummary for LineInfo lines:", flush=True)
-    print("\nSummary for LineInfo lines:", file=logfile)
+    print("\nSummary for WireInfo_and_WireSpacingInfo lines:", flush=True)
+    print("\nSummary for WireInfo_and_WireSpacingInfo lines:", file=logfile)
 
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
@@ -988,8 +988,8 @@ def validate_LineInfo_lines(sparql_mgr, Ybus):
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for LineInfo lines", flush=True)
-    print("\nFinished validation for LineInfo lines", file=logfile)
+    print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", flush=True)
+    print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", file=logfile)
 
     return
 
@@ -1032,7 +1032,7 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     validate_ACLineSegment_lines(sparql_mgr, Ybus)
 
-    validate_LineInfo_lines(sparql_mgr, Ybus)
+    validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
