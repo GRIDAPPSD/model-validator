@@ -653,7 +653,7 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
-    def WireInfo_concentric(self):
+    def WireInfo_concentricNeutral(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
@@ -689,6 +689,47 @@ class SPARQLManager:
          OPTIONAL {?w c:ConcentricNeutralCableInfo.neutralStrandGmr ?strand_gmr.}
          OPTIONAL {?w c:ConcentricNeutralCableInfo.neutralStrandRadius ?strand_radius.}
          OPTIONAL {?w c:ConcentricNeutralCableInfo.neutralStrandRDC20 ?strand_rdc}
+        }
+        ORDER BY ?wire_cn_ts
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(LINES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def WireInfo_tapeShield(self):
+        LINES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT DISTINCT ?wire_cn_ts ?radius ?coreRadius ?gmr ?rdc ?r25 ?r50 ?r75 ?amps ?insulation ?insulation_thickness ?diameter_core ?diameter_insulation ?diameter_screen ?diameter_jacket ?sheathneutral ?tapelap ?tapethickness
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq r:type c:ACLineSegment.
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?acp c:ACLineSegmentPhase.ACLineSegment ?eq.
+         ?acp c:ACLineSegmentPhase.WireInfo ?w.
+         ?w r:type c:TapeShieldCableInfo.
+         ?w c:IdentifiedObject.name ?wire_cn_ts.
+         ?w c:WireInfo.radius ?radius.
+         ?w c:WireInfo.gmr ?gmr.
+         OPTIONAL {?w c:WireInfo.rDC20 ?rdc.}
+         OPTIONAL {?w c:WireInfo.rAC25 ?r25.}
+         OPTIONAL {?w c:WireInfo.rAC50 ?r50.}
+         OPTIONAL {?w c:WireInfo.rAC75 ?r75.}
+         OPTIONAL {?w c:WireInfo.coreRadius ?coreRadius.}
+         OPTIONAL {?w c:WireInfo.ratedCurrent ?amps.}
+         OPTIONAL {?w c:WireInfo.insulationMaterial ?insraw.
+           bind(strafter(str(?insraw),"WireInsulationKind.") as ?insmat)}
+         OPTIONAL {?w c:WireInfo.insulated ?insulation.}
+         OPTIONAL {?w c:WireInfo.insulationThickness ?insulation_thickness.}
+         OPTIONAL {?w c:CableInfo.diameterOverCore ?diameter_core.}
+         OPTIONAL {?w c:CableInfo.diameterOverJacket ?diameter_jacket.}
+         OPTIONAL {?w c:CableInfo.diameterOverInsulation ?diameter_insulation.}
+         OPTIONAL {?w c:CableInfo.diameterOverScreen ?diameter_screen.}
+         OPTIONAL {?w c:CableInfo.sheathAsNeutral ?sheathneutral.}
+         OPTIONAL {?w c:TapeShieldCableInfo.tapeLap ?tapelap.}
+         OPTIONAL {?w c:TapeShieldCableInfo.tapeThickness ?tapethickness.}
         }
         ORDER BY ?wire_cn_ts
         """% self.feeder_mrid

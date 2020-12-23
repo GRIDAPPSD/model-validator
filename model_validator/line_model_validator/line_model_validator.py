@@ -724,10 +724,10 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         #amps = int(obj['amps']['value'])
         #print('overhead wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]))
 
-    bindings = sparql_mgr.WireInfo_concentric()
-    #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', flush=True)
+    bindings = sparql_mgr.WireInfo_concentricNeutral()
+    #print('LINE_MODEL_VALIDATOR WireInfo concentricNeutral query results:', flush=True)
     #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR WireInfo concentric query results:', file=logfile)
+    #print('LINE_MODEL_VALIDATOR WireInfo concentricNeutral query results:', file=logfile)
     #print(bindings, file=logfile)
 
     CN_diameter_jacket = {}
@@ -758,6 +758,35 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         CN_strand_gmr[wire_cn_ts] = float(obj['strand_gmr']['value'])
         CN_strand_rdc[wire_cn_ts] = float(obj['strand_rdc']['value'])
         #print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_jacket: ' + str(CN_diameter_jacket[wire_cn_ts]) + ', strand_count: ' + str(CN_strand_count[wire_cn_ts]) + ', strand_radius: ' + str(CN_strand_radius[wire_cn_ts]) + ', strand_gmr: ' + str(CN_strand_gmr[wire_cn_ts]) + ', strand_rdc: ' + str(CN_strand_rdc[wire_cn_ts]))
+
+    bindings = sparql_mgr.WireInfo_tapeShield()
+    #print('LINE_MODEL_VALIDATOR WireInfo tapeShield query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('LINE_MODEL_VALIDATOR WireInfo tapeShield query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    TS_diameter_screen = {}
+    TS_tape_thickness = {}
+    for obj in bindings:
+        wire_cn_ts = obj['wire_cn_ts']['value']
+        #radius = float(obj['radius']['value'])
+        #coreRadius = float(obj['coreRadius']['value'])
+        GMR[wire_cn_ts] = float(obj['gmr']['value'])
+        #rdc = float(obj['rdc']['value'])
+        R25[wire_cn_ts] = float(obj['r25']['value'])
+        #r50 = float(obj['r50']['value'])
+        #r75 = float(obj['r75']['value'])
+        #amps = int(obj['amps']['value'])
+        #insulationFlag = obj['amps']['value'].upper() == 'TRUE'
+        #insulation_thickness = float(obj['insulation_thickness']['value'])
+        #diameter_core = float(obj['diameter_core']['value'])
+        #diameter_insulation = float(obj['diameter_insulation']['value'])
+        TS_diameter_screen[wire_cn_ts] = float(obj['diameter_screen']['value'])
+        #diameter_jacket = float(obj['diameter_jacket']['value'])
+        #sheathneutral = obj['sheathneutral']['value'].upper()=='TRUE'
+        #tapelap = int(obj['tapelap']['value'])
+        TS_tape_thickness[wire_cn_ts] = float(obj['tapethickness']['value'])
+        print('tape wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_screen: ' + str(TS_diameter_screen[wire_cn_ts]) + ', tape_thickness: ' + str(TS_tape_thickness[wire_cn_ts]))
 
     bindings = sparql_mgr.WireInfo_line_names()
     #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
@@ -1026,11 +1055,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    #validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    #validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    validate_ACLineSegment_lines(sparql_mgr, Ybus)
+    #validate_ACLineSegment_lines(sparql_mgr, Ybus)
 
     validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
 
