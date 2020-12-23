@@ -913,13 +913,13 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         # to know when to trigger the Ybus comparison code
         # for ConcentricNeutralCableInfo, a flag is the easiest
         if (wireinfo=='OverheadWireInfo' and phase == 'N') or (wireinfo=='ConcentricNeutralCableInfo' and CN_done):
-            # don't remove this failsafe until we are really ready to test logic
-            if wireinfo == 'ConcentricNeutralCableInfo':
-                print("*** Skipping CN CableInfo for line_name: " + line_name, flush=True)
-                break
+            print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
+            print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
 
-            print("\nValidating OverheadWireInfo line_name: " + line_name, flush=True)
-            print("\nValidating OverheadWireInfo line_name: " + line_name, file=logfile)
+            if wireinfo == 'ConcentricNeutralCableInfo':
+                # the Z-hat slicing below is based on having an 'N' phase so need to
+                # account for that when it doesn't exist
+                phaseIdx += 1
 
             # create the Z-hat matrices to then compute Zabc for Ybus comparisons
             Zij = Zprim[:phaseIdx,:phaseIdx]
