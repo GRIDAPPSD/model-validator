@@ -677,9 +677,9 @@ def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, 
     return Zprim
 
 
-def validate_WireInfo_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
+def validate_LineInfo_lines(sparql_mgr, Ybus):
+    print('\nLINE_MODEL_VALIDATOR LineInfo validation...', flush=True)
+    print('\nLINE_MODEL_VALIDATOR LineInfo validation...', file=logfile)
 
     bindings = sparql_mgr.WireInfo_spacing()
     #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
@@ -806,7 +806,7 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         phase = obj['phase']['value'].upper()
         wire_cn_ts = obj['wire_cn_ts']['value']
         wireinfo = obj['wireinfo']['value']
-        print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
+        #print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
 
         # simple way to keep from processing TapeShieldCableInfo for now
         if wireinfo=='TapeShieldCableInfo' or line_name==tape_line:
@@ -925,13 +925,11 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
             Zij = Zprim[:phaseIdx,:phaseIdx]
             Zin = Zprim[:phaseIdx,phaseIdx:]
             Znj = Zprim[phaseIdx:,:phaseIdx]
+            #Znn = Zprim[phaseIdx:,phaseIdx:]
             invZnn = np.linalg.inv(Zprim[phaseIdx:,phaseIdx:])
 
             # finally, compute Zabc from Z-hat matrices
-            Zabc = Zij - Zin*invZnn*Znj
-            # note this can also be done as follows through numpy methods, but
-            # the end results are the same so stick with the one that looks simpler
-            #Zabc = np.subtract(Zij, np.matmul(np.matmul(Zin, invZnn), Znj))
+            Zabc = np.subtract(Zij, np.matmul(np.matmul(Zin, invZnn), Znj))
 
             # multiply by scalar length
             lenZabc = Zabc * length
@@ -963,8 +961,8 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
         else:
             phaseIdx += 1
 
-    print("\nSummary for WireInfo lines:", flush=True)
-    print("\nSummary for WireInfo lines:", file=logfile)
+    print("\nSummary for LineInfo lines:", flush=True)
+    print("\nSummary for LineInfo lines:", file=logfile)
 
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
     print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
@@ -990,8 +988,8 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
     print("Imag RED count:    " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for WireInfo lines", flush=True)
-    print("\nFinished validation for WireInfo lines", file=logfile)
+    print("\nFinished validation for LineInfo lines", flush=True)
+    print("\nFinished validation for LineInfo lines", file=logfile)
 
     return
 
@@ -1028,13 +1026,13 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    #validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    #validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    #validate_ACLineSegment_lines(sparql_mgr, Ybus)
+    validate_ACLineSegment_lines(sparql_mgr, Ybus)
 
-    validate_WireInfo_lines(sparql_mgr, Ybus)
+    validate_LineInfo_lines(sparql_mgr, Ybus)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
