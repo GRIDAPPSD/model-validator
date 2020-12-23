@@ -549,6 +549,122 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     return
 
 
+def CN_dist_R(dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+    dist = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+    return dist
+
+
+def CN_dist_D(dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+    dist = math.sqrt(math.pow(XCoord[wire_spacing_info][i]-XCoord[wire_spacing_info][j],2) + math.pow(YCoord[wire_spacing_info][i]-YCoord[wire_spacing_info][j],2))
+    return dist
+
+
+def CN_dist_DR(dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+    ii,jj = CN_dist_ij[dim][i][j]
+    d = math.sqrt(math.pow(XCoord[wire_spacing_info][ii]-XCoord[wire_spacing_info][jj],2) + math.pow(YCoord[wire_spacing_info][ii]-YCoord[wire_spacing_info][jj],2))
+    k = CN_strand_count[wire_cn_ts]
+    R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+    dist = math.pow(math.pow(d,k) - math.pow(R,k), 1.0/k)
+
+    return dist
+
+# global constants for determining Zprim values
+u0 = math.pi * 4.0e-7
+w = math.pi*2.0 * 60.0
+p = 100.0
+f = 60.0
+Rg = (u0 * w)/8.0
+X0 = (u0 * w)/(math.pi*2.0)
+Xg = X0 * math.log(658.5 * math.sqrt(p/f))
+
+CN_dist_func = {}
+CN_dist_ij = {}
+
+# 2x2 distance function mappings
+CN_dist_func[2] = {}
+CN_dist_func[2][2] = {}
+CN_dist_func[2][2][1] = CN_dist_R
+
+# 4x4 distance function mappings
+CN_dist_func[4] = {}
+CN_dist_ij[4] = {}
+CN_dist_func[4][2] = {}
+CN_dist_func[4][2][1] = CN_dist_D
+CN_dist_func[4][3] = {}
+CN_dist_ij[4][3] = {}
+CN_dist_func[4][3][1] = CN_dist_R
+CN_dist_func[4][3][2] = CN_dist_DR
+CN_dist_ij[4][3][2] = (2,1)
+CN_dist_func[4][4] = {}
+CN_dist_ij[4][4] = {}
+CN_dist_func[4][4][1] = CN_dist_DR
+CN_dist_ij[4][4][1] = (2,1)
+CN_dist_func[4][4][2] = CN_dist_R
+CN_dist_func[4][4][3] = CN_dist_D
+
+# 6x6 distance function mappings
+CN_dist_func[6] = {}
+CN_dist_ij[6] = {}
+CN_dist_func[6][2] = {}
+CN_dist_func[6][2][1] = CN_dist_D
+CN_dist_func[6][3] = {}
+CN_dist_func[6][3][1] = CN_dist_D
+CN_dist_func[6][3][2] = CN_dist_D
+CN_dist_func[6][4] = {}
+CN_dist_ij[6][4] = {}
+CN_dist_func[6][4][1] = CN_dist_R
+CN_dist_func[6][4][2] = CN_dist_DR
+CN_dist_ij[6][4][2] = (2,1)
+CN_dist_func[6][4][3] = CN_dist_DR
+CN_dist_ij[6][4][3] = (3,1)
+CN_dist_func[6][5] = {}
+CN_dist_ij[6][5] = {}
+CN_dist_func[6][5][1] = CN_dist_DR
+CN_dist_ij[6][5][1] = (2,1)
+CN_dist_func[6][5][2] = CN_dist_R
+CN_dist_func[6][5][3] = CN_dist_DR
+CN_dist_ij[6][5][3] = (3,2)
+CN_dist_func[6][5][4] = CN_dist_D
+CN_dist_func[6][6] = {}
+CN_dist_ij[6][6] = {}
+CN_dist_func[6][6][1] = CN_dist_DR
+CN_dist_ij[6][6][1] = (3,1)
+CN_dist_func[6][6][2] = CN_dist_DR
+CN_dist_ij[6][6][2] = (3,2)
+CN_dist_func[6][6][3] = CN_dist_R
+CN_dist_func[6][6][4] = CN_dist_D
+CN_dist_func[6][6][5] = CN_dist_D
+
+
+def diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+    if wireinfo == 'OverheadWireInfo':
+        Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+
+    elif wireinfo == 'ConcentricNeutralCableInfo':
+        if phase != 'N':
+            Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+        else:
+            R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+            k = CN_strand_count[wire_cn_ts]
+            dist = math.pow(CN_strand_gmr[wire_cn_ts]*k*math.pow(R,k-1),1.0/k)
+            Zprim = complex(CN_strand_rdc[wire_cn_ts]/k + Rg, X0*math.log(1.0/dist) + Xg)
+
+    return Zprim
+
+
+def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+    if wireinfo == 'OverheadWireInfo':
+        dist = math.sqrt(math.pow(XCoord[wire_spacing_info][i]-XCoord[wire_spacing_info][j],2) + math.pow(YCoord[wire_spacing_info][i]-YCoord[wire_spacing_info][j],2))
+
+    elif wireinfo=='ConcentricNeutralCableInfo':
+        dim = len(XCoord[wire_spacing_info]) # 2=2x2, 3=4x4, 4=6x6
+        dist = CN_dist_func[dim][i][j](dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+
+    Zprim = complex(Rg, X0*math.log(1.0/dist) + Xg)
+
+    return Zprim
+
+
 def validate_WireInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo validation...', file=logfile)
@@ -654,19 +770,10 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
     global greenCountImag, yellowCountImag, redCountImag
     greenCountImag = yellowCountImag = redCountImag = 0
 
-    # define all the constants needed below
-    u0 = math.pi * 4.0e-7
-    w = math.pi*2.0 * 60.0
-    p = 100.0
-    f = 60.0
-    Rg = (u0 * w)/8.0
-    X0 = (u0 * w)/(math.pi*2.0)
-    Xg = X0 * math.log(658.5 * math.sqrt(p/f))
-
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
 
-    # map between numpy array indices and 1-based formulas so everything lines up
+    # map between 0-base numpy array indices and 1-based formulas so everything lines up
     i1 = j1 = 0
     i2 = j2 = 1
     i3 = j3 = 2
@@ -713,124 +820,62 @@ def validate_WireInfo_lines(sparql_mgr, Ybus):
 
             elif wireinfo == 'ConcentricNeutralCableInfo':
                 if len(XCoord[wire_spacing_info]) == 2:
-                    Zprim = np.empty((4,4), dtype=complex)
+                    Zprim = np.empty((2,2), dtype=complex)
                 elif len(XCoord[wire_spacing_info]) == 3:
-                    Zprim = np.empty((5,5), dtype=complex)
+                    Zprim = np.empty((4,4), dtype=complex)
                 elif len(XCoord[wire_spacing_info]) == 4:
                     Zprim = np.empty((6,6), dtype=complex)
 
             # row 1
-            Zprim[i1,j1] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+            Zprim[i1,j1] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
         elif phaseIdx == 1:
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 2
-            if wireinfo=='ConcentricNeutralCableInfo' and phase=='N':
-                R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
-                dist_i2j1 = R
-
-                k = CN_strand_count[wire_cn_ts]
-                Rcn = CN_strand_rdc[wire_cn_ts]/k
-                Rk1 = math.pow(R,k-1)
-                distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
-                Zprim[i2,j2] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
-
-            else:
-                dist_i2j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][2]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][2]-YCoord[wire_spacing_info][1],2))
-
-                Zprim[i2,j2] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
-
-            Zprim[i2,j1] = Zprim[i1,j2] = complex(Rg, X0*math.log(1.0/dist_i2j1) + Xg)
+            Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
         elif phaseIdx == 2:
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 3
+            Zprim[i3,j1] = Zprim[i1,j3] = offDiagZprim(3, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(3, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+
             if wireinfo=='ConcentricNeutralCableInfo' and phase=='N':
-                # TODO: this could be phase 'N' for ConcentricNeutral so need to account for that
-                R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
-                dist_i3j1 = R
-
-                k = CN_strand_count[wire_cn_ts]
-                Rk = math.pow(R,k)
-                dist_i3j2 = math.pow(math.pow(dist_i2j1,k) - Rk, 1.0/k)
-
-                k = CN_strand_count[wire_cn_ts]
-                Rcn = CN_strand_rdc[wire_cn_ts]/k
-                Rk1 = math.pow(R,k-1)
-                distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
-                Zprim[i3,j3] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
-
-            else:
-                dist_i3j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][1],2))
-                dist_i3j2 = math.sqrt(math.pow(XCoord[wire_spacing_info][3]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][3]-YCoord[wire_spacing_info][2],2))
-
-                Zprim[i3,j3] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
-
-            Zprim[i3,j1] = Zprim[i1,j3] = complex(Rg, X0*math.log(1.0/dist_i3j1) + Xg)
-            Zprim[i3,j2] = Zprim[i2,j3] = complex(Rg, X0*math.log(1.0/dist_i3j2) + Xg)
+                Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
-            if wireinfo == 'OverheadWireInfo':
-                # row 4
-                dist_i4j1 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][1],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][1],2))
-                dist_i4j2 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][2],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][2],2))
-                dist_i4j3 = math.sqrt(math.pow(XCoord[wire_spacing_info][4]-XCoord[wire_spacing_info][3],2) + math.pow(YCoord[wire_spacing_info][4]-YCoord[wire_spacing_info][3],2))
+            # row 4
+            Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
-                Zprim[i4,j4] = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
-
-            elif wireinfo == 'ConcentricNeutralCableInfo':
-                # row 4
-                R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
-                dist_i4j1 = R
-                k = CN_strand_count[wire_cn_ts]
-                Rk = math.pow(R,k)
-                dist_i4j2 = math.pow(math.pow(dist_i2j1,k) - Rk, 1.0/k)
-                dist_i4j3 = math.pow(math.pow(dist_i3j1,k) - Rk, 1.0/k)
-
-                Rcn = CN_strand_rdc[wire_cn_ts]/k
-                Rk1 = math.pow(R,k-1)
-                distnn = math.pow(CN_strand_gmr[wire_cn_ts]*k*Rk1, 1.0/k)
-                Zprim[i4,j4] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
-
+            if wireinfo == 'ConcentricNeutralCableInfo':
                 # row 5
-                dist_i5j1 = math.pow(math.pow(dist_i3j2,k) - Rk, 1.0/k)
-                Zprim[i5,j1] = Zprim[i1,j5] = complex(Rg, X0*math.log(1.0/dist_i5j1) + Xg)
-
-                dist_i5j2 = R
-                Zprim[i5,j2] = Zprim[i2,j5] = complex(Rg, X0*math.log(1.0/dist_i5j2) + Xg)
-
-                dist_i5j3 = math.pow(math.pow(dist_i4j3,k) - Rk, 1.0/k)
-                Zprim[i5,j3] = Zprim[i3,j5] = complex(Rg, X0*math.log(1.0/dist_i5j3) + Xg)
-
-                Zprim[i5,j4] = Zprim[i4,j5] = complex(Rg, X0*math.log(1.0/dist_i3j2) + Xg)
-
-                Zprim[i5,j5] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
+                Zprim[i5,j1] = Zprim[i1,j5] = offDiagZprim(5, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i5,j2] = Zprim[i2,j5] = offDiagZprim(5, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i5,j3] = Zprim[i3,j5] = offDiagZprim(5, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i5,j4] = Zprim[i4,j5] = offDiagZprim(5, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i5,j5] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
                 # row 6
-                dist_i6j1 = math.pow(math.pow(dist_i4j2,k) - Rk, 1.0/k)
-                Zprim[i6,j1] = Zprim[i1,j6] = complex(Rg, X0*math.log(1.0/dist_i6j1) + Xg)
+                Zprim[i6,j1] = Zprim[i1,j6] = offDiagZprim(6, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j2] = Zprim[i2,j6] = offDiagZprim(6, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j3] = Zprim[i3,j6] = offDiagZprim(6, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j4] = Zprim[i4,j6] = offDiagZprim(6, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j5] = Zprim[i5,j6] = offDiagZprim(6, 5, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j6] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
 
-                dist_i6j2 = math.pow(math.pow(dist_i4j3,k) - Rk, 1.0/k)
-                Zprim[i6,j2] = Zprim[i2,j6] = complex(Rg, X0*math.log(1.0/dist_i6j2) + Xg)
-
-                dist_i6j3 = R
-                Zprim[i6,j3] = Zprim[i3,j6] = complex(Rg, X0*math.log(1.0/dist_i6j3) + Xg)
-
-                Zprim[i6,j4] = Zprim[i4,j6] = complex(Rg, X0*math.log(1.0/dist_i4j2) + Xg)
-
-                Zprim[i6,j5] = Zprim[i5,j6] = complex(Rg, X0*math.log(1.0/dist_i4j3) + Xg)
-
-                Zprim[i6,i6] = complex(Rcn + Rg, X0*math.log(1.0/distnn) + Xg)
-
-
-            Zprim[i4,j1] = Zprim[i1,j4] = complex(Rg, X0*math.log(1.0/dist_i4j1) + Xg)
-            Zprim[i4,j2] = Zprim[i2,j4] = complex(Rg, X0*math.log(1.0/dist_i4j2) + Xg)
-            Zprim[i4,j3] = Zprim[i3,j4] = complex(Rg, X0*math.log(1.0/dist_i4j3) + Xg)
 
         # take advantage that there is always a phase N and it's always the last
         # item processed for a line_name so a good way to know when to trigger
