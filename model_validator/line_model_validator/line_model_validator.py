@@ -649,17 +649,14 @@ CN_dist_ij[3][6][5] = (3,2)
 
 
 def diagZprim(wireinfo, wire_cn_ts, neutralFlag, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
-    if wireinfo == 'OverheadWireInfo':
-        Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+    if wireinfo=='ConcentricNeutralCableInfo' and neutralFlag:
+        R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
+        k = CN_strand_count[wire_cn_ts]
+        dist = math.pow(CN_strand_gmr[wire_cn_ts]*k*math.pow(R,k-1),1.0/k)
+        Zprim = complex(CN_strand_rdc[wire_cn_ts]/k + Rg, X0*math.log(1.0/dist) + Xg)
 
-    elif wireinfo == 'ConcentricNeutralCableInfo':
-        if neutralFlag:
-            R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
-            k = CN_strand_count[wire_cn_ts]
-            dist = math.pow(CN_strand_gmr[wire_cn_ts]*k*math.pow(R,k-1),1.0/k)
-            Zprim = complex(CN_strand_rdc[wire_cn_ts]/k + Rg, X0*math.log(1.0/dist) + Xg)
-        else:
-            Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
+    else:
+        Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
 
     return Zprim
 
@@ -681,6 +678,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', file=logfile)
 
+    # WireSpacingInfo query
     bindings = sparql_mgr.WireInfo_spacing()
     #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
     #print(bindings, flush=True)
@@ -704,6 +702,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         YCoord[wire_spacing_info][seq] = float(obj['yCoord']['value'])
         #print('wire_spacing_info: ' + wire_spacing_info + ', cable: ' + str(cableFlag) + ', seq: ' + str(seq) + ', XCoord: ' + str(XCoord[wire_spacing_info][seq]) + ', YCoord: ' + str(YCoord[wire_spacing_info][seq]))
 
+    # OverheadWireInfo specific query
     bindings = sparql_mgr.WireInfo_overhead()
     #print('LINE_MODEL_VALIDATOR WireInfo overhead query results:', flush=True)
     #print(bindings, flush=True)
@@ -724,6 +723,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         #amps = int(obj['amps']['value'])
         #print('overhead wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]))
 
+    # ConcentricNeutralCableInfo specific query
     bindings = sparql_mgr.WireInfo_concentricNeutral()
     #print('LINE_MODEL_VALIDATOR WireInfo concentricNeutral query results:', flush=True)
     #print(bindings, flush=True)
@@ -759,6 +759,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         CN_strand_rdc[wire_cn_ts] = float(obj['strand_rdc']['value'])
         #print('concentric wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_jacket: ' + str(CN_diameter_jacket[wire_cn_ts]) + ', strand_count: ' + str(CN_strand_count[wire_cn_ts]) + ', strand_radius: ' + str(CN_strand_radius[wire_cn_ts]) + ', strand_gmr: ' + str(CN_strand_gmr[wire_cn_ts]) + ', strand_rdc: ' + str(CN_strand_rdc[wire_cn_ts]))
 
+    # TapeShieldCableInfo specific query
     bindings = sparql_mgr.WireInfo_tapeShield()
     #print('LINE_MODEL_VALIDATOR WireInfo tapeShield query results:', flush=True)
     #print(bindings, flush=True)
@@ -786,8 +787,9 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         #sheathneutral = obj['sheathneutral']['value'].upper()=='TRUE'
         #tapelap = int(obj['tapelap']['value'])
         TS_tape_thickness[wire_cn_ts] = float(obj['tapethickness']['value'])
-        print('tape wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_screen: ' + str(TS_diameter_screen[wire_cn_ts]) + ', tape_thickness: ' + str(TS_tape_thickness[wire_cn_ts]))
+        #print('tape wire_cn_ts: ' + wire_cn_ts + ', gmr: ' + str(GMR[wire_cn_ts]) + ', r25: ' + str(R25[wire_cn_ts]) + ', diameter_screen: ' + str(TS_diameter_screen[wire_cn_ts]) + ', tape_thickness: ' + str(TS_tape_thickness[wire_cn_ts]))
 
+    # line_names query for all types
     bindings = sparql_mgr.WireInfo_line_names()
     #print('LINE_MODEL_VALIDATOR WireInfo line_names query results:', flush=True)
     #print(bindings, flush=True)
@@ -822,7 +824,8 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     i5 = j5 = 4
     i6 = j6 = 5
 
-    tape_line = None # temporary variable to know when to skip processing
+    tape_line = None
+    tape_skip = False
     phaseIdx = 0
     CN_done = False
     for obj in bindings:
@@ -837,12 +840,16 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         wireinfo = obj['wireinfo']['value']
         #print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
 
-        # simple way to keep from processing TapeShieldCableInfo for now
+        # TapeShieldCableInfo is special so it needs some special processing
+        # first, the wireinfo isn't always TapeShieldCableInfo so need to match on line_name instead
+        # second, only a single phase is implemented so need a way to skip processing multiple phases
         if wireinfo=='TapeShieldCableInfo' or line_name==tape_line:
             tape_line = line_name
-            continue
-
-        tape_line = None
+            if tape_skip:
+                continue
+        else:
+            tape_line = None
+            tape_skip = False
 
         if phaseIdx == 0:
             pair_i0b1 = bus1 + ybusPhaseIdx[phase]
@@ -864,6 +871,19 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                     Zprim = np.empty((4,4), dtype=complex)
                 elif dim == 3:
                     Zprim = np.empty((6,6), dtype=complex)
+
+            elif wireinfo == 'TapeShieldCableInfo':
+                if dim == 2:
+                    Zprim = np.empty((3,3), dtype=complex)
+                    # temporarily bypass further processing of TapeShieldCableInfo
+                    tape_skip = True
+                    continue
+
+                else:
+                    print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), flush=True)
+                    print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), file=logfile)
+                    tape_skip = True
+                    continue
 
             # row 1
             Zprim[i1,j1] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
