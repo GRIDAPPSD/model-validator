@@ -648,12 +648,21 @@ CN_dist_func[3][6][5] = CN_dist_D
 CN_dist_ij[3][6][5] = (3,2)
 
 
-def diagZprim(wireinfo, wire_cn_ts, neutralFlag, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+def diagZprim(wireinfo, wire_cn_ts, neutralFlag, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen):
     if wireinfo=='ConcentricNeutralCableInfo' and neutralFlag:
         R = (CN_diameter_jacket[wire_cn_ts] - CN_strand_radius[wire_cn_ts]*2.0)/2.0
         k = CN_strand_count[wire_cn_ts]
         dist = math.pow(CN_strand_gmr[wire_cn_ts]*k*math.pow(R,k-1),1.0/k)
         Zprim = complex(CN_strand_rdc[wire_cn_ts]/k + Rg, X0*math.log(1.0/dist) + Xg)
+
+    # this situation won't normally occur so we are just using neutralFlag to recognize the
+    # row 2 diagonal for the shield calculation vs. row1 and row3 that are handled below
+    elif wireinfo=='TapeShieldCableInfo' and neutralFlag:
+        T = TS_tape_thickness[wire_cn_ts]
+        ds = TS_diameter_screen[wire_cn_ts] + 2.0*T
+        Rshield = 0.3183 * 2.3718e-8/(ds*T*math.sqrt(50.0/(100.0-20.0)))
+        Dss = 0.5*(ds - T)
+        Zprim = complex(Rshield + Rg, X0*math.log(1.0/Dss) + Xg)
 
     else:
         Zprim = complex(R25[wire_cn_ts] + Rg, X0*math.log(1.0/GMR[wire_cn_ts]) + Xg)
@@ -661,13 +670,19 @@ def diagZprim(wireinfo, wire_cn_ts, neutralFlag, R25, GMR, CN_strand_count, CN_s
     return Zprim
 
 
-def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
+def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen):
     if wireinfo == 'OverheadWireInfo':
         dist = math.sqrt(math.pow(XCoord[wire_spacing_info][i]-XCoord[wire_spacing_info][j],2) + math.pow(YCoord[wire_spacing_info][i]-YCoord[wire_spacing_info][j],2))
 
-    elif wireinfo=='ConcentricNeutralCableInfo':
+    elif wireinfo == 'ConcentricNeutralCableInfo':
         dim = len(XCoord[wire_spacing_info]) # 1=2x2, 2=4x4, 3=6x6
         dist = CN_dist_func[dim][i][j](dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+
+    elif wireinfo == 'TapeShieldCableInfo':
+        # this should only be hit for i==2
+        T = TS_tape_thickness[wire_cn_ts]
+        ds = TS_diameter_screen[wire_cn_ts] + 2.0*T
+        dist = 0.5*(ds - T)
 
     Zprim = complex(Rg, X0*math.log(1.0/dist) + Xg)
 
@@ -875,10 +890,6 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             elif wireinfo == 'TapeShieldCableInfo':
                 if dim == 2:
                     Zprim = np.empty((3,3), dtype=complex)
-                    # temporarily bypass further processing of TapeShieldCableInfo
-                    tape_skip = True
-                    continue
-
                 else:
                     print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), flush=True)
                     print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), file=logfile)
@@ -886,84 +897,99 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                     continue
 
             # row 1
-            Zprim[i1,j1] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i1,j1] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
             if wireinfo=='ConcentricNeutralCableInfo' and dim==1:
                 CN_done = True
 
                 # row 2
-                Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+
+            elif wireinfo == 'TapeShieldCableInfo':
+                # row 2
+                Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
         elif phaseIdx == 1:
             pair_i1b1 = bus1 + ybusPhaseIdx[phase]
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 2
-            Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
             if wireinfo=='ConcentricNeutralCableInfo' and dim==2:
                 CN_done = True
 
                 # row 3
-                Zprim[i3,j1] = Zprim[i1,j3] = offDiagZprim(3, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(3, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i3,j1] = Zprim[i1,j3] = offDiagZprim(3, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(3, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
                 # row 4
-                Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+
+            elif line_name == tape_line:
+                # row 3
+                # coordinates for neutral are stored in index 2 for TapeShieldCableInfo
+                Zprim[i3,j1] = Zprim[i1,j3] = Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
         elif phaseIdx == 2:
             pair_i2b1 = bus1 + ybusPhaseIdx[phase]
             pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 3
-            Zprim[i3,j1] = Zprim[i1,j3] = offDiagZprim(3, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(3, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i3,j1] = Zprim[i1,j3] = offDiagZprim(3, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i3,j2] = Zprim[i2,j3] = offDiagZprim(3, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i3,j3] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
             if wireinfo == 'ConcentricNeutralCableInfo':
                 CN_done = True
 
                 # row 4
-                Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
                 # row 5
-                Zprim[i5,j1] = Zprim[i1,j5] = offDiagZprim(5, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i5,j2] = Zprim[i2,j5] = offDiagZprim(5, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i5,j3] = Zprim[i3,j5] = offDiagZprim(5, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i5,j4] = Zprim[i4,j5] = offDiagZprim(5, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i5,j5] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i5,j1] = Zprim[i1,j5] = offDiagZprim(5, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i5,j2] = Zprim[i2,j5] = offDiagZprim(5, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i5,j3] = Zprim[i3,j5] = offDiagZprim(5, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i5,j4] = Zprim[i4,j5] = offDiagZprim(5, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i5,j5] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
                 # row 6
-                Zprim[i6,j1] = Zprim[i1,j6] = offDiagZprim(6, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i6,j2] = Zprim[i2,j6] = offDiagZprim(6, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i6,j3] = Zprim[i3,j6] = offDiagZprim(6, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i6,j4] = Zprim[i4,j6] = offDiagZprim(6, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i6,j5] = Zprim[i5,j6] = offDiagZprim(6, 5, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-                Zprim[i6,j6] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+                Zprim[i6,j1] = Zprim[i1,j6] = offDiagZprim(6, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i6,j2] = Zprim[i2,j6] = offDiagZprim(6, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i6,j3] = Zprim[i3,j6] = offDiagZprim(6, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i6,j4] = Zprim[i4,j6] = offDiagZprim(6, 4, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i6,j5] = Zprim[i5,j6] = offDiagZprim(6, 5, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i6,j6] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
         elif phaseIdx == 3:
             # this can only be phase 'N' so no need to store 'pair' values
             # row 4
-            Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
-            Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket)
+            Zprim[i4,j1] = Zprim[i1,j4] = offDiagZprim(4, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i4,j2] = Zprim[i2,j4] = offDiagZprim(4, 2, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i4,j3] = Zprim[i3,j4] = offDiagZprim(4, 3, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            Zprim[i4,j4] = diagZprim(wireinfo, wire_cn_ts, phase, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
         # for OverheadWireInfo, take advantage that there is always a phase N
         # and it's always the last item processed for a line_name so a good way
         # to know when to trigger the Ybus comparison code
         # for ConcentricNeutralCableInfo, a flag is the easiest
         if (wireinfo=='OverheadWireInfo' and phase == 'N') or (wireinfo=='ConcentricNeutralCableInfo' and CN_done):
-            print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
-            print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
+            if line_name == tape_line:
+                print("\nValidating TapeShieldCableInfo line_name: " + line_name, flush=True)
+                print("\nValidating TapeShieldCableInfo line_name: " + line_name, file=logfile)
+            else:
+                print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
+                print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
 
             if wireinfo == 'ConcentricNeutralCableInfo':
                 # the Z-hat slicing below is based on having an 'N' phase so need to
