@@ -812,8 +812,8 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR WireInfo: NO LINE MATCHES', file=logfile)
+        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', flush=True)
+        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', file=logfile)
         return
 
     # initialize summary statistics
@@ -1103,11 +1103,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    #validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    #validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
 
-    #validate_ACLineSegment_lines(sparql_mgr, Ybus)
+    validate_ACLineSegment_lines(sparql_mgr, Ybus)
 
     validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
 
