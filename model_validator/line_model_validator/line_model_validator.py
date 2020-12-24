@@ -909,6 +909,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             elif wireinfo == 'TapeShieldCableInfo':
                 # row 2
                 Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                # neutralFlag is passed as True as a flag indicating to use the 2nd row shield calculation
                 Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, True, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
         elif phaseIdx == 1:
@@ -916,8 +917,9 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
             # row 2
-            Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
-            Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+            if line_name != tape_line:
+                Zprim[i2,j1] = Zprim[i1,j2] = offDiagZprim(2, 1, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
+                Zprim[i2,j2] = diagZprim(wireinfo, wire_cn_ts, False, R25, GMR, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket, TS_tape_thickness, TS_diameter_screen)
 
             if wireinfo=='ConcentricNeutralCableInfo' and dim==2:
                 CN_done = True
