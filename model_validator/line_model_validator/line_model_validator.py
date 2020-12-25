@@ -1007,8 +1007,6 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                 print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
                 print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
 
-            line_count += 1
-
             if wireinfo == 'ConcentricNeutralCableInfo':
                 # the Z-hat slicing below is based on having an 'N' phase so need to
                 # account for that when it doesn't exist
@@ -1033,6 +1031,8 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             #print('identity test for ' + line_name + ': ' + str(identityTest))
             # negate the matrix and assign it to Ycomp
             Ycomp = invZabc * -1
+
+            line_count += 1
 
             if Ycomp.size == 1:
                 compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
