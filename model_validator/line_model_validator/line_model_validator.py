@@ -67,13 +67,13 @@ def diffColorReal(absDiff, perDiff, colorFlag):
 
     if absDiff<1e-3 and perDiff<0.01:
         if colorFlag: greenCountReal += 1
-        return '\u001b[32mGREEN\u001b[37m' if colorFlag else 'GREEN'
+        return '\u001b[32m\u25cf\u001b[37m' if colorFlag else '\u25cb'
     elif absDiff>=1e-2 or perDiff>=0.1:
         if colorFlag: redCountReal += 1
-        return '\u001b[31mRED\u001b[37m' if colorFlag else 'RED'
+        return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
     else:
         if colorFlag: yellowCountReal += 1
-        return '\u001b[33mYELLOW\u001b[37m' if colorFlag else 'YELLOW'
+        return '\u001b[33m\u25cf\u001b[37m' if colorFlag else '\u25d1'
 
 
 def diffColorImag(absDiff, perDiff, colorFlag):
@@ -81,13 +81,13 @@ def diffColorImag(absDiff, perDiff, colorFlag):
 
     if absDiff<1e-3 and perDiff<0.01:
         if colorFlag: greenCountImag += 1
-        return '\u001b[32mGREEN\u001b[37m' if colorFlag else 'GREEN'
+        return '\u001b[32m\u25cf\u001b[37m' if colorFlag else '\u25cb'
     elif absDiff>=1e-2 or perDiff>=0.1:
         if colorFlag: redCountImag += 1
-        return '\u001b[31mRED\u001b[37m' if colorFlag else 'RED'
+        return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
     else:
         if colorFlag: yellowCountImag += 1
-        return '\u001b[33mYELLOW\u001b[37m' if colorFlag else 'YELLOW'
+        return '\u001b[33m\u25cf\u001b[37m' if colorFlag else '\u25d1'
 
 
 def diffPercentReal(YcompValue, YbusValue):
@@ -153,13 +153,13 @@ def compareY(line_name, pair_b1, pair_b2, YcompValue, Ybus):
 
     realAbsDiff = abs(YcompValue.real - YbusValue.real)
     realPerDiff = diffPercentReal(YcompValue.real, YbusValue.real)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YcompValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, True), flush=True)
-    print("        Real Ybus[i,j]:" + "{:10.6f}".format(YbusValue.real) + ", computed:" + "{:10.6f}".format(YcompValue.real) + " => " + diffColorReal(realAbsDiff, realPerDiff, False), file=logfile)
+    print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + ", computed:" + "{:13.6f}".format(YcompValue.real) + "  " + diffColorReal(realAbsDiff, realPerDiff, True), flush=True)
+    print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + ", computed:" + "{:13.6f}".format(YcompValue.real) + "  " + diffColorReal(realAbsDiff, realPerDiff, False), file=logfile)
 
     imagAbsDiff = abs(YcompValue.imag - YbusValue.imag)
     imagPerDiff = diffPercentImag(YcompValue.imag, YbusValue.imag)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, True), flush=True)
-    print("        Imag Ybus[i,j]:" + "{:10.6f}".format(YbusValue.imag) + ", computed:" + "{:10.6f}".format(YcompValue.imag) + " => " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
+    print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + ", computed:" + "{:13.6f}".format(YcompValue.imag) + "  " + diffColorImag(imagAbsDiff, imagPerDiff, True), flush=True)
+    print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + ", computed:" + "{:13.6f}".format(YcompValue.imag) + "  " + diffColorImag(imagAbsDiff, imagPerDiff, False), file=logfile)
 
 
 def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
@@ -303,24 +303,24 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
-    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
-    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
-    print("Real RED count:    " + str(redCountReal), file=logfile)
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
-    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
-    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
-    print("Imag RED count:    " + str(redCountImag), file=logfile)
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
     print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
@@ -422,24 +422,24 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
-    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
-    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
-    print("Real RED count:    " + str(redCountReal), file=logfile)
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
-    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
-    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
-    print("Imag RED count:    " + str(redCountImag), file=logfile)
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     print("\nFinished validation for PerLengthSequenceImpedance lines", flush=True)
     print("\nFinished validation for PerLengthSequenceImpedance lines", file=logfile)
@@ -524,24 +524,24 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
-    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
-    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
-    print("Real RED count:    " + str(redCountReal), file=logfile)
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
-    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
-    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
-    print("Imag RED count:    " + str(redCountImag), file=logfile)
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     print("\nFinished validation for ACLineSegment lines", flush=True)
     print("\nFinished validation for ACLineSegment lines", file=logfile)
@@ -1046,24 +1046,24 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
     print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32mGREEN\u001b[37m count:  " + str(greenCountReal), flush=True)
-    print("\nReal GREEN count:  " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountReal), flush=True)
-    print("Real YELLOW count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31mRED\u001b[37m count:    " + str(redCountReal), flush=True)
-    print("Real RED count:    " + str(redCountReal), file=logfile)
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
     print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
     print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32mGREEN\u001b[37m count:  " + str(greenCountImag), flush=True)
-    print("\nImag GREEN count:  " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33mYELLOW\u001b[37m count: " + str(yellowCountImag), flush=True)
-    print("Imag YELLOW count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31mRED\u001b[37m count:    " + str(redCountImag), flush=True)
-    print("Imag RED count:    " + str(redCountImag), file=logfile)
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", flush=True)
     print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", file=logfile)
