@@ -45,8 +45,6 @@ Created on Dec 16, 2020
 
 #from shared.sparql import SPARQLManager
 
-import networkx as nx
-import pandas as pd
 import math
 import argparse
 import json
@@ -54,7 +52,6 @@ import sys
 import os
 import importlib
 import numpy as np
-import time
 from tabulate import tabulate
 
 from gridappsd import GridAPPSD
@@ -166,6 +163,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
 
+    # return # of lines validated
+    line_count = 0
+
     bindings = sparql_mgr.PerLengthPhaseImpedance_line_configs()
     #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_configs query results:', flush=True)
     #print(bindings, flush=True)
@@ -175,7 +175,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     Zabc = {}
     for obj in bindings:
@@ -213,7 +213,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
@@ -258,6 +258,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
         # we now have the negated inverted matrix for comparison
         line_idx += 1
+        line_count += 1
 
         if Ycomp.size == 1:
             # do comparisons now
@@ -325,12 +326,15 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
     print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
 
-    return
+    return line_count
 
 
 def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', file=logfile)
+
+    # return # of lines validated
+    line_count = 0
 
     bindings = sparql_mgr.PerLengthSequenceImpedance_line_configs()
     #print('LINE_MODEL_VALIDATOR PerLengthSequenceImpedance line_configs query results:', flush=True)
@@ -341,7 +345,7 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     Zabc = {}
     for obj in bindings:
@@ -372,7 +376,7 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = sys.float_info.max
@@ -405,6 +409,8 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         #print('identity test for ' + line_name + ': ' + str(identityTest))
         # negate the matrix and assign it to Ycomp
         Ycomp = invZabc * -1
+
+        line_count += 1
 
         # do comparisons now
         compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
@@ -444,12 +450,15 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     print("\nFinished validation for PerLengthSequenceImpedance lines", flush=True)
     print("\nFinished validation for PerLengthSequenceImpedance lines", file=logfile)
 
-    return
+    return line_count
 
 
 def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
+
+    # return # of lines validated
+    line_count = 0
 
     bindings = sparql_mgr.ACLineSegment_line_names()
     #print('LINE_MODEL_VALIDATOR ACLineSegment line_names query results:', flush=True)
@@ -460,7 +469,7 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = sys.float_info.max
@@ -508,6 +517,8 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
         Ycomp = invZabc * -1
         #print('Ycomp: ' + str(Ycomp) + '\n')
 
+        line_count += 1
+
         # do comparisons now
         compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
         compareY(line_name, bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
@@ -546,7 +557,7 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     print("\nFinished validation for ACLineSegment lines", flush=True)
     print("\nFinished validation for ACLineSegment lines", file=logfile)
 
-    return
+    return line_count
 
 
 def CN_dist_R(dim, i, j, wire_spacing_info, wire_cn_ts, XCoord, YCoord, CN_strand_count, CN_strand_rdc, CN_strand_gmr, CN_strand_radius, CN_diameter_jacket):
@@ -693,6 +704,9 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', flush=True)
     print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', file=logfile)
 
+    # return # of lines validated
+    line_count = 0
+
     # WireSpacingInfo query
     bindings = sparql_mgr.WireInfo_spacing()
     #print('LINE_MODEL_VALIDATOR WireInfo spacing query results:', flush=True)
@@ -814,7 +828,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     if len(bindings) == 0:
         print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', flush=True)
         print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', file=logfile)
-        return
+        return line_count
 
     # initialize summary statistics
     global minPercentDiffReal, maxPercentDiffReal
@@ -993,6 +1007,8 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                 print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
                 print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
 
+            line_count += 1
+
             if wireinfo == 'ConcentricNeutralCableInfo':
                 # the Z-hat slicing below is based on having an 'N' phase so need to
                 # account for that when it doesn't exist
@@ -1068,7 +1084,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", flush=True)
     print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", file=logfile)
 
-    return
+    return line_count
 
 
 def start(log_file, feeder_mrid, model_api_topic):
@@ -1103,18 +1119,61 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    # list of lists for the tabular report
+    report = []
 
-    validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    PerLengthPhaseImpedance_lines = validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
 
-    validate_ACLineSegment_lines(sparql_mgr, Ybus)
+    if PerLengthPhaseImpedance_lines > 0:
+        countReal = greenCountReal + yellowCountReal + redCountReal
+        VIReal = float(countReal - redCountReal)/float(countReal)
+        countImag = greenCountImag + yellowCountImag + redCountImag
+        VIImag = float(countImag - redCountImag)/float(countImag)
+        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines, "{:.4f}".format(VIReal), greenCountReal, yellowCountReal, redCountReal, "{:.4f}".format(VIImag), greenCountImag, yellowCountImag, redCountImag])
+    else:
+        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines])
 
-    validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
+    PerLengthSequenceImpedance_lines = validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+
+    if PerLengthSequenceImpedance_lines > 0:
+        countReal = greenCountReal + yellowCountReal + redCountReal
+        VIReal = float(countReal - redCountReal)/float(countReal)
+        countImag = greenCountImag + yellowCountImag + redCountImag
+        VIImag = float(countImag - redCountImag)/float(countImag)
+        report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines, "{:.4f}".format(VIReal), greenCountReal, yellowCountReal, redCountReal, "{:.4f}".format(VIImag), greenCountImag, yellowCountImag, redCountImag])
+    else:
+        report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines])
+
+    ACLineSegment_lines = validate_ACLineSegment_lines(sparql_mgr, Ybus)
+
+    if ACLineSegment_lines > 0:
+        countReal = greenCountReal + yellowCountReal + redCountReal
+        VIReal = float(countReal - redCountReal)/float(countReal)
+        countImag = greenCountImag + yellowCountImag + redCountImag
+        VIImag = float(countImag - redCountImag)/float(countImag)
+        report.append(["ACLineSegment", ACLineSegment_lines, "{:.4f}".format(VIReal), greenCountReal, yellowCountReal, redCountReal, "{:.4f}".format(VIImag), greenCountImag, yellowCountImag, redCountImag])
+    else:
+        report.append(["ACLineSegment", ACLineSegment_lines])
+
+    WireInfo_and_WireSpacingInfo_lines = validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
+
+    if WireInfo_and_WireSpacingInfo_lines > 0:
+        countReal = greenCountReal + yellowCountReal + redCountReal
+        VIReal = float(countReal - redCountReal)/float(countReal)
+        countImag = greenCountImag + yellowCountImag + redCountImag
+        VIImag = float(countImag - redCountImag)/float(countImag)
+        report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines, "{:.4f}".format(VIReal), greenCountReal, yellowCountReal, redCountReal, "{:.4f}".format(VIImag), greenCountImag, yellowCountImag, redCountImag])
+    else:
+        report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines])
+
+    print('\n', flush=True)
+    print(tabulate(report, headers=["Type", "# Lines", "Real: VI", "\u001b[32m\u25cf\u001b[37m", "\u001b[33m\u25cf\u001b[37m", "\u001b[31m\u25cf\u001b[37m", "Imaginary: VI", "\u001b[32m\u25cf\u001b[37m", "\u001b[33m\u25cf\u001b[37m", "\u001b[31m\u25cf\u001b[37m"], tablefmt="pretty"), flush=True)
+    print('\n', file=logfile)
+    print(tabulate(report, headers=["Type", "# Lines", "Real: VI", "\u25cb", "\u25d1", "\u25cf", "Imaginary: VI", "\u25cb", "\u25d1", "\u25cf"], tablefmt="pretty"), file=logfile)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
 
-    return
 
 
 def _main():
