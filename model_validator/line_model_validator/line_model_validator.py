@@ -245,6 +245,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
             last_name = line_name
             line_idx = 0
+            line_count += 1
 
             # multiply by scalar length
             lenZabc = Zabc[line_config] * length
@@ -258,7 +259,6 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
         # we now have the negated inverted matrix for comparison
         line_idx += 1
-        line_count += 1
 
         if Ycomp.size == 1:
             # do comparisons now
@@ -1167,9 +1167,9 @@ def start(log_file, feeder_mrid, model_api_topic):
         report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Type", "# Lines", "Real: VI", "\u001b[32m\u25cf\u001b[37m", "\u001b[33m\u25cf\u001b[37m", "\u001b[31m\u25cf\u001b[37m", "Imaginary: VI", "\u001b[32m\u25cf\u001b[37m", "\u001b[33m\u25cf\u001b[37m", "\u001b[31m\u25cf\u001b[37m"], tablefmt="pretty"), flush=True)
+    print(tabulate(report, headers=["Line Type", "# Lines", "Real\nVI", "\n\u001b[32m\u25cf\u001b[37m", "\n\u001b[33m\u25cf\u001b[37m", "\n\u001b[31m\u25cf\u001b[37m", "Imag\nVI", "\n\u001b[32m\u25cf\u001b[37m", "\n\u001b[33m\u25cf\u001b[37m", "\n\u001b[31m\u25cf\u001b[37m"], tablefmt="fancy_grid"), flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Type", "# Lines", "Real: VI", "\u25cb", "\u25d1", "\u25cf", "Imaginary: VI", "\u25cb", "\u25d1", "\u25cf"], tablefmt="pretty"), file=logfile)
+    print(tabulate(report, headers=["Line Type", "# Lines", "Real\nVI", "\n\u25cb", "\n\u25d1", "\n\u25cf", "Imag\nVI", "\n\u25cb", "\n\u25d1", "\n\u25cf"], tablefmt="fancy_grid"), file=logfile)
 
     print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
     print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
