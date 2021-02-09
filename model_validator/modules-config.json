@@ -3,13 +3,15 @@
         {"module":"transformer_capacity", "online":false},
         {"module":"topology_validator", "online":false},
         {"module":"ac_line_ampacity", "online":true},
-        {"module":"line_model_validator", "online":false}
+        {"module":"line_model_validator", "online":false},
+        {"module":"power_transformer_validator", "online":false}
     ],
 
     "all_configs_to_swap_in_and_out_above":[
         {"module":"transformer_capacity", "online":false},
         {"module":"topology_validator", "online":false},
         {"module":"ac_line_ampacity", "online":true},
-        {"module":"line_model_validator", "online":false}
+        {"module":"line_model_validator", "online":false},
+        {"module":"power_transformer_validator", "online":false}
     ]
 }
