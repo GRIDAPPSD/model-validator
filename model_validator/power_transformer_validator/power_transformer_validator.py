@@ -367,6 +367,49 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     return line_count
 
 
+def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
+    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', flush=True)
+    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', file=logfile)
+
+    # return # of xfmrs validated
+    xfmrs_count = 0
+
+    bindings = sparql_mgr.PowerTransformerEnd_xfmr_impedances()
+    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+        return xfmrs_count
+
+    bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
+    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+        return xfmrs_count
+
+    bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+        return xfmrs_count
+
+    return xfmrs_count
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -410,6 +453,7 @@ def start(log_file, feeder_mrid, model_api_topic):
         report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
     else:
         report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines])
+    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus)
 
     print('\n', flush=True)
     print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)

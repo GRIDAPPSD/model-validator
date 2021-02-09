@@ -738,6 +738,92 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
+    def PowerTransformerEnd_xfmr_names(self):
+        XFMRS_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?vector_group ?end_number ?bus ?bus_voltage ?connection ?ratedS ?ratedU ?r_ohm ?angle ?grounded ?r_ground ?x_ground
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?p c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?p r:type c:PowerTransformer.
+         ?p c:IdentifiedObject.name ?xfmr_name.
+         ?p c:PowerTransformer.vectorGroup ?vector_group.
+         ?end c:PowerTransformerEnd.PowerTransformer ?p.
+         ?end c:TransformerEnd.endNumber ?end_number.
+         ?end c:PowerTransformerEnd.ratedS ?ratedS.
+         ?end c:PowerTransformerEnd.ratedU ?ratedU.
+         ?end c:PowerTransformerEnd.r ?r_ohm.
+         ?end c:PowerTransformerEnd.phaseAngleClock ?angle.
+         ?end c:PowerTransformerEnd.connectionKind ?connraw.
+          bind(strafter(str(?connraw),"WindingConnection.") as ?connection)
+         ?end c:TransformerEnd.grounded ?grounded.
+         OPTIONAL {?end c:TransformerEnd.rground ?r_ground.}
+         OPTIONAL {?end c:TransformerEnd.xground ?x_ground.}
+         ?end c:TransformerEnd.Terminal ?trm.
+         ?trm c:Terminal.ConnectivityNode ?cn.
+         ?cn c:IdentifiedObject.name ?bus.
+         ?end c:TransformerEnd.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?base_voltage.
+        }
+        ORDER BY ?xfmr_name ?end_number
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(XFMRS_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def PowerTransformerEnd_xfmr_impedances(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?from_end ?to_end ?r_ohm ?mesh_x_ohm
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?p c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?p r:type c:PowerTransformer.
+         ?p c:IdentifiedObject.name ?xfmr_name.
+         ?from c:PowerTransformerEnd.PowerTransformer ?p.
+         ?imp c:TransformerMeshImpedance.FromTransformerEnd ?from.
+         ?imp c:TransformerMeshImpedance.ToTransformerEnd ?to.
+         ?imp c:TransformerMeshImpedance.r ?r_ohm.
+         ?imp c:TransformerMeshImpedance.x ?mesh_x_ohm.
+         ?from c:TransformerEnd.endNumber ?from_end.
+         ?to c:TransformerEnd.endNumber ?to_end.
+        }
+        ORDER BY ?xfmr_name ?from_end ?to_end
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def PowerTransformerEnd_xfmr_admittances(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?end_number ?b_S ?g_S
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?p c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?p r:type c:PowerTransformer.
+         ?p c:IdentifiedObject.name ?xfmr_name.
+         ?from c:PowerTransformerEnd.PowerTransformer ?p.
+         ?adm c:TransformerCoreAdmittance.TransformerEnd ?end.
+         ?end c:TransformerEnd.endNumber ?end_number.
+         ?adm c:TransformerCoreAdmittance.b ?b_S.
+         ?adm c:TransformerCoreAdmittance.g ?g_S.
+        }
+        ORDER BY ?xfmr_name
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
     def ybus_export(self):
         message = {
         "configurationType": "YBus Export",
