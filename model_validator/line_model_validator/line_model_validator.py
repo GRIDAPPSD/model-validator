@@ -134,7 +134,7 @@ def diffPercentImag(YcompValue, YbusValue):
     return percent
 
 
-def compareY(line_name, pair_b1, pair_b2, YcompValue, Ybus):
+def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     noEntryFlag = False
     if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
         row = pair_b1
@@ -277,7 +277,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
         if Ycomp.size == 1:
             # do comparisons now
-            colorIdx = compareY(line_name, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
+            colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
 
             if colorIdx == 0:
                 greenCount += 1
@@ -295,9 +295,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
 
                 if colorIdx == 0:
@@ -319,12 +319,12 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(line_name, pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(line_name, pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(line_name, pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
                 if colorIdx == 0:
@@ -453,12 +453,12 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         line_count += 1
 
         # do comparisons now
-        colorIdx00 = compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
-        colorIdx10 = compareY(line_name, bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
-        colorIdx11 = compareY(line_name, bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
-        colorIdx20 = compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
-        colorIdx21 = compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
-        colorIdx22 = compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+        colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
+        colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
+        colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
+        colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
+        colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
+        colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
         colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
         if colorIdx == 0:
@@ -570,12 +570,12 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
         line_count += 1
 
         # do comparisons now
-        colorIdx00 = compareY(line_name, bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
-        colorIdx10 = compareY(line_name, bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
-        colorIdx11 = compareY(line_name, bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
-        colorIdx20 = compareY(line_name, bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
-        colorIdx21 = compareY(line_name, bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
-        colorIdx22 = compareY(line_name, bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+        colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
+        colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
+        colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
+        colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
+        colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
+        colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
         colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
         if colorIdx == 0:
@@ -1095,21 +1095,21 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             line_count += 1
 
             if Ycomp.size == 1:
-                colorIdx = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
 
             elif Ycomp.size == 4:
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
 
             elif Ycomp.size == 9:
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(line_name, pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(line_name, pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(line_name, pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
             if colorIdx == 0:
