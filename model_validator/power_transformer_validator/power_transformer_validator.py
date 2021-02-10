@@ -375,26 +375,36 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     xfmrs_count = 0
 
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_impedances()
-    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', flush=True)
-    print(bindings, flush=True)
-    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', file=logfile)
-    print(bindings, file=logfile)
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', file=logfile)
+    #print(bindings, file=logfile)
 
     if len(bindings) == 0:
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
-    bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
-    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', flush=True)
-    print(bindings, flush=True)
-    print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', file=logfile)
-    print(bindings, file=logfile)
+    Mesh_x_ohm = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        #from_end = int(obj['from_end']['value'])
+        #to_end = int(obj['to_end']['value'])
+        #r_ohm = float(obj['r_ohm']['value'])
+        Mesh_x_ohm[xfmr_name] = float(obj['mesh_x_ohm']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', from_end: ' + str(from_end) + ', to_end: ' + str(to_end) + ', r_ohm: ' + str(r_ohm) + ', mesh_x_ohm: ' + str(Mesh_x_ohm[xfmr_name]))
 
-    if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
-        return xfmrs_count
+    # Admittances query not currently used
+    #bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    #if len(bindings) == 0:
+    #    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+    #    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+    #    return xfmrs_count
 
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
     #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
@@ -406,6 +416,37 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
+
+    Connection = {}
+    RatedS = {}
+    RatedU = {}
+    R_ohm = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        #vector_group = obj['vector_group']['value']
+        end_number = int(obj['end_number']['value'])
+        #bus = obj['bus']['value']
+        #base_voltage = int(obj['base_voltage']['value'])
+        if xfmr_name not in Connection:
+            Connection[xfmr_name] = {}
+            RatedS[xfmr_name] = {}
+            RatedU[xfmr_name] = {}
+            R_ohm[xfmr_name] = {}
+
+        Connection[xfmr_name][end_number] = obj['connection']['value']
+        RatedS[xfmr_name][end_number] = int(obj['ratedS']['value'])
+        RatedU[xfmr_name][end_number] = int(obj['ratedU']['value'])
+        R_ohm[xfmr_name][end_number] = float(obj['r_ohm']['value'])
+        #angle = int(obj['angle']['value'])
+        #grounded = obj['grounded']['value']
+        #r_ground = obj['r_ground']['value']
+        #x_ground = obj['x_ground']['value']
+        #Mesh_x_ohm[xfmr_name] = float(obj['mesh_x_ohm']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', vector_group: ' + vector_group + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', base_voltage: ' + str(base_voltage) + ', connection: ' + connection + ', ratedS: ' + str(ratedS) + ', ratedU: ' + str(ratedU) + ', r_ohm: ' + str(r_ohm) + ', angle: ' + str(angle) + ', grounded: ' + grounded)
+        print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
+
+    for xfmr_name in Connection:
+        print('Process xfmr_name: ' + xfmr_name)
 
     return xfmrs_count
 

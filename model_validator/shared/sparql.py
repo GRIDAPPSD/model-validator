@@ -742,7 +742,7 @@ class SPARQLManager:
         XFMRS_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
-        SELECT ?xfmr_name ?vector_group ?end_number ?bus ?bus_voltage ?connection ?ratedS ?ratedU ?r_ohm ?angle ?grounded ?r_ground ?x_ground
+        SELECT ?xfmr_name ?vector_group ?end_number ?bus ?base_voltage ?connection ?ratedS ?ratedU ?r_ohm ?angle ?grounded ?r_ground ?x_ground
         WHERE {
         VALUES ?fdrid {"%s"}
          ?p c:Equipment.EquipmentContainer ?fdr.
