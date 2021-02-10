@@ -444,6 +444,22 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #print('xfmr_name: ' + xfmr_name + ', vector_group: ' + vector_group + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', base_voltage: ' + str(base_voltage) + ', connection: ' + connection + ', ratedS: ' + str(ratedS) + ', ratedU: ' + str(ratedU) + ', r_ohm: ' + str(r_ohm) + ', angle: ' + str(angle) + ', grounded: ' + grounded)
         print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
 
+    # initialize B upfront because it's constant
+    B = np.zeros((6,3))
+    B[0,0] = B[2,1] = B[4,2] =  1.0
+    B[1,0] = B[3,1] = B[5,2] = -1.0
+    #print(B)
+
+    # initialize Y and D matrices, also constant, used to set A later
+    Y1 = np.zeros((4,12))
+    Y1[0,0] = Y1[1,4] = Y1[2,8] = Y1[3,1] = Y1[3,5] = Y1[3,9] = 1.0
+    Y2 = np.zeros((4,12))
+    Y2[0,2] = Y2[1,6] = Y2[2,10] = Y2[3,3] = Y2[3,7] = Y2[3,11] = 1.0
+    D1 = np.zeros((4,12))
+    D1[0,0] = D1[0,9] = D1[1,1] = D1[1,4] = D1[2,5] = D1[2,8] = 1.0
+    D2 = np.zeros((4,12))
+    D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
+
     for xfmr_name in Connection:
         # Note that division is always floating point in Python 3 even if
         # operands are integer
@@ -459,15 +475,20 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
         #print(ZB)
 
+        # set both Vp/Vs for N and top/bottom for A
         if Connection[xfmr_name][1] == 'Y':
             Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
+            top = Y1
         else:
             Vp = RatedU[xfmr_name][1]
+            top = D1
 
         if Connection[xfmr_name][2] == 'Y':
             Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
+            bottom = Y2
         else:
             Vs = RatedU[xfmr_name][2]
+            bottom = D2
 
         # initialize N
         N = np.zeros((12,6))
@@ -475,13 +496,11 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
         N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
         N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
-        print(N)
+        #print(N)
 
-        # initialize B
-        B = np.zeros((6,3))
-        B[0,0] = B[2,1] = B[4,2] =  1.0
-        B[1,0] = B[3,1] = B[5,2] = -1.0
-        #print(B)
+        # initialize A
+        A = np.vstack((top, bottom))
+        print(A)
 
 
     return xfmrs_count
