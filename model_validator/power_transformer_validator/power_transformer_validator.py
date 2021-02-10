@@ -441,12 +441,22 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #grounded = obj['grounded']['value']
         #r_ground = obj['r_ground']['value']
         #x_ground = obj['x_ground']['value']
-        #Mesh_x_ohm[xfmr_name] = float(obj['mesh_x_ohm']['value'])
         #print('xfmr_name: ' + xfmr_name + ', vector_group: ' + vector_group + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', base_voltage: ' + str(base_voltage) + ', connection: ' + connection + ', ratedS: ' + str(ratedS) + ', ratedU: ' + str(ratedU) + ', r_ohm: ' + str(r_ohm) + ', angle: ' + str(angle) + ', grounded: ' + grounded)
         print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
 
     for xfmr_name in Connection:
-        print('Process xfmr_name: ' + xfmr_name)
+        # Note that division is always floating point in Python 3 even if
+        # operands are integer
+        zBaseP = (RatedU[xfmr_name][1]*RatedU[xfmr_name][1])/RatedS[xfmr_name][1]
+        #zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
+        r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
+        mesh_x_ohm_pu = Mesh_x_ohm[xfmr_name]/zBaseP
+        zsc_1V = (2.0*r_ohm_pu + mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
+        print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
+
+        ZB = np.zeros((3,3))
+        ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
+        print(ZB)
 
     return xfmrs_count
 
