@@ -134,7 +134,7 @@ def diffPercentImag(YcompValue, YbusValue):
     return percent
 
 
-def compareY(line_name, pair_b1, pair_b2, YcompValue, Ybus):
+def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     noEntryFlag = False
     if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
         row = pair_b1
@@ -277,7 +277,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
 
         if Ycomp.size == 1:
             # do comparisons now
-            colorIdx = compareY(line_name, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
+            colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
 
             if colorIdx == 0:
                 greenCount += 1
@@ -295,9 +295,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
 
                 if colorIdx == 0:
@@ -319,12 +319,12 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
                 # do comparisons now
-                colorIdx00 = compareY(line_name, pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(line_name, pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(line_name, pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(line_name, pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(line_name, pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(line_name, pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
+                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
                 colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
                 if colorIdx == 0:
@@ -417,6 +417,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
+    Bus = {}
     Connection = {}
     RatedS = {}
     RatedU = {}
@@ -425,14 +426,15 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         xfmr_name = obj['xfmr_name']['value']
         #vector_group = obj['vector_group']['value']
         end_number = int(obj['end_number']['value'])
-        #bus = obj['bus']['value']
-        #base_voltage = int(obj['base_voltage']['value'])
-        if xfmr_name not in Connection:
+        if xfmr_name not in Bus:
+            Bus[xfmr_name] = {}
             Connection[xfmr_name] = {}
             RatedS[xfmr_name] = {}
             RatedU[xfmr_name] = {}
             R_ohm[xfmr_name] = {}
 
+        Bus[xfmr_name][end_number] = obj['bus']['value']
+        #base_voltage = int(obj['base_voltage']['value'])
         Connection[xfmr_name][end_number] = obj['connection']['value']
         RatedS[xfmr_name][end_number] = int(obj['ratedS']['value'])
         RatedU[xfmr_name][end_number] = int(obj['ratedU']['value'])
@@ -442,7 +444,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #r_ground = obj['r_ground']['value']
         #x_ground = obj['x_ground']['value']
         #print('xfmr_name: ' + xfmr_name + ', vector_group: ' + vector_group + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', base_voltage: ' + str(base_voltage) + ', connection: ' + connection + ', ratedS: ' + str(ratedS) + ', ratedU: ' + str(ratedU) + ', r_ohm: ' + str(r_ohm) + ', angle: ' + str(angle) + ', grounded: ' + grounded)
-        print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
+        print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + Bus[xfmr_name][end_number] + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
 
     # initialize B upfront because it's constant
     B = np.zeros((6,3))
@@ -460,7 +462,20 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     D2 = np.zeros((4,12))
     D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
 
-    for xfmr_name in Connection:
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+    global greenCount, yellowCount, redCount
+    greenCount = yellowCount = redCount = 0
+
+    for xfmr_name in Bus:
         # Note that division is always floating point in Python 3 even if
         # operands are integer
         zBaseP = (RatedU[xfmr_name][1]*RatedU[xfmr_name][1])/RatedS[xfmr_name][1]
@@ -511,6 +526,14 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
         Yprim = np.matmul(ANB_invZB_BpNp, np.transpose(A))
         print(Yprim)
+
+        print('Need to compare ' + Bus[xfmr_name][1] + '.1 to ' + Bus[xfmr_name][2] + '.1')
+        print('Need to compare ' + Bus[xfmr_name][1] + '.2 to ' + Bus[xfmr_name][2] + '.2')
+        print('Need to compare ' + Bus[xfmr_name][1] + '.3 to ' + Bus[xfmr_name][2] + '.3' + '\n')
+        #colorIdx11 = compareY(Bus[xfmr_name][1]+'.1', Bus[xfmr_name][2]+'.1', Yprim[0,0], Ybus)
+        #colorIdx = max(colorIdx11, colorIdx22, colorIdx33)
+
+        xfmrs_count += 1
 
 
     return xfmrs_count
