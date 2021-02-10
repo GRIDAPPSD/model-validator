@@ -454,9 +454,35 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         zsc_1V = (2.0*r_ohm_pu + mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
         print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
 
+        # initialize ZB
         ZB = np.zeros((3,3))
         ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
-        print(ZB)
+        #print(ZB)
+
+        if Connection[xfmr_name][1] == 'Y':
+            Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
+        else:
+            Vp = RatedU[xfmr_name][1]
+
+        if Connection[xfmr_name][2] == 'Y':
+            Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
+        else:
+            Vs = RatedU[xfmr_name][2]
+
+        # initialize N
+        N = np.zeros((12,6))
+        N[0,0] = N[4,2] = N[8,4] =   1.0/Vp
+        N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
+        N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
+        N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
+        print(N)
+
+        # initialize B
+        B = np.zeros((6,3))
+        B[0,0] = B[2,1] = B[4,2] =  1.0
+        B[1,0] = B[3,1] = B[5,2] = -1.0
+        #print(B)
+
 
     return xfmrs_count
 
