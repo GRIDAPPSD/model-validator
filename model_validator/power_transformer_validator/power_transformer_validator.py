@@ -482,11 +482,11 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
         r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
         mesh_x_ohm_pu = Mesh_x_ohm[xfmr_name]/zBaseP
-        zsc_1V = (2.0*r_ohm_pu + mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
+        zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
         print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
 
         # initialize ZB
-        ZB = np.zeros((3,3))
+        ZB = np.zeros((3,3), dtype=complex)
         ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
         #print(ZB)
 
@@ -517,15 +517,15 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         A = np.vstack((top, bottom))
         #print(A)
 
-        # compute Yprim = A x N x B x inv(ZB) x B' x N' x A'
+        # compute Ycomp = A x N x B x inv(ZB) x B' x N' x A'
         # there are lots of ways to break this up including not at all, but
         # here's one way that keeps it from looking overly complex
         ANB = np.matmul(np.matmul(A, N), B)
         ANB_invZB = np.matmul(ANB, np.linalg.inv(ZB))
         ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
         ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
-        Yprim = np.matmul(ANB_invZB_BpNp, np.transpose(A))
-        print(Yprim)
+        Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
+        print(Ycomp)
 
         print('Need to compare ' + Bus[xfmr_name][1] + '.1 to ' + Bus[xfmr_name][2] + '.1')
         print('Need to compare ' + Bus[xfmr_name][1] + '.2 to ' + Bus[xfmr_name][2] + '.2')
