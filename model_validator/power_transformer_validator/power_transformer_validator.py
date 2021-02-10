@@ -500,7 +500,17 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
 
         # initialize A
         A = np.vstack((top, bottom))
-        print(A)
+        #print(A)
+
+        # compute Yprim = A x N x B x inv(ZB) x B' x N' x A'
+        # there are lots of ways to break this up including not at all, but
+        # here's one way that keeps it from looking overly complex
+        ANB = np.matmul(np.matmul(A, N), B)
+        ANB_invZB = np.matmul(ANB, np.linalg.inv(ZB))
+        ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
+        ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
+        Yprim = np.matmul(ANB_invZB_BpNp, np.transpose(A))
+        print(Yprim)
 
 
     return xfmrs_count
