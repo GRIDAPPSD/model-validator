@@ -248,8 +248,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #grounded = obj['grounded']['value']
         #r_ground = obj['r_ground']['value']
         #x_ground = obj['x_ground']['value']
-        #print('xfmr_name: ' + xfmr_name + ', vector_group: ' + vector_group + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', base_voltage: ' + str(base_voltage) + ', connection: ' + connection + ', ratedS: ' + str(ratedS) + ', ratedU: ' + str(ratedU) + ', r_ohm: ' + str(r_ohm) + ', angle: ' + str(angle) + ', grounded: ' + grounded)
-        print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + Bus[xfmr_name][end_number] + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
+        #print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + Bus[xfmr_name][end_number] + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
 
     # initialize B upfront because it's constant
     B = np.zeros((6,3))
@@ -288,7 +287,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
         mesh_x_ohm_pu = Mesh_x_ohm[xfmr_name]/zBaseP
         zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
-        print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
+        #print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
 
         # initialize ZB
         ZB = np.zeros((3,3), dtype=complex)
@@ -340,7 +339,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
                 if Yval != 0j:
                     bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
                     bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                    print('compare bus1: ' + bus1 + ', bus2: ' + bus2 + ', value: ' + str(Yval))
+                    #print('compare bus1: ' + bus1 + ', bus2: ' + bus2 + ', value: ' + str(Yval))
                     colorIdx = compareY(bus1, bus2, Yval, Ybus)
                     xfmrColorIdx = max(xfmrColorIdx, colorIdx)
 
@@ -352,6 +351,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
             yellowCount += 1
         else:
             redCount += 1
+
+        print("\n", flush=True)
+        print("\n", file=logfile)
 
     print("\nSummary for PowerTransformerEnd transformers:", flush=True)
     print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
@@ -454,7 +456,7 @@ def _main():
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    log_file = open('line_model_validator.log', 'w')
+    log_file = open('power_transformer_validator.log', 'w')
 
     start(log_file, feeder_mrid, model_api_topic)    
 
