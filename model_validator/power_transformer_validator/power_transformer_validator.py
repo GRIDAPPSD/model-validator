@@ -231,6 +231,21 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         xfmr_name = obj['xfmr_name']['value']
         #vector_group = obj['vector_group']['value']
         end_number = int(obj['end_number']['value'])
+        # can't handle 3-winding transformers so issue a warning and skip
+        # to the next transformer in that case
+        if end_number == 3:
+            print('    *** WARNING: 3 winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
+            print('    *** WARNING: 3 winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
+
+            # need to clear out the previous dictionary entries for this
+            # 3-winding transformer so it isn't processed below
+            Bus.pop(xfmr_name, None)
+            Connection.pop(xfmr_name, None)
+            RatedS.pop(xfmr_name, None)
+            RatedU.pop(xfmr_name, None)
+            R_ohm.pop(xfmr_name, None)
+            continue
+
         if xfmr_name not in Bus:
             Bus[xfmr_name] = {}
             Connection[xfmr_name] = {}
