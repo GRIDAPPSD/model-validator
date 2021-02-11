@@ -824,6 +824,136 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
+    def TransformerTank_xfmr_names(self):
+        XFMRS_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?xfmr_code ?vector_group ?enum ?bus ?baseV ?phase ?grounded ?rground ?xground
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?p c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?p r:type c:PowerTransformer.
+         ?p c:IdentifiedObject.name ?pname.
+         ?p c:PowerTransformer.vectorGroup ?vector_group.
+         ?t c:TransformerTank.PowerTransformer ?p.
+         ?t c:IdentifiedObject.name ?xfmr_name.
+         ?asset c:Asset.PowerSystemResources ?t.
+         ?asset c:Asset.AssetInfo ?inf.
+         ?inf c:IdentifiedObject.name ?xfmr_code.
+         ?end c:TransformerTankEnd.TransformerTank ?t.
+         ?end c:TransformerTankEnd.phases ?phsraw.
+          bind(strafter(str(?phsraw),"PhaseCode.") as ?phase)
+         ?end c:TransformerEnd.endNumber ?enum.
+         ?end c:TransformerEnd.grounded ?grounded.
+         OPTIONAL {?end c:TransformerEnd.rground ?rground.}
+         OPTIONAL {?end c:TransformerEnd.xground ?xground.}
+         ?end c:TransformerEnd.Terminal ?trm.
+         ?trm c:Terminal.ConnectivityNode ?cn.
+         ?cn c:IdentifiedObject.name ?bus.
+         ?end c:TransformerEnd.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?baseV.
+        }
+        ORDER BY ?xfmr_name ?enum
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(XFMRS_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def TransformerTank_xfmr_rated(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?xfmr_code ?enum ?ratedS ?ratedU ?connection ?angle ?r_ohm
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?xft c:TransformerTank.PowerTransformer ?eq.
+         ?xft c:IdentifiedObject.name ?xfmr_name.
+         ?asset c:Asset.PowerSystemResources ?xft.
+         ?asset c:Asset.AssetInfo ?t.
+         ?p r:type c:PowerTransformerInfo.
+         ?t c:TransformerTankInfo.PowerTransformerInfo ?p.
+         ?t c:IdentifiedObject.name ?tname.
+         ?t c:IdentifiedObject.mRID ?id.
+         ?e c:TransformerEndInfo.TransformerTankInfo ?t.
+         ?e c:IdentifiedObject.mRID ?eid.
+         ?e c:IdentifiedObject.name ?xfmr_code.
+         ?e c:TransformerEndInfo.endNumber ?enum.
+         ?e c:TransformerEndInfo.ratedS ?ratedS.
+         ?e c:TransformerEndInfo.ratedU ?ratedU.
+         ?e c:TransformerEndInfo.r ?r_ohm.
+         ?e c:TransformerEndInfo.phaseAngleClock ?angle.
+         ?e c:TransformerEndInfo.connectionKind ?connraw.
+          bind(strafter(str(?connraw),"WindingConnection.") as ?connection)
+        }
+        ORDER BY ?xfmr_name ?xfmr_code ?enum
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def TransformerTank_xfmr_sct(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?enum ?gnum ?leakage_z ?loadloss
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?xft c:TransformerTank.PowerTransformer ?eq.
+         ?xft c:IdentifiedObject.name ?xfmr_name.
+         ?asset c:Asset.PowerSystemResources ?xft.
+         ?asset c:Asset.AssetInfo ?t.
+         ?p r:type c:PowerTransformerInfo.
+         ?t c:TransformerTankInfo.PowerTransformerInfo ?p.
+         ?e c:TransformerEndInfo.TransformerTankInfo ?t.
+         ?e c:TransformerEndInfo.endNumber ?enum.
+         ?sct c:ShortCircuitTest.EnergisedEnd ?e.
+         ?sct c:ShortCircuitTest.leakageImpedance ?leakage_z.
+         ?sct c:ShortCircuitTest.loss ?loadloss.
+         ?sct c:ShortCircuitTest.GroundedEnds ?grnd.
+         ?grnd c:TransformerEndInfo.endNumber ?gnum.
+        }
+        ORDER BY ?xfmr_name ?enum
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def TransformerTank_xfmr_nlt(self):
+        VALUES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?xfmr_name ?noloadloss_kW ?i_exciting
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?eq c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?xft c:TransformerTank.PowerTransformer ?eq.
+         ?xft c:IdentifiedObject.name ?xfmr_name.
+         ?asset c:Asset.PowerSystemResources ?xft.
+         ?asset c:Asset.AssetInfo ?t.
+         ?p r:type c:PowerTransformerInfo.
+         ?t c:TransformerTankInfo.PowerTransformerInfo ?p.
+         ?t c:IdentifiedObject.name ?xfmr_code.
+         ?e c:TransformerEndInfo.TransformerTankInfo ?t.
+         ?nlt c:NoLoadTest.EnergisedEnd ?e.
+         ?nlt c:NoLoadTest.loss ?noloadloss_kW.
+         ?nlt c:NoLoadTest.excitingCurrent ?i_exciting.
+        }
+        ORDER BY ?xfmr_name
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(VALUES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
     def ybus_export(self):
         message = {
         "configurationType": "YBus Export",

@@ -410,6 +410,45 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     return xfmrs_count
 
 
+def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
+    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...', flush=True)
+    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...', file=logfile)
+
+    # return # of xfmrs validated
+    xfmrs_count = 0
+
+    bindings = sparql_mgr.TransformerTank_xfmr_rated()
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_rated query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_rated query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    bindings = sparql_mgr.TransformerTank_xfmr_sct()
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_sct query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_sct query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    bindings = sparql_mgr.TransformerTank_xfmr_nlt()
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_nlt query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    bindings = sparql_mgr.TransformerTank_xfmr_names()
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
+    if len(bindings) == 0:
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
+        return xfmrs_count
+
+    return xfmrs_count
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -445,14 +484,22 @@ def start(log_file, feeder_mrid, model_api_topic):
     # list of lists for the tabular report
     report = []
 
+    #PowerTransformerEnd_xfmrs = 0
     PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus)
-
     if PowerTransformerEnd_xfmrs > 0:
         count = greenCount + yellowCount + redCount
         VI = float(count - redCount)/float(count)
         report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
     else:
         report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
+
+    TransformerTank_xfmrs = validate_TransformerTank_xfmrs(sparql_mgr, Ybus)
+    if TransformerTank_xfmrs > 0:
+        count = greenCount + yellowCount + redCount
+        VI = float(count - redCount)/float(count)
+        report.append(["TransformerTank", TransformerTank_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    else:
+        report.append(["TransformerTank", TransformerTank_xfmrs])
 
     print('\n', flush=True)
     print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
