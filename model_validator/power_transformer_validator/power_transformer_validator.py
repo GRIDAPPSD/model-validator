@@ -332,14 +332,21 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         #print(Ycomp)
 
         # do Ybus comparisons and determine overall transformer status color
+        # set special case flag that indicates if we need to swap the phases
+        # for each bus to do the Ybus matching
+        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
         xfmrColorIdx = 0
         for row in range(4, 7):
             for col in range(0, 3):
                 Yval = Ycomp[row,col]
                 if Yval != 0j:
-                    bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
-                    bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                    #print('compare bus1: ' + bus1 + ', bus2: ' + bus2 + ', value: ' + str(Yval))
+                    if connect_DY_flag:
+                        bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
+                        bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
+                    else:
+                        bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
+                        bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
+
                     colorIdx = compareY(bus1, bus2, Yval, Ybus)
                     xfmrColorIdx = max(xfmrColorIdx, colorIdx)
 
@@ -419,10 +426,6 @@ def start(log_file, feeder_mrid, model_api_topic):
             Ybus[nodes[int(items[0])]] = {}
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
-    #print('Ybus[M1069215.1]: ' + str(Ybus['M1069215.1']))
-    #print('Ybus[M1069DER480-1.3]: ' + str(Ybus['M1069DER480-1.3']))
-    #print('Ybus[M1069215.2]: ' + str(Ybus['M1069215.2']))
-    #print('Ybus[M1069DER480-1.1]: ' + str(Ybus['M1069DER480-1.1']))
 
     # list of lists for the tabular report
     report = []
