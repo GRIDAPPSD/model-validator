@@ -172,201 +172,6 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
-
-    # return # of lines validated
-    line_count = 0
-
-    bindings = sparql_mgr.PerLengthPhaseImpedance_line_configs()
-    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_configs query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_configs query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
-        return line_count
-
-    Zabc = {}
-    for obj in bindings:
-        line_config = obj['line_config']['value']
-        count = int(obj['count']['value'])
-        row = int(obj['row']['value'])
-        col = int(obj['col']['value'])
-        r_ohm_per_m = float(obj['r_ohm_per_m']['value'])
-        x_ohm_per_m = float(obj['x_ohm_per_m']['value'])
-        #b_S_per_m = float(obj['b_S_per_m']['value'])
-        #print('line_config: ' + line_config + ', count: ' + str(count) + ', row: ' + str(row) + ', col: ' + str(col) + ', r_ohm_per_m: ' + str(r_ohm_per_m) + ', x_ohm_per_m: ' + str(x_ohm_per_m) + ', b_S_per_m: ' + str(b_S_per_m))
-
-        if line_config not in Zabc:
-            if count == 1:
-                Zabc[line_config] = np.zeros((1,1), dtype=complex)
-            elif count == 2:
-                Zabc[line_config] = np.zeros((2,2), dtype=complex)
-            elif count == 3:
-                Zabc[line_config] = np.zeros((3,3), dtype=complex)
-
-        Zabc[line_config][row-1,col-1] = complex(r_ohm_per_m, x_ohm_per_m)
-        if row != col:
-            Zabc[line_config][col-1,row-1] = complex(r_ohm_per_m, x_ohm_per_m)
-
-    #for line_config in Zabc:
-    #    print('Zabc[' + line_config + ']: ' + str(Zabc[line_config]))
-    #print('')
-
-    bindings = sparql_mgr.PerLengthPhaseImpedance_line_names()
-    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_names query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('LINE_MODEL_VALIDATOR PerLengthPhaseImpedance line_names query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
-        return line_count
-
-    # map line_name query phase values to nodelist indexes
-    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
-
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
-
-    last_name = ''
-    for obj in bindings:
-        line_name = obj['line_name']['value']
-        bus1 = obj['bus1']['value'].upper()
-        bus2 = obj['bus2']['value'].upper()
-        length = float(obj['length']['value'])
-        line_config = obj['line_config']['value']
-        phase = obj['phase']['value']
-        #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
-
-        if line_name!=last_name and line_config in Zabc:
-            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, flush=True)
-            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, file=logfile)
-
-            last_name = line_name
-            line_idx = 0
-            line_count += 1
-
-            # multiply by scalar length
-            lenZabc = Zabc[line_config] * length
-            # invert the matrix
-            invZabc = np.linalg.inv(lenZabc)
-            # test if the inverse * original = identity
-            #identityTest = np.dot(lenZabc, invZabc)
-            #print('identity test for ' + line_name + ': ' + str(identityTest))
-            # negate the matrix and assign it to Ycomp
-            Ycomp = invZabc * -1
-
-        # we now have the negated inverted matrix for comparison
-        line_idx += 1
-
-        if Ycomp.size == 1:
-            # do comparisons now
-            colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
-
-            if colorIdx == 0:
-                greenCount += 1
-            elif colorIdx == 1:
-                yellowCount += 1
-            else:
-                redCount += 1
-
-        elif Ycomp.size == 4:
-            if line_idx == 1:
-                pair_i0b1 = bus1 + ybusPhaseIdx[phase]
-                pair_i0b2 = bus2 + ybusPhaseIdx[phase]
-            else:
-                pair_i1b1 = bus1 + ybusPhaseIdx[phase]
-                pair_i1b2 = bus2 + ybusPhaseIdx[phase]
-
-                # do comparisons now
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
-
-                if colorIdx == 0:
-                    greenCount += 1
-                elif colorIdx == 1:
-                    yellowCount += 1
-                else:
-                    redCount += 1
-
-        elif Ycomp.size == 9:
-            if line_idx == 1:
-                pair_i0b1 = bus1 + ybusPhaseIdx[phase]
-                pair_i0b2 = bus2 + ybusPhaseIdx[phase]
-            elif line_idx == 2:
-                pair_i1b1 = bus1 + ybusPhaseIdx[phase]
-                pair_i1b2 = bus2 + ybusPhaseIdx[phase]
-            else:
-                pair_i2b1 = bus1 + ybusPhaseIdx[phase]
-                pair_i2b2 = bus2 + ybusPhaseIdx[phase]
-
-                # do comparisons now
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
-
-                if colorIdx == 0:
-                    greenCount += 1
-                elif colorIdx == 1:
-                    yellowCount += 1
-                else:
-                    redCount += 1
-
-    print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
-    print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
-
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
-
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
-
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
-
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
-
-    print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
-    print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
-
-    return line_count
-
-
 def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', flush=True)
     print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', file=logfile)
@@ -525,16 +330,58 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
         ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
         Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
-        print(Ycomp)
+        #print(Ycomp)
 
-        print('Need to compare ' + Bus[xfmr_name][1] + '.1 to ' + Bus[xfmr_name][2] + '.1')
-        print('Need to compare ' + Bus[xfmr_name][1] + '.2 to ' + Bus[xfmr_name][2] + '.2')
-        print('Need to compare ' + Bus[xfmr_name][1] + '.3 to ' + Bus[xfmr_name][2] + '.3' + '\n')
-        #colorIdx11 = compareY(Bus[xfmr_name][1]+'.1', Bus[xfmr_name][2]+'.1', Yprim[0,0], Ybus)
-        #colorIdx = max(colorIdx11, colorIdx22, colorIdx33)
+        # do Ybus comparisons and determine overall transformer status color
+        xfmrColorIdx = 0
+        for row in range(4, 7):
+            for col in range(0, 3):
+                Yval = Ycomp[row,col]
+                if Yval != 0j:
+                    bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
+                    bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
+                    print('compare bus1: ' + bus1 + ', bus2: ' + bus2 + ', value: ' + str(Yval))
+                    colorIdx = compareY(bus1, bus2, Yval, Ybus)
+                    xfmrColorIdx = max(xfmrColorIdx, colorIdx)
 
         xfmrs_count += 1
 
+        if xfmrColorIdx == 0:
+            greenCount += 1
+        elif xfmrColorIdx == 1:
+            yellowCount += 1
+        else:
+            redCount += 1
+
+    print("\nSummary for PowerTransformerEnd transformers:", flush=True)
+    print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
+
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for PowerTransformerEnd transformers", flush=True)
+    print("\nFinished validation for PowerTransformerEnd transformers", file=logfile)
 
     return xfmrs_count
 
@@ -574,24 +421,22 @@ def start(log_file, feeder_mrid, model_api_topic):
     # list of lists for the tabular report
     report = []
 
-    PerLengthPhaseImpedance_lines = validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
-
-    if PerLengthPhaseImpedance_lines > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines])
     PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus)
 
+    if PowerTransformerEnd_xfmrs > 0:
+        count = greenCount + yellowCount + redCount
+        VI = float(count - redCount)/float(count)
+        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    else:
+        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
+
     print('\n', flush=True)
-    print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
     print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', flush=True)
     print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', file=logfile)
-
 
 
 def _main():
