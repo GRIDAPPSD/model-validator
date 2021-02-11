@@ -238,7 +238,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
             RatedU[xfmr_name] = {}
             R_ohm[xfmr_name] = {}
 
-        Bus[xfmr_name][end_number] = obj['bus']['value']
+        Bus[xfmr_name][end_number] = obj['bus']['value'].upper()
         #base_voltage = int(obj['base_voltage']['value'])
         Connection[xfmr_name][end_number] = obj['connection']['value']
         RatedS[xfmr_name][end_number] = int(obj['ratedS']['value'])
@@ -392,8 +392,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
 
-    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!----------------------------------------------------")
-    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!----------------------------------------------------", file=logfile)
+    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------")
+    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
 
@@ -419,6 +419,10 @@ def start(log_file, feeder_mrid, model_api_topic):
             Ybus[nodes[int(items[0])]] = {}
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
+    #print('Ybus[M1069215.1]: ' + str(Ybus['M1069215.1']))
+    #print('Ybus[M1069DER480-1.3]: ' + str(Ybus['M1069DER480-1.3']))
+    #print('Ybus[M1069215.2]: ' + str(Ybus['M1069215.2']))
+    #print('Ybus[M1069DER480-1.1]: ' + str(Ybus['M1069DER480-1.1']))
 
     # list of lists for the tabular report
     report = []
