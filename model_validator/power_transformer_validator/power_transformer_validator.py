@@ -234,8 +234,8 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         # can't handle 3-winding transformers so issue a warning and skip
         # to the next transformer in that case
         if end_number == 3:
-            print('    *** WARNING: 3 winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
-            print('    *** WARNING: 3 winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
+            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
+            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
 
             # need to clear out the previous dictionary entries for this
             # 3-winding transformer so it isn't processed below
