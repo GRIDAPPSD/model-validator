@@ -502,21 +502,45 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         #xground = obj['xground']['value']
         #print('xfmr_name: ' + xfmr_name + ', xfmr_code: ' + xfmr_code + ', vector_group: ' + vector_group + ', enum: ' + str(enum) + ', bus: ' + Bus[xfmr_name][enum] + ', baseV: ' + str(baseV) + ', phase: ' + Phase[xfmr_name][enum] + ', grounded: ' + grounded)
 
-    # initialize B upfront because it's constant
-    B = np.zeros((6,3))
-    B[0,0] = B[2,1] = B[4,2] =  1.0
-    B[1,0] = B[3,1] = B[5,2] = -1.0
-    #print(B)
+    # initialize different variations of B upfront and then figure out later
+    # which to use for each transformer
+    # 3-phase
+    B = {}
+    B['3p'] = np.zeros((6,3))
+    B['3p'][0,0] = B['3p'][2,1] = B['3p'][4,2] =  1.0
+    B['3p'][1,0] = B['3p'][3,1] = B['3p'][5,2] = -1.0
+    #print(B['3p'])
+    # 1-phase, 2-windings
+    B['2w'] = np.zeros((2,1))
+    B['2w'][0,0] = 1.0
+    B['2w'][1,0] = -1.0
+    # 1-phase, 3-windings
+    B['3w'] = np.zeros((3,2))
+    B['3w'][0,0] = B['3w'][0,1] = B['3w'][2,1] =  1.0
+    B['3w'][2,0] = -1.0
 
-    # initialize Y and D matrices, also constant, used to set A later
-    Y1 = np.zeros((4,12))
-    Y1[0,0] = Y1[1,4] = Y1[2,8] = Y1[3,1] = Y1[3,5] = Y1[3,9] = 1.0
-    Y2 = np.zeros((4,12))
-    Y2[0,2] = Y2[1,6] = Y2[2,10] = Y2[3,3] = Y2[3,7] = Y2[3,11] = 1.0
-    D1 = np.zeros((4,12))
-    D1[0,0] = D1[0,9] = D1[1,1] = D1[1,4] = D1[2,5] = D1[2,8] = 1.0
-    D2 = np.zeros((4,12))
-    D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
+    # initialize Y and D matrices, also constant, used to set A for
+    # 3-phase transformers
+    Y1_3p = np.zeros((4,12))
+    Y1_3p[0,0] = Y1_3p[1,4] = Y1_3p[2,8] = Y1_3p[3,1] = Y1_3p[3,5] = Y1_3p[3,9] = 1.0
+    Y2_3p = np.zeros((4,12))
+    Y2_3p[0,2] = Y2_3p[1,6] = Y2_3p[2,10] = Y2_3p[3,3] = Y2_3p[3,7] = Y2_3p[3,11] = 1.0
+    D1_3p = np.zeros((4,12))
+    D1_3p[0,0] = D1_3p[0,9] = D1_3p[1,1] = D1_3p[1,4] = D1_3p[2,5] = D1_3p[2,8] = 1.0
+    D2_3p = np.zeros((4,12))
+    D2_3p[0,2] = D2_3p[0,11] = D2_3p[1,3] = D2_3p[1,6] = D2_3p[2,7] = D2_3p[2,10] = 1.0
+
+    # initialize A for each transformer variation
+    A = {}
+    A['2w'] = np.identity(4)
+    A['3w'] = np.identity(6)
+    A['3p_YY'] = np.vstack((Y1_3p, Y2_3p))
+    A['3p_DD'] = np.vstack((D1_3p, D2_3p))
+    A['3p_YD'] = np.vstack((Y1_3p, D2_3p))
+    A['3p_DY'] = np.vstack((D1_3p, Y2_3p))
+
+    # map transformer query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
     global minPercentDiffReal, maxPercentDiffReal
     minPercentDiffReal = sys.float_info.max
@@ -532,9 +556,19 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     greenCount = yellowCount = redCount = 0
 
     for xfmr_name in Bus:
-        # only do 3-phase right now
-        if Phase[xfmr_name][1] != 'ABC':
-            continue
+        # determine the type of transformer to drive the computation
+        if Phase[xfmr_name][1] == 'ABC':
+            # 3-phase
+            Bkey = '3p'
+            Akey = Bkey + '_' + Connection[xfmr_name][1] + Connection[xfmr_name][2]
+        elif 3 in Phase[xfmr_name]:
+            # 1-phase, 3-winding
+            Bkey = '3w'
+            Akey = Bkey
+        else:
+            # 1-phase, 2-winding
+            Bkey = '2w'
+            Akey = Bkey
 
         # note that division is always floating point in Python 3 even if
         # operands are integer
@@ -542,69 +576,115 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
         r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
         mesh_x_ohm_pu = Leakage_z[xfmr_name]/zBaseP
-        zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
-        #print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
 
-        # initialize ZB
-        ZB = np.zeros((3,3), dtype=complex)
-        ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
-        #print(ZB)
+        if Bkey == '3p':
+            zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
+            # initialize ZB
+            ZB = np.zeros((3,3), dtype=complex)
+            ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
 
-        # set both Vp/Vs for N and top/bottom for A
-        if Connection[xfmr_name][1] == 'Y':
-            Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
-            top = Y1
-        else:
+            # initialize N
+            if Connection[xfmr_name][1] == 'Y':
+                Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
+            else:
+                Vp = RatedU[xfmr_name][1]
+
+            if Connection[xfmr_name][2] == 'Y':
+                Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
+            else:
+                Vs = RatedU[xfmr_name][2]
+
+            N = np.zeros((12,6))
+            N[0,0] = N[4,2] = N[8,4] =   1.0/Vp
+            N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
+            N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
+            N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
+
+        elif Bkey == '3w':
+            zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
+            zod_1V = complex(2.0*R_ohm[xfmr_name][2], Leakage_z[xfmr_name])/zBaseS * (1.0/RatedS[xfmr_name][2])
+            # initialize ZB
+            ZB = np.zeros((2,2), dtype=complex)
+            ZB[0,0] = ZB[1,1] = zsc_1V
+            ZB[1,0] = ZB[0,1] = 0.5*(zsc_1V + zsc_1V - zod_1V)
+
+            #initialize N
             Vp = RatedU[xfmr_name][1]
-            top = D1
+            Vs1 = RatedU[xfmr_name][2]
+            Vs2 = RatedU[xfmr_name][3]
 
-        if Connection[xfmr_name][2] == 'Y':
-            Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
-            bottom = Y2
+            N = np.zeros((6,3))
+            N[0,0] =  1.0/Vp
+            N[1,0] = -1.0/Vp
+            N[2,1] =  1.0/Vs1
+            N[3,1] = -1.0/Vs1
+            N[4,2] = -1.0/Vs2
+            N[5,2] =  1.0/Vs2
+
         else:
+            zsc_1V = complex(3.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
+            # initialize ZB
+            ZB = np.zeros((1,1), dtype=complex)
+            ZB[0,0] = zsc_1V
+
+            #initialize N
+            Vp = RatedU[xfmr_name][1]
             Vs = RatedU[xfmr_name][2]
-            bottom = D2
 
-        # initialize N
-        N = np.zeros((12,6))
-        N[0,0] = N[4,2] = N[8,4] =   1.0/Vp
-        N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
-        N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
-        N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
-        #print(N)
-
-        # initialize A
-        A = np.vstack((top, bottom))
-        #print(A)
+            N = np.zeros((4,2))
+            N[0,0] =  1.0/Vp
+            N[1,0] = -1.0/Vp
+            N[2,1] =  1.0/Vs
+            N[3,1] = -1.0/Vs
 
         # compute Ycomp = A x N x B x inv(ZB) x B' x N' x A'
         # there are lots of ways to break this up including not at all, but
         # here's one way that keeps it from looking overly complex
-        ANB = np.matmul(np.matmul(A, N), B)
+        ANB = np.matmul(np.matmul(A[Akey], N), B[Bkey])
         ANB_invZB = np.matmul(ANB, np.linalg.inv(ZB))
-        ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
+        ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B[Bkey]))
         ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
-        Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
+        Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A[Akey]))
         #print(Ycomp)
 
         # do Ybus comparisons and determine overall transformer status color
-        # set special case flag that indicates if we need to swap the phases
-        # for each bus to do the Ybus matching
-        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
         xfmrColorIdx = 0
-        for row in range(4, 7):
-            for col in range(0, 3):
-                Yval = Ycomp[row,col]
-                if Yval != 0j:
-                    if connect_DY_flag:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                    else:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
 
-                    colorIdx = compareY(bus1, bus2, Yval, Ybus)
-                    xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+        if Bkey == '3p':
+            for row in range(4, 7):
+                for col in range(0, 3):
+                    Yval = Ycomp[row,col]
+                    if Yval != 0j:
+                        # special case where we need to swap the phases
+                        # for each bus to do the Ybus matching
+                        if Akey == '3p_DY':
+                            bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
+                            bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
+                        else:
+                            bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
+                            bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
+
+                        colorIdx = compareY(bus1, bus2, Yval, Ybus)
+                        xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+
+        elif Bkey == '3w':
+            bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
+            bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
+            Yval = Ycomp[2,0]
+            colorIdx20 = compareY(bus1, bus2, Yval, Ybus)
+
+            bus2 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
+            Yval = Ycomp[5,0]
+            colorIdx50 = compareY(bus1, bus2, Yval, Ybus)
+
+            xfmrColorIdx = max(colorIdx20, colorIdx50)
+
+        else:
+            bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
+            bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
+            Yval = Ycomp[2,0]
+
+            xfmrColorIdx = compareY(bus1, bus2, Yval, Ybus)
 
         xfmrs_count += 1
 
