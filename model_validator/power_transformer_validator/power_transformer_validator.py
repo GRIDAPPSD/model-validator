@@ -423,6 +423,11 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     #print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_rated query results:', file=logfile)
     #print(bindings, file=logfile)
 
+    if len(bindings) == 0:
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
+        return xfmrs_count
+
     RatedS = {}
     RatedU = {}
     Connection = {}
@@ -497,6 +502,151 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         #xground = obj['xground']['value']
         #print('xfmr_name: ' + xfmr_name + ', xfmr_code: ' + xfmr_code + ', vector_group: ' + vector_group + ', enum: ' + str(enum) + ', bus: ' + Bus[xfmr_name][enum] + ', baseV: ' + str(baseV) + ', phase: ' + Phase[xfmr_name][enum] + ', grounded: ' + grounded)
 
+    # initialize B upfront because it's constant
+    B = np.zeros((6,3))
+    B[0,0] = B[2,1] = B[4,2] =  1.0
+    B[1,0] = B[3,1] = B[5,2] = -1.0
+    #print(B)
+
+    # initialize Y and D matrices, also constant, used to set A later
+    Y1 = np.zeros((4,12))
+    Y1[0,0] = Y1[1,4] = Y1[2,8] = Y1[3,1] = Y1[3,5] = Y1[3,9] = 1.0
+    Y2 = np.zeros((4,12))
+    Y2[0,2] = Y2[1,6] = Y2[2,10] = Y2[3,3] = Y2[3,7] = Y2[3,11] = 1.0
+    D1 = np.zeros((4,12))
+    D1[0,0] = D1[0,9] = D1[1,1] = D1[1,4] = D1[2,5] = D1[2,8] = 1.0
+    D2 = np.zeros((4,12))
+    D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
+
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+    global greenCount, yellowCount, redCount
+    greenCount = yellowCount = redCount = 0
+
+    for xfmr_name in Bus:
+        # only do 3-phase right now
+        if Phase[xfmr_name][1] != 'ABC':
+            continue
+
+        # note that division is always floating point in Python 3 even if
+        # operands are integer
+        zBaseP = (RatedU[xfmr_name][1]*RatedU[xfmr_name][1])/RatedS[xfmr_name][1]
+        zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
+        r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
+        mesh_x_ohm_pu = Leakage_z[xfmr_name]/zBaseP
+        zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
+        #print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
+
+        # initialize ZB
+        ZB = np.zeros((3,3), dtype=complex)
+        ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
+        #print(ZB)
+
+        # set both Vp/Vs for N and top/bottom for A
+        if Connection[xfmr_name][1] == 'Y':
+            Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
+            top = Y1
+        else:
+            Vp = RatedU[xfmr_name][1]
+            top = D1
+
+        if Connection[xfmr_name][2] == 'Y':
+            Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
+            bottom = Y2
+        else:
+            Vs = RatedU[xfmr_name][2]
+            bottom = D2
+
+        # initialize N
+        N = np.zeros((12,6))
+        N[0,0] = N[4,2] = N[8,4] =   1.0/Vp
+        N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
+        N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
+        N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
+        #print(N)
+
+        # initialize A
+        A = np.vstack((top, bottom))
+        #print(A)
+
+        # compute Ycomp = A x N x B x inv(ZB) x B' x N' x A'
+        # there are lots of ways to break this up including not at all, but
+        # here's one way that keeps it from looking overly complex
+        ANB = np.matmul(np.matmul(A, N), B)
+        ANB_invZB = np.matmul(ANB, np.linalg.inv(ZB))
+        ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
+        ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
+        Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
+        #print(Ycomp)
+
+        # do Ybus comparisons and determine overall transformer status color
+        # set special case flag that indicates if we need to swap the phases
+        # for each bus to do the Ybus matching
+        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
+        xfmrColorIdx = 0
+        for row in range(4, 7):
+            for col in range(0, 3):
+                Yval = Ycomp[row,col]
+                if Yval != 0j:
+                    if connect_DY_flag:
+                        bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
+                        bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
+                    else:
+                        bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
+                        bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
+
+                    colorIdx = compareY(bus1, bus2, Yval, Ybus)
+                    xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+
+        xfmrs_count += 1
+
+        if xfmrColorIdx == 0:
+            greenCount += 1
+        elif xfmrColorIdx == 1:
+            yellowCount += 1
+        else:
+            redCount += 1
+
+        print("\n", flush=True)
+        print("\n", file=logfile)
+
+    print("\nSummary for TransformerTank transformers:", flush=True)
+    print("\nSummary for TransformerTank transformers:", file=logfile)
+
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+
+    print("\nFinished validation for TransformerTank transformers", flush=True)
+    print("\nFinished validation for TransformerTank transformers", file=logfile)
 
     return xfmrs_count
 
