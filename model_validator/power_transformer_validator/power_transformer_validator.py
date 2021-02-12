@@ -423,11 +423,55 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_rated query results:', file=logfile)
     print(bindings, file=logfile)
 
+    RatedS = {}
+    RatedU = {}
+    Connection = {}
+    R_ohm = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        xfmr_code = obj['xfmr_code']['value']
+        enum = int(obj['enum']['value'])
+        # can't handle 3-winding transformers so issue a warning and skip
+        # to the next transformer in that case
+        if enum == 3:
+            print('    *** WARNING: 3-winding TransformerTank transformers are not supported: ' + xfmr_name + '\n', flush=True)
+            print('    *** WARNING: 3-winding TransformerTank transformers are not supported: ' + xfmr_name + '\n', file=logfile)
+
+            # need to clear out the previous dictionary entries for this
+            # 3-winding transformer so it isn't processed below
+            RatedS.pop(xfmr_name, None)
+            RatedU.pop(xfmr_name, None)
+            Connection.pop(xfmr_name, None)
+            R_ohm.pop(xfmr_name, None)
+            continue
+
+        if xfmr_name not in RatedS:
+            RatedS[xfmr_name] = {}
+            RatedU[xfmr_name] = {}
+            Connection[xfmr_name] = {}
+            R_ohm[xfmr_name] = {}
+
+        RatedS[xfmr_name][enum] = int(obj['ratedS']['value'])
+        RatedU[xfmr_name][enum] = int(obj['ratedU']['value'])
+        Connection[xfmr_name][enum] = obj['connection']['value']
+        #angle = int(obj['angle']['value'])
+        R_ohm[xfmr_name][enum] = float(obj['r_ohm']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', xfmr_code: ' + xfmr_code + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS[xfmr_name][enum]) + ', ratedU: ' + str(RatedU[xfmr_name][enum]) + ', connection: ' + Connection[xfmr_name][enum] + ', angle: ' + str(angle) + ', r_ohm: ' + str(R_ohm[xfmr_name][enum]))
+
     bindings = sparql_mgr.TransformerTank_xfmr_sct()
     print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_sct query results:', flush=True)
     print(bindings, flush=True)
     print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_sct query results:', file=logfile)
     print(bindings, file=logfile)
+
+    Leakage_z = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        #enum = int(obj['enum']['value'])
+        #gnum = int(obj['gnum']['value'])
+        Leakage_z[xfmr_name] = float(obj['leakage_z']['value'])
+        #loadloss = float(obj['loadloss']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', gnum: ' + str(gnum) + ', leakage_z: ' + str(Leakage_z[xfmr_name]) + ', loadloss: ' + str(loadloss))
 
     bindings = sparql_mgr.TransformerTank_xfmr_nlt()
     print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
