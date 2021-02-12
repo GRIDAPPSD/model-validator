@@ -374,8 +374,8 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         else:
             redCount += 1
 
-        print("\n", flush=True)
-        print("\n", file=logfile)
+        print("", flush=True)
+        print("", file=logfile)
 
     print("\nSummary for PowerTransformerEnd transformers:", flush=True)
     print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
@@ -512,11 +512,11 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     #print(B['3p'])
     # 1-phase, 2-windings
     B['2w'] = np.zeros((2,1))
-    B['2w'][0,0] = 1.0
+    B['2w'][0,0] =  1.0
     B['2w'][1,0] = -1.0
     # 1-phase, 3-windings
     B['3w'] = np.zeros((3,2))
-    B['3w'][0,0] = B['3w'][0,1] = B['3w'][2,1] =  1.0
+    B['3w'][0,0] = B['3w'][0,1] = B['3w'][2,1] = 1.0
     B['3w'][2,0] = -1.0
 
     # initialize Y and D matrices, also constant, used to set A for
@@ -601,7 +601,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
             N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
 
         elif Bkey == '3w':
-            zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
+            zsc_1V = complex(3.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
             zod_1V = complex(2.0*R_ohm[xfmr_name][2], Leakage_z[xfmr_name])/zBaseS * (1.0/RatedS[xfmr_name][2])
             # initialize ZB
             ZB = np.zeros((2,2), dtype=complex)
@@ -622,7 +622,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
             N[5,2] =  1.0/Vs2
 
         else:
-            zsc_1V = complex(3.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
+            zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
             # initialize ZB
             ZB = np.zeros((1,1), dtype=complex)
             ZB[0,0] = zsc_1V
@@ -668,6 +668,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
                         xfmrColorIdx = max(xfmrColorIdx, colorIdx)
 
         elif Bkey == '3w':
+            print(Ycomp)
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
             bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
             Yval = Ycomp[2,0]
@@ -695,8 +696,8 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         else:
             redCount += 1
 
-        print("\n", flush=True)
-        print("\n", file=logfile)
+        print("", flush=True)
+        print("", file=logfile)
 
     print("\nSummary for TransformerTank transformers:", flush=True)
     print("\nSummary for TransformerTank transformers:", file=logfile)
