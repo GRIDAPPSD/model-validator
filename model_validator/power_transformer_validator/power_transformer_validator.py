@@ -494,7 +494,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
             Bus[xfmr_name] = {}
             Phase[xfmr_name] = {}
 
-        Bus[xfmr_name][enum] = obj['bus']['value']
+        Bus[xfmr_name][enum] = obj['bus']['value'].upper()
         #baseV = int(obj['baseV']['value'])
         Phase[xfmr_name][enum] = obj['phase']['value']
         #grounded = obj['grounded']['value']
