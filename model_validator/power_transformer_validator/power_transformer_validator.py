@@ -459,11 +459,14 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     Leakage_z = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
-        #enum = int(obj['enum']['value'])
+        enum = int(obj['enum']['value'])
         #gnum = int(obj['gnum']['value'])
-        Leakage_z[xfmr_name] = float(obj['leakage_z']['value'])
+        if xfmr_name not in Leakage_z:
+            Leakage_z[xfmr_name] = {}
+
+        Leakage_z[xfmr_name][enum] = float(obj['leakage_z']['value'])
         #loadloss = float(obj['loadloss']['value'])
-        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', gnum: ' + str(gnum) + ', leakage_z: ' + str(Leakage_z[xfmr_name]) + ', loadloss: ' + str(loadloss))
+        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', gnum: ' + str(gnum) + ', leakage_z: ' + str(Leakage_z[xfmr_name][enum]) + ', loadloss: ' + str(loadloss))
 
     #bindings = sparql_mgr.TransformerTank_xfmr_nlt()
     #print('POWER_TRANSFORMER_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
@@ -517,7 +520,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     # 1-phase, 3-windings
     B['3w'] = np.zeros((3,2))
     B['3w'][0,0] = B['3w'][0,1] = B['3w'][2,1] = 1.0
-    B['3w'][2,0] = -1.0
+    B['3w'][1,0] = -1.0
 
     # initialize Y and D matrices, also constant, used to set A for
     # 3-phase transformers
@@ -575,7 +578,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         zBaseP = (RatedU[xfmr_name][1]*RatedU[xfmr_name][1])/RatedS[xfmr_name][1]
         zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
         r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
-        mesh_x_ohm_pu = Leakage_z[xfmr_name]/zBaseP
+        mesh_x_ohm_pu = Leakage_z[xfmr_name][1]/zBaseP
 
         if Bkey == '3p':
             zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
@@ -602,7 +605,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
 
         elif Bkey == '3w':
             zsc_1V = complex(3.0*r_ohm_pu, mesh_x_ohm_pu) * (1.0/RatedS[xfmr_name][1])
-            zod_1V = complex(2.0*R_ohm[xfmr_name][2], Leakage_z[xfmr_name])/zBaseS * (1.0/RatedS[xfmr_name][2])
+            zod_1V = complex(2.0*R_ohm[xfmr_name][2], Leakage_z[xfmr_name][2])/zBaseS * (1.0/RatedS[xfmr_name][2])
             # initialize ZB
             ZB = np.zeros((2,2), dtype=complex)
             ZB[0,0] = ZB[1,1] = zsc_1V
@@ -668,7 +671,6 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
                         xfmrColorIdx = max(xfmrColorIdx, colorIdx)
 
         elif Bkey == '3w':
-            print(Ycomp)
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
             bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
             Yval = Ycomp[2,0]
