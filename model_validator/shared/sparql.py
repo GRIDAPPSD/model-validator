@@ -954,6 +954,48 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
+    def SwitchingEquipment_switch_names(self):
+        SWITCHES_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?sw_name ?base_V ?is_Open ?rated_Current ?breaking_Capacity ?sw_ph_status ?bus1 ?bus2 (group_concat(distinct ?phs1;separator="") as ?phases_side1) (group_concat(distinct ?phs2;separator="") as ?phases_side2)
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         VALUES ?cimraw {c:LoadBreakSwitch c:Recloser c:Breaker c:Fuse c:Sectionaliser c:Jumper c:Disconnector c:GroundDisconnector}
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?s r:type ?cimraw.
+         bind(strafter(str(?cimraw),"#") as ?cimtype)
+         ?s c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?s c:IdentifiedObject.name ?sw_name.
+         ?s c:ConductingEquipment.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?base_V.
+         ?s c:Switch.open ?is_Open.
+         ?s c:Switch.ratedCurrent ?rated_Current.
+         OPTIONAL {?s c:ProtectedSwitch.breakingCapacity ?breaking_Capacity.}
+         ?t1 c:Terminal.ConductingEquipment ?s.
+         ?t1 c:ACDCTerminal.sequenceNumber "1".
+         ?t1 c:Terminal.ConnectivityNode ?cn1.
+         ?cn1 c:IdentifiedObject.name ?bus1.
+         ?t2 c:Terminal.ConductingEquipment ?s.
+         ?t2 c:ACDCTerminal.sequenceNumber "2".
+         ?t1 c:Terminal.ConnectivityNode ?cn2.
+         ?cn2 c:IdentifiedObject.name ?bus2.
+         OPTIONAL {?swp c:SwitchPhase.Switch ?s.
+          ?swp c:SwitchPhase.phaseSide1 ?phsraw.
+          ?swp c:SwitchPhase.normalOpen ?sw_ph_status.
+          bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs1)
+          ?swp c:SwitchPhase.phaseSide2 ?phsraw2.
+          bind(strafter(str(?phsraw2),"SinglePhaseKind.") as ?phs2)}
+        }
+        GROUP BY ?sw_name ?base_V ?is_Open ?rated_Current ?breaking_Capacity ?sw_ph_status ?bus1 ?bus2
+        ORDER BY ?sw_name ?sw_phase_name
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(SWITCHES_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
     def ybus_export(self):
         message = {
         "configurationType": "YBus Export",
