@@ -59,7 +59,7 @@ if [[ ! -z "$SIMID" ]]; then
 
     ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 else
-#     sleep 0  # uncomment this if commenting out the line below to avoid syntax error
+#    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
     ./supervisor.py "$SIMREQ" 2>&1 | tee validator.log
 fi
 
@@ -70,6 +70,7 @@ fi
 #python3 ac_line_ampacity/ac_line_ampacity.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
 #python3 topology_validator/topology_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+#python3 power_transformer_validator/power_transformer_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 
 if [[ ! -z "$SIMID" ]]; then
     # kill microservices so that it starts up with the new simulation next time
