@@ -77,11 +77,11 @@ def compareY(pair_b1, pair_b2, Ybus):
     if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
         row = pair_b1
         col = pair_b2
-        YbusValue = -Ybus[row][col]
+        YbusValue = Ybus[row][col]
     elif pair_b2 in Ybus and pair_b1 in Ybus[pair_b2]:
         row = pair_b2
         col = pair_b1
-        YbusValue = -Ybus[row][col]
+        YbusValue = Ybus[row][col]
     else:
         row = pair_b1
         col = pair_b2
@@ -155,10 +155,10 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
         #breaking_Capacity = int(obj['breaking_Capacity']['value'])
         #sw_ph_status = obj['sw_ph_status']['value']
         bus1 = obj['bus1']['value']
-        bus2 = obj['bus1']['value']
+        bus2 = obj['bus2']['value']
         phases_side1 = obj['phases_side1']['value']
-        #phases_side2 = obj['phases_side2']['value']
-        #print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')')
+        phases_side2 = obj['phases_side2']['value']
+        print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
 
         # don't check open switches
         if is_Open:
