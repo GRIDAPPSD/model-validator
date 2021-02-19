@@ -150,15 +150,15 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
     for obj in bindings:
         sw_name = obj['sw_name']['value']
         #base_V = int(obj['base_V']['value'])
-        is_Open = obj['is_Open']['value'] == 'True'
+        is_Open = obj['is_Open']['value'].upper() == 'TRUE'
         #rated_Current = int(obj['rated_Current']['value'])
         #breaking_Capacity = int(obj['breaking_Capacity']['value'])
         #sw_ph_status = obj['sw_ph_status']['value']
-        bus1 = obj['bus1']['value']
-        bus2 = obj['bus2']['value']
+        bus1 = obj['bus1']['value'].upper()
+        bus2 = obj['bus2']['value'].upper()
         phases_side1 = obj['phases_side1']['value']
-        phases_side2 = obj['phases_side2']['value']
-        print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
+        #phases_side2 = obj['phases_side2']['value']
+        #print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
 
         # don't check open switches
         if is_Open:
