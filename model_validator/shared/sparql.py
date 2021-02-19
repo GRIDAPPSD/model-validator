@@ -979,7 +979,7 @@ class SPARQLManager:
          ?cn1 c:IdentifiedObject.name ?bus1.
          ?t2 c:Terminal.ConductingEquipment ?s.
          ?t2 c:ACDCTerminal.sequenceNumber "2".
-         ?t1 c:Terminal.ConnectivityNode ?cn2.
+         ?t2 c:Terminal.ConnectivityNode ?cn2.
          ?cn2 c:IdentifiedObject.name ?bus2.
          OPTIONAL {?swp c:SwitchPhase.Switch ?s.
           ?swp c:SwitchPhase.phaseSide1 ?phsraw.
