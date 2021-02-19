@@ -173,8 +173,8 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
 
 
 def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...', file=logfile)
+    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', flush=True)
+    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', file=logfile)
 
     # return # of xfmrs validated
     xfmrs_count = 0
@@ -346,6 +346,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
         #print(Ycomp)
 
+        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, flush=True)
+        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, file=logfile)
+
         # do Ybus comparisons and determine overall transformer status color
         # set special case flag that indicates if we need to swap the phases
         # for each bus to do the Ybus matching
@@ -411,8 +414,8 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
 
 
 def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
-    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...', file=logfile)
+    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', flush=True)
+    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', file=logfile)
 
     # return # of xfmrs validated
     xfmrs_count = 0
@@ -652,6 +655,9 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
 
         # do Ybus comparisons and determine overall transformer status color
         xfmrColorIdx = 0
+
+        print('Validating TranformerTank transformer_name: ' + xfmr_name, flush=True)
+        print('Validating TranformerTank transformer_name: ' + xfmr_name, file=logfile)
 
         if Bkey == '3p':
             for row in range(4, 7):
