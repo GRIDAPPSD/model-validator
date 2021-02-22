@@ -68,10 +68,10 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
-def compareY(pair_b1, pair_b2, Ybus):
-    global greenCountReal, yellowCountReal
-    global greenCountImag, yellowCountImag
-    global greenCount, yellowCount
+def compareY(is_Open, pair_b1, pair_b2, Ybus):
+    global greenCountReal, yellowCountReal, redCountReal
+    global greenCountImag, yellowCountImag, redCountImag
+    global greenCount, yellowCount, redCount
 
     noEntryFlag = False
     if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
@@ -91,26 +91,49 @@ def compareY(pair_b1, pair_b2, Ybus):
     print("    between i: " + row + ", and j: " + col, flush=True)
     print("    between i: " + row + ", and j: " + col, file=logfile)
 
-    if noEntryFlag:
+    # don't flag missing Ybus entries for open switches because that's expected
+    if noEntryFlag and not is_Open:
         print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', flush=True)
         print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', file=logfile)
 
-    if YbusValue.real>=-1000.0 and YbusValue.real<=-500.0:
-        realColorIdx = 0
-        greenCountReal += 1
+    if is_Open:
+        if abs(YbusValue.real) <= 0.001:
+            realColorIdx = 0
+            greenCountReal += 1
+        else:
+            realColorIdx = 2
+            redCountReal += 1
     else:
-        realColorIdx = 1
-        yellowCountReal += 1
+        if YbusValue.real>=-1000.0 and YbusValue.real<=-500.0:
+            realColorIdx = 0
+            greenCountReal += 1
+        elif abs(YbusValue.real) <= 0.001:
+            realColorIdx = 2
+            redCountReal += 1
+        else:
+            realColorIdx = 1
+            yellowCountReal += 1
 
     print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + "  " + diffColor(realColorIdx, True), flush=True)
     print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + "  " + diffColor(realColorIdx, False), file=logfile)
 
-    if YbusValue.imag>=500.0 and YbusValue.imag<=1000.0:
-        imagColorIdx = 0
-        greenCountImag += 1
+    if is_Open:
+        if abs(YbusValue.imag) <= 0.001:
+            imagColorIdx = 0
+            greenCountImag += 1
+        else:
+            imagColorIdx = 2
+            redCountImag += 1
     else:
-        imagColorIdx = 1
-        yellowCountImag += 1
+        if YbusValue.imag>=500.0 and YbusValue.imag<=1000.0:
+            imagColorIdx = 0
+            greenCountImag += 1
+        elif abs(YbusValue.imag) <= 0.001:
+            imagColorIdx = 2
+            redCountImag += 1
+        else:
+            imagColorIdx = 1
+            yellowCountImag += 1
 
     print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + "  " + diffColor(imagColorIdx, True), flush=True)
     print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + "  " + diffColor(imagColorIdx, False), file=logfile)
@@ -137,12 +160,12 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
         print('\nSWITCHING_EQUIPMENT_VALIDATOR switches: NO SWITCH MATCHES', file=logfile)
         return switches_count
 
-    global greenCountReal, yellowCountReal
-    greenCountReal = yellowCountReal = 0
-    global greenCountImag, yellowCountImag
-    greenCountImag = yellowCountImag = 0
-    global greenCount, yellowCount
-    greenCount = yellowCount = 0
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+    global greenCount, yellowCount, redCount
+    greenCount = yellowCount = redCount = 0
 
     # map transformer query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
@@ -160,18 +183,14 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
         #phases_side2 = obj['phases_side2']['value']
         #print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
 
-        # don't check open switches
-        if is_Open:
-            continue
-
         print('Validating switch_name: ' + sw_name, flush=True)
         print('Validating switch_name: ' + sw_name, file=logfile)
 
         if phases_side1 == '':
             # 3-phase switch
-            colorIdx11 = compareY(bus1+'.1', bus2+'.1', Ybus)
-            colorIdx22 = compareY(bus1+'.2', bus2+'.2', Ybus)
-            colorIdx33 = compareY(bus1+'.3', bus2+'.3', Ybus)
+            colorIdx11 = compareY(is_Open, bus1+'.1', bus2+'.1', Ybus)
+            colorIdx22 = compareY(is_Open, bus1+'.2', bus2+'.2', Ybus)
+            colorIdx33 = compareY(is_Open, bus1+'.3', bus2+'.3', Ybus)
             switchColorIdx = max(colorIdx11, colorIdx22, colorIdx33)
 
         else:
@@ -179,7 +198,7 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
             switchColorIdx = 0
             for phase in phases_side1:
                 if phase in ybusPhaseIdx:
-                    colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ybus)
+                    colorIdx = compareY(is_Open, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ybus)
                     switchColorIdx = max(switchColorIdx, colorIdx)
                 else:
                     print('    *** WARNING: switch phase other than A, B, or C found, ' + phases_side1 + ', for switch : ' + sw_name + '\n', flush=True)
@@ -189,8 +208,10 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
 
         if switchColorIdx == 0:
             greenCount += 1
-        else:
+        elif switchColorIdx == 1:
             yellowCount += 1
+        else:
+            redCount += 1
 
         print("", flush=True)
         print("", file=logfile)
@@ -202,11 +223,15 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
     print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
     print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
     print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
     print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
     print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
     print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     print("\nFinished validation for SwitchingEquipment switches", flush=True)
     print("\nFinished validation for SwitchingEquipment switches", file=logfile)
@@ -251,16 +276,16 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     SwitchingEquipment_switches = validate_SwitchingEquipment_switches(sparql_mgr, Ybus)
     if SwitchingEquipment_switches > 0:
-        count = greenCount + yellowCount
-        VI = float(count - yellowCount)/float(count)
-        report.append([SwitchingEquipment_switches, "{:.4f}".format(VI), greenCount, yellowCount])
+        count = greenCount + yellowCount + redCount
+        VI = float(count - redCount)/float(count)
+        report.append([SwitchingEquipment_switches, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
     else:
         report.append([SwitchingEquipment_switches])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, True), diffColor(1, True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, False), diffColor(1, False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
     print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', flush=True)
     print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', file=logfile)
