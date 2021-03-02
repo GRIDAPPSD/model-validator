@@ -72,6 +72,7 @@ fi
 #python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 power_transformer_validator/power_transformer_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 switching_equipment_validator/switching_equipment_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+#python3 shunt_element_validator/shunt_element_validator.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
 
 if [[ ! -z "$SIMID" ]]; then
     # kill microservices so that it starts up with the new simulation next time
