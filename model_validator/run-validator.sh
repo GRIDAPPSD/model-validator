@@ -21,7 +21,7 @@ if [[ -z "$SIMREQ" ]]; then
         read -d "\n" SIMID SIMREQ <<< $(sim_starter/sim_starter.py $1)
         # need to wait after starting a simulation so that it's initialized to
         # the point it will respond to queries/subscriptions
-        if [[ $1 -eq 9500 ]]; then
+        if [[ "$1" == "9500" ]]; then
             echo "Sleeping 40 seconds to allow simulation to initialize..."
             sleep 40
         else
@@ -48,7 +48,7 @@ if [[ ! -z "$SIMID" ]]; then
     # only start microservices if not already running
     if ! pgrep -f microservices.py -U $USER > /dev/null; then
         python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
-        if [[ $1 -eq 9500 ]]; then
+        if [[ "$1" == "9500" ]]; then
             echo "Sleeping 40 seconds to allow microservices to initialize..."
             sleep 40
         else

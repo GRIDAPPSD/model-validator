@@ -810,6 +810,7 @@ def _main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
+    parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
     sim_request = json.loads(opts.request.replace("\'",""))
