@@ -1071,6 +1071,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                 # the Z-hat slicing below is based on having an 'N' phase so need to
                 # account for that when it doesn't exist
                 phaseIdx += 1
+                CN_done = False
 
             # create the Z-hat matrices to then compute Zabc for Ybus comparisons
             Zij = Zprim[:phaseIdx,:phaseIdx]
