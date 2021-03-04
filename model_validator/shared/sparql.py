@@ -10,7 +10,7 @@ class SPARQLManager:
     """
 
     
-    def __init__(self, gapps, feeder_mrid, model_api_topic, timeout=30):
+    def __init__(self, gapps, feeder_mrid, model_api_topic, simulation_id, timeout=30):
         """Connect to the platform.
 
         :param feeder_mrid: unique identifier for the feeder in
@@ -32,6 +32,9 @@ class SPARQLManager:
 
         # Powergridmodel API topic
         self.topic = model_api_topic
+
+        # Assign simulation id
+        self.simulation_id = simulation_id
 
     def query_transformers(self):
         """Get information on transformers in the feeder."""
@@ -1005,4 +1008,16 @@ class SPARQLManager:
 
         results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=180)
         return results['data']['yParse'],results['data']['nodeList']
+
+    def vnom_export(self):
+        message = {
+        "configurationType": "Vnom Export",
+        "parameters": {
+            "simulation_id": self.simulation_id}
+        }
+        print(message)
+
+        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=180)
+        print(results)
+        return results['data']['vnom']
 
