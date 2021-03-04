@@ -763,6 +763,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #print(nodes)
 
     Ybus = {}
+    Yexp = {}
     for obj in ysparse:
         items = obj.split(',')
         if items[0] == 'Row':
@@ -770,7 +771,61 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         if nodes[int(items[0])] not in Ybus:
             Ybus[nodes[int(items[0])]] = {}
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+        if nodes[int(items[1])] not in Yexp:
+            Yexp[nodes[int(items[1])]] = {}
+        Yexp[nodes[int(items[1])]][nodes[int(items[0])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
+
+    vnomRequestText = '{"configurationType":"Vnom Export","parameters":{"simulation_id":"' + simulation_id + '"}}';
+    vnomResponse = gapps.get_response('goss.gridappsd.process.request.config', vnomRequestText, timeout=180)
+    #print(vnomResponse)
+
+    CNV = {}
+    lineCount = 0
+    for line in vnomResponse['data']['vnom']:
+        lineCount += 1
+        if lineCount == 1:  # skip header line
+            continue
+
+        vnom = line.split(',')
+        bus = vnom[0].strip('"')
+        basekV = float(vnom[1])
+        #print('bus: ' + bus + ', basekV: ' + str(basekV))
+
+        rho = 1000.0*basekV/math.sqrt(3.0)
+
+        node1 = vnom[2].strip()
+        theta = float(vnom[4])*math.pi/180.0
+        CNV[bus+'.'+node1] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+        node2 = vnom[6].strip()
+        if node2 != '0':
+            theta = float(vnom[8])*math.pi/180.0
+            CNV[bus+'.'+node2] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+            node3 = vnom[10].strip()
+            if node3 != '0':
+                theta = float(vnom[12])*math.pi/180.0
+                CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+    for node1 in CNV:
+        numsum = complex(0.0, 0.0)
+        print('finding shunt_adm for node: ' + node1)
+        for node2 in Yexp[node1]:
+            print('\tforward summing connection to node: ' + node2)
+            numsum += Yexp[node1][node2]*CNV[node2]
+        for node2 in Ybus[node1]:
+            if node2 != node1:
+                numsum += Ybus[node1][node2]*CNV[node2]
+                print('\tbackward summing connection to node: ' + node2)
+
+        shunt_adm = numsum/CNV[node1]
+
+        print('cnv(' + node1 + ') = ' + str(CNV[node1]))
+        print('shunt_admittance(' + node1 + ') = ' + str(shunt_adm))
+
+    return
+
 
     # list of lists for the tabular report
     report = []
