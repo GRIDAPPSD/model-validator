@@ -999,6 +999,56 @@ class SPARQLManager:
         bindings = results['data']['results']['bindings']
         return bindings
 
+    def ShuntElement_cap_names(self):
+        SHUNT_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?cap_name ?base_volt ?nominal_volt ?b_per_section ?bus ?connection ?grnd ?phase ?ctrlenabled ?discrete ?mode ?deadband ?setpoint ?delay ?monitored_class ?monitored_eq ?monitored_bus ?monitored_phs
+        WHERE {
+         ?s r:type c:LinearShuntCompensator.
+        VALUES ?fdrid {"%s"}
+         ?s c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?s c:IdentifiedObject.name ?cap_name.
+         ?s c:ConductingEquipment.BaseVoltage ?bv.
+         ?bv c:BaseVoltage.nominalVoltage ?base_volt.
+         ?s c:ShuntCompensator.nomU ?nominal_volt.
+         ?s c:LinearShuntCompensator.bPerSection ?b_per_section.
+         ?s c:ShuntCompensator.phaseConnection ?connraw.
+          bind(strafter(str(?connraw),"PhaseShuntConnectionKind.") as ?connection)
+         ?s c:ShuntCompensator.grounded ?grnd.
+         OPTIONAL {?scp c:ShuntCompensatorPhase.ShuntCompensator ?s.
+         ?scp c:ShuntCompensatorPhase.phase ?phsraw.
+          bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phase)}
+         OPTIONAL {?ctl c:RegulatingControl.RegulatingCondEq ?s.
+          ?ctl c:RegulatingControl.discrete ?discrete.
+          ?ctl c:RegulatingControl.enabled ?ctrlenabled.
+          ?ctl c:RegulatingControl.mode ?moderaw.
+           bind(strafter(str(?moderaw),"RegulatingControlModeKind.") as ?mode)
+          ?ctl c:RegulatingControl.monitoredPhase ?monraw.
+           bind(strafter(str(?monraw),"PhaseCode.") as ?monitored_phs)
+          ?ctl c:RegulatingControl.targetDeadband ?deadband.
+          ?ctl c:RegulatingControl.targetValue ?setpoint.
+          ?s c:ShuntCompensator.aVRDelay ?delay.
+          ?ctl c:RegulatingControl.Terminal ?trm.
+          ?trm c:TerminalConductingEquipment ?eq.
+          ?eq a ?classraw.
+           bind(strafter(str(?classraw),"CIM100#") as ?monitored_class)
+          ?eq c:IdentifiedObject.name ?monitored_eq.
+          ?trm c:Terminal.ConnectivityNode ?moncn.
+          ?moncn c:IdentifiedObject.name ?monitored_bus.}
+         ?s c:IdentifiedObject.mRID ?id.
+         ?t c:Terminal.ConductingEquipment ?s.
+         ?t c:Terminal.ConnectivityNode ?cn.
+         ?cn c:IdentifiedObject.name ?bus
+        }
+        ORDER BY ?cap_name
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(SHUNT_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
     def ybus_export(self):
         message = {
         "configurationType": "YBus Export",

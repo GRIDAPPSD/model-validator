@@ -824,6 +824,12 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         if abs(shunt_adm.real)>1.0e-3 or abs(shunt_adm.imag)>1.0e-3:
             print('*** Found node with shunt element: ' + node1)
 
+    bindings = sparql_mgr.ShuntElement_cap_names()
+    print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', flush=True)
+    print(bindings, flush=True)
+    print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
+    print(bindings, file=logfile)
+
     return
 
 
