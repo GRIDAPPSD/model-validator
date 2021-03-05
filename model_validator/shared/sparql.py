@@ -1031,7 +1031,7 @@ class SPARQLManager:
           ?ctl c:RegulatingControl.targetValue ?setpoint.
           ?s c:ShuntCompensator.aVRDelay ?delay.
           ?ctl c:RegulatingControl.Terminal ?trm.
-          ?trm c:TerminalConductingEquipment ?eq.
+          ?trm c:Terminal.ConductingEquipment ?eq.
           ?eq a ?classraw.
            bind(strafter(str(?classraw),"CIM100#") as ?monitored_class)
           ?eq c:IdentifiedObject.name ?monitored_eq.
