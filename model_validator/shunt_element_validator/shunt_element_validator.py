@@ -804,15 +804,45 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 theta = float(items[12])*math.pi/180.0
                 CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
 
+    bindings = sparql_mgr.ShuntElement_cap_names()
+    #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    # map capacitor query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
+
+    B_per_section = {}
+    for obj in bindings:
+        #cap_name = obj['cap_name']['value']
+        b_per_section = float(obj['b_per_section']['value'])
+        bus = obj['bus']['value']
+        phase = 'ABC' # no phase specified indicates 3-phase
+        if 'phase' in obj:
+            phase = obj['phase']['value']
+        mode = 'voltage'
+        if 'mode' in obj:
+            mode = obj['mode']['value']
+        #print('cap_name: ' + cap_name + ', b_per_section: ' + str(b_per_section) + ', phase: ' + phase + ', mode: ' + mode)
+
+        if mode != 'timeScheduled':
+            if phase == 'ABC': # 3-phase
+                B_per_section[bus+'.1'] = b_per_section
+                B_per_section[bus+'.2'] = b_per_section
+                B_per_section[bus+'.3'] = b_per_section
+            else: # specified phase only
+                B_per_section[bus+ybusPhaseIdx[phase]] = b_per_section
+
     for node1 in CNV:
         numsum = complex(0.0, 0.0)
-        print('finding shunt_adm for node: ' + node1)
+        #print('finding shunt_adm for node: ' + node1)
         for node2 in Yexp[node1]:
-            print('\tforward summing connection to node: ' + node2)
+            #print('\tforward summing connection to node: ' + node2)
             numsum += Yexp[node1][node2]*CNV[node2]
         for node2 in Ybus[node1]:
             if node2 != node1:
-                print('\tbackward summing connection to node: ' + node2)
+                #print('\tbackward summing connection to node: ' + node2)
                 numsum += Ybus[node1][node2]*CNV[node2]
 
         shunt_adm = numsum/CNV[node1]
@@ -824,11 +854,9 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         if abs(shunt_adm.real)>1.0e-3 or abs(shunt_adm.imag)>1.0e-3:
             print('*** Found node with shunt element: ' + node1)
 
-    bindings = sparql_mgr.ShuntElement_cap_names()
-    print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', flush=True)
-    print(bindings, flush=True)
-    print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
-    print(bindings, file=logfile)
+            if node1 in B_per_section:
+                # validate capacitor shunt element
+                print('*** Found capacitor shunt element, comparing b_per_section: ' + str(B_per_section[node1]) + ', with shunt admittance: ' + str(shunt_adm.imag))
 
     return
 
