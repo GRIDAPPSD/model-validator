@@ -10,7 +10,7 @@ class SPARQLManager:
     """
 
     
-    def __init__(self, gapps, feeder_mrid, model_api_topic, simulation_id, timeout=30):
+    def __init__(self, gapps, feeder_mrid, model_api_topic, simulation_id=None, timeout=30):
         """Connect to the platform.
 
         :param feeder_mrid: unique identifier for the feeder in
