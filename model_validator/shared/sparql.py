@@ -1015,9 +1015,7 @@ class SPARQLManager:
         "parameters": {
             "simulation_id": self.simulation_id}
         }
-        print(message)
 
         results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=180)
-        print(results)
         return results['data']['vnom']
 
