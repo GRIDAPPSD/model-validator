@@ -68,6 +68,20 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
+def diffColorIdx(absDiff, perDiff):
+    global greenCount, yellowCount, redCount
+
+    if absDiff<1e-3 and perDiff<0.01:
+        greenCount += 1
+        return 0
+    elif absDiff>=1e-2 or perDiff>=0.1:
+        redCount += 1
+        return 2
+    else:
+        yellowCount += 1
+        return 1
+
+
 def diffColorRealIdx(absDiff, perDiff):
     global greenCountReal, yellowCountReal, redCountReal
 
@@ -94,6 +108,22 @@ def diffColorImagIdx(absDiff, perDiff):
     else:
         yellowCountImag += 1
         return 1
+
+
+def diffPercent(b_per_section, shunt_adm_imag):
+    global minPercentDiff, maxPercentDiff
+
+    ratio = shunt_adm_imag/b_per_section
+
+    if ratio > 1.0:
+        percent = 100.0*(ratio - 1.0)
+    else:
+        percent = 100.0*(1.0 - ratio)
+
+    minPercentDiff = min(minPercentDiff, percent)
+    maxPercentDiff = max(maxPercentDiff, percent)
+
+    return percent
 
 
 def diffPercentReal(YcompValue, YbusValue):
@@ -132,6 +162,19 @@ def diffPercentImag(YcompValue, YbusValue):
     maxPercentDiffImag = max(maxPercentDiffImag, percent)
 
     return percent
+
+
+def compareCap(cap_name, b_per_section, shunt_adm_imag):
+    print("    for capacitor: " + cap_name, flush=True)
+    print("    for capacitor: " + cap_name, file=logfile)
+
+    absDiff = abs(b_per_section - shunt_adm_imag)
+    perDiff = diffPercent(b_per_section, shunt_adm_imag)
+    colorIdx = diffColorIdx(absDiff, perDiff)
+    print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+
+    return colorIdx
 
 
 def compareY(pair_b1, pair_b2, YcompValue, Ybus):
@@ -810,12 +853,19 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
+    global minPercentDiff, maxPercentDiff
+    minPercentDiff = sys.float_info.max
+    maxPercentDiff = -sys.float_info.max
+    global greenCount, yellowCount, redCount
+    greenCount = yellowCount = redCount = 0
+
     # map capacitor query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
+    Cap_name = {}
     B_per_section = {}
     for obj in bindings:
-        #cap_name = obj['cap_name']['value']
+        cap_name = obj['cap_name']['value']
         b_per_section = float(obj['b_per_section']['value'])
         bus = obj['bus']['value']
         phase = 'ABC' # no phase specified indicates 3-phase
@@ -828,10 +878,14 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
         if mode != 'timeScheduled':
             if phase == 'ABC': # 3-phase
+                Cap_name[bus+'.1'] = cap_name
+                Cap_name[bus+'.2'] = cap_name
+                Cap_name[bus+'.3'] = cap_name
                 B_per_section[bus+'.1'] = b_per_section
                 B_per_section[bus+'.2'] = b_per_section
                 B_per_section[bus+'.3'] = b_per_section
             else: # specified phase only
+                Cap_name[bus+ybusPhaseIdx[phase]] = cap_name
                 B_per_section[bus+ybusPhaseIdx[phase]] = b_per_section
 
     for node1 in CNV:
@@ -847,16 +901,18 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
         shunt_adm = numsum/CNV[node1]
 
-        print('cnv(' + node1 + ') = ' + str(CNV[node1]))
-        print('shunt_admittance(' + node1 + ') = ' + str(shunt_adm))
+        #print('cnv(' + node1 + ') = ' + str(CNV[node1]))
+        #print('shunt_admittance(' + node1 + ') = ' + str(shunt_adm))
 
         # criteria to recognize shunt elements based on admittance
         if abs(shunt_adm.real)>1.0e-3 or abs(shunt_adm.imag)>1.0e-3:
-            print('*** Found node with shunt element: ' + node1)
+            print('\nValidating shunt element node: ' + node1, flush=True)
+            print('\nValidating shunt element node: ' + node1, file=logfile)
 
             if node1 in B_per_section:
                 # validate capacitor shunt element
-                print('*** Found capacitor shunt element, comparing b_per_section: ' + str(B_per_section[node1]) + ', with shunt admittance: ' + str(shunt_adm.imag))
+                #print('*** Found capacitor shunt element, comparing b_per_section: ' + str(B_per_section[node1]) + ', with shunt admittance: ' + str(shunt_adm.imag))
+                compareCap(Cap_name[node1], B_per_section[node1], shunt_adm.imag)
 
     return
 
