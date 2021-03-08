@@ -177,6 +177,19 @@ def compareCap(cap_name, b_per_section, shunt_adm_imag):
     return colorIdx
 
 
+def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
+    print("    for transformer: " + trans_name, flush=True)
+    print("    for transformer: " + trans_name, file=logfile)
+
+    absDiff = abs(shunt_elem_imag - shunt_adm_imag)
+    perDiff = diffPercent(shunt_elem_imag, shunt_adm_imag)
+    colorIdx = diffColorIdx(absDiff, perDiff)
+    print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+
+    return colorIdx
+
+
 def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     noEntryFlag = False
     if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
@@ -324,6 +337,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_rated query results:', file=logfile)
     #print(bindings, file=logfile)
 
+    # TransformerTank queries
     RatedS = {}
     RatedU = {}
     for obj in bindings:
@@ -346,9 +360,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     I_exciting = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
-        if xfmr_name not in I_exciting:
-            I_exciting[xfmr_name] = {}
-
         I_exciting[xfmr_name] = float(obj['i_exciting']['value'])
         print('xfmr_name: ' + xfmr_name + ', i_exciting: ' + str(I_exciting[xfmr_name]))
 
@@ -358,20 +369,49 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    Xfmr_name = {}
+    Xfmr_tank_name = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         bus = obj['bus']['value'].upper()
         phase = obj['phase']['value'].upper()
         if phase == 'ABC':
-            Xfmr_name[bus+'.1'] = xfmr_name
-            Xfmr_name[bus+'.2'] = xfmr_name
-            Xfmr_name[bus+'.3'] = xfmr_name
+            Xfmr_tank_name[bus+'.1'] = xfmr_name
+            Xfmr_tank_name[bus+'.2'] = xfmr_name
+            Xfmr_tank_name[bus+'.3'] = xfmr_name
         else:
-            Xfmr_name[bus+ybusPhaseIdx[phase]] = xfmr_name
+            Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = xfmr_name
 
-        print('xfmr_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
+        print('xfmr_tank_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
 
+    # TransformerEnd queries
+    bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
+    #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    B_S = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        B_S[xfmr_name] = float(obj['b_S']['value'])
+
+        print('xfmr_name: ' + xfmr_name + ', b_S: ' + str(B_S[xfmr_name]))
+
+    bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
+    #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    Xfmr_end_name = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        bus = obj['bus']['value'].upper()
+        Xfmr_end_name[bus+'.1'] = xfmr_name
+        Xfmr_end_name[bus+'.2'] = xfmr_name
+        Xfmr_end_name[bus+'.3'] = xfmr_name
+
+        print('xfmr_end_name: ' + xfmr_name + ', bus: ' + bus)
 
     # Final validation -- check all nodes for shunt elements
 
@@ -406,6 +446,19 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 # validate capacitor shunt element
                 #print('*** Found capacitor shunt element, comparing b_per_section: ' + str(B_per_section[node1]) + ', with shunt admittance: ' + str(shunt_adm.imag))
                 compareCap(Cap_name[node1], B_per_section[node1], shunt_adm.imag)
+
+            elif node1 in Xfmr_tank_name:
+                # validate TransformerTank transformer
+                xfmr_name = Xfmr_tank_name[node1]
+                zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
+                shunt_elem_imag = -I_exciting[xfmr_name]/(100.0*zBaseS)
+                compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
+
+            elif node1 in Xfmr_end_name:
+                # validate PowerTransformerEnd transformer
+                xfmr_name = Xfmr_tank_name[node1]
+                shunt_elem_imag = B_S[xfmr_name]
+                compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
 
     return
 
