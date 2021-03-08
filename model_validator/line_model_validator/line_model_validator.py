@@ -924,7 +924,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         bus2 = obj['bus2']['value'].upper()
         length = float(obj['length']['value'])
         wire_spacing_info = obj['wire_spacing_info']['value']
-        phase = obj['phase']['value'].upper()
+        phase = obj['phase']['value']
         wire_cn_ts = obj['wire_cn_ts']['value']
         wireinfo = obj['wireinfo']['value']
         #print('line_name: ' + line_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', length: ' + str(length) + ', wire_spacing_info: ' + wire_spacing_info + ', phase: ' + phase + ', wire_cn_ts: ' + wire_cn_ts + ', wireinfo: ' + wireinfo)
