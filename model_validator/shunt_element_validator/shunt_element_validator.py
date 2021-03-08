@@ -110,10 +110,13 @@ def diffColorImagIdx(absDiff, perDiff):
         return 1
 
 
-def diffPercent(b_per_section, shunt_adm_imag):
+def diffPercent(shunt_elem_imag, shunt_adm_imag):
     global minPercentDiff, maxPercentDiff
 
-    ratio = shunt_adm_imag/b_per_section
+    if shunt_elem_imag == 0.0:
+        return 0.0
+
+    ratio = shunt_adm_imag/shunt_elem_imag
 
     if ratio > 1.0:
         percent = 100.0*(ratio - 1.0)
@@ -456,7 +459,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
             elif node1 in Xfmr_end_name:
                 # validate PowerTransformerEnd transformer
-                xfmr_name = Xfmr_tank_name[node1]
+                xfmr_name = Xfmr_end_name[node1]
                 shunt_elem_imag = B_S[xfmr_name]
                 compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
 
