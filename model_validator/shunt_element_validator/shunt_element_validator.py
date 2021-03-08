@@ -373,7 +373,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         bus = obj['bus']['value'].upper()
-        phase = obj['phase']['value'].upper()
+        phase = obj['phase']['value']
         if phase == 'ABC':
             Xfmr_tank_name[bus+'.1'] = xfmr_name
             Xfmr_tank_name[bus+'.2'] = xfmr_name
