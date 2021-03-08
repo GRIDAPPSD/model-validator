@@ -1056,7 +1056,7 @@ class SPARQLManager:
             "model_id": self.feeder_mrid}
         }
 
-        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=300)
+        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=1200)
         return results['data']['yParse'],results['data']['nodeList']
 
     def vnom_export(self):
@@ -1066,6 +1066,6 @@ class SPARQLManager:
             "simulation_id": self.simulation_id}
         }
 
-        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=300)
+        results = self.gad.get_response("goss.gridappsd.process.request.config", message, timeout=1200)
         return results['data']['vnom']
 
