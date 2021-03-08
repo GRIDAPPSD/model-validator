@@ -244,7 +244,9 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic, simulation_id)
 
+    print('Querying Ybus...', flush=True)
     ysparse,nodelist = sparql_mgr.ybus_export()
+    print('Processing Ybus...', flush=True)
 
     idx = 1
     nodes = {}
@@ -267,7 +269,12 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         Yexp[nodes[int(items[1])]][nodes[int(items[0])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
+    print('Ybus Processed', flush=True)
+    print('Querying Vnom...', flush=True)
+
     vnom = sparql_mgr.vnom_export()
+
+    print('Processing Vnom...', flush=True)
 
     CNV = {}
     for obj in vnom:
@@ -294,6 +301,8 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
             if node3 != '0':
                 theta = float(items[12])*math.pi/180.0
                 CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+    print('Vnom Processed', flush=True)
 
     # CAPACITORS
 
