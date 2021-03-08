@@ -506,6 +506,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         #grounded = obj['grounded']['value']
         #rground = obj['rground']['value']
         #xground = obj['xground']['value']
+        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', bus: ' + Bus[xfmr_name][enum] + ', phase: ' + Phase[xfmr_name][enum])
         #print('xfmr_name: ' + xfmr_name + ', xfmr_code: ' + xfmr_code + ', vector_group: ' + vector_group + ', enum: ' + str(enum) + ', bus: ' + Bus[xfmr_name][enum] + ', baseV: ' + str(baseV) + ', phase: ' + Phase[xfmr_name][enum] + ', grounded: ' + grounded)
 
     # initialize different variations of B upfront and then figure out later
