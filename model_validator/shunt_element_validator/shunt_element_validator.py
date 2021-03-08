@@ -358,17 +358,19 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', file=logfile)
     #print(bindings, file=logfile)
 
-    Bus = {}
-    Phase = {}
+    Xfmr_name = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
-        if xfmr_name not in Bus:
-            Bus[xfmr_name] = {}
-            Phase[xfmr_name] = {}
+        bus = obj['bus']['value'].upper()
+        phase = obj['phase']['value'].upper()
+        if phase == 'ABC':
+            Xfmr_name[bus+'.1'] = xfmr_name
+            Xfmr_name[bus+'.2'] = xfmr_name
+            Xfmr_name[bus+'.3'] = xfmr_name
+        else:
+            Xfmr_name[bus+ybusPhaseIdx[phase]] = xfmr_name
 
-        Bus[xfmr_name][enum] = obj['bus']['value'].upper()
-        Phase[xfmr_name][enum] = obj['phase']['value']
-        print('xfmr_name: ' + xfmr_name + ', bus: ' + Bus[xfmr_name][enum] + ', phase: ' + Phase[xfmr_name][enum])
+        print('xfmr_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
 
 
     # Final validation -- check all nodes for shunt elements
