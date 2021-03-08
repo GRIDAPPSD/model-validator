@@ -215,247 +215,6 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', file=logfile)
-
-    # return # of xfmrs validated
-    xfmrs_count = 0
-
-    bindings = sparql_mgr.PowerTransformerEnd_xfmr_impedances()
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_impedances query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
-        return xfmrs_count
-
-    Mesh_x_ohm = {}
-    for obj in bindings:
-        xfmr_name = obj['xfmr_name']['value']
-        #from_end = int(obj['from_end']['value'])
-        #to_end = int(obj['to_end']['value'])
-        #r_ohm = float(obj['r_ohm']['value'])
-        Mesh_x_ohm[xfmr_name] = float(obj['mesh_x_ohm']['value'])
-        #print('xfmr_name: ' + xfmr_name + ', from_end: ' + str(from_end) + ', to_end: ' + str(to_end) + ', r_ohm: ' + str(r_ohm) + ', mesh_x_ohm: ' + str(Mesh_x_ohm[xfmr_name]))
-
-    # Admittances query not currently used
-    #bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_admittances query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    #if len(bindings) == 0:
-    #    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-    #    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
-    #    return xfmrs_count
-
-    bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
-    #print(bindings, flush=True)
-    #print('POWER_TRANSFORMER_VALIDATOR PowerTransformerEnd xfmr_names query results:', file=logfile)
-    #print(bindings, file=logfile)
-
-    if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
-        return xfmrs_count
-
-    Bus = {}
-    Connection = {}
-    RatedS = {}
-    RatedU = {}
-    R_ohm = {}
-    for obj in bindings:
-        xfmr_name = obj['xfmr_name']['value']
-        #vector_group = obj['vector_group']['value']
-        end_number = int(obj['end_number']['value'])
-        # can't handle 3-winding transformers so issue a warning and skip
-        # to the next transformer in that case
-        if end_number == 3:
-            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
-            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
-
-            # need to clear out the previous dictionary entries for this
-            # 3-winding transformer so it isn't processed below
-            Bus.pop(xfmr_name, None)
-            Connection.pop(xfmr_name, None)
-            RatedS.pop(xfmr_name, None)
-            RatedU.pop(xfmr_name, None)
-            R_ohm.pop(xfmr_name, None)
-            continue
-
-        if xfmr_name not in Bus:
-            Bus[xfmr_name] = {}
-            Connection[xfmr_name] = {}
-            RatedS[xfmr_name] = {}
-            RatedU[xfmr_name] = {}
-            R_ohm[xfmr_name] = {}
-
-        Bus[xfmr_name][end_number] = obj['bus']['value'].upper()
-        #base_voltage = int(obj['base_voltage']['value'])
-        Connection[xfmr_name][end_number] = obj['connection']['value']
-        RatedS[xfmr_name][end_number] = int(obj['ratedS']['value'])
-        RatedU[xfmr_name][end_number] = int(obj['ratedU']['value'])
-        R_ohm[xfmr_name][end_number] = float(obj['r_ohm']['value'])
-        #angle = int(obj['angle']['value'])
-        #grounded = obj['grounded']['value']
-        #r_ground = obj['r_ground']['value']
-        #x_ground = obj['x_ground']['value']
-        #print('xfmr_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + Bus[xfmr_name][end_number] + ', connection: ' + Connection[xfmr_name][end_number] + ', ratedS: ' + str(RatedS[xfmr_name][end_number]) + ', ratedU: ' + str(RatedU[xfmr_name][end_number]) + ', r_ohm: ' + str(R_ohm[xfmr_name][end_number]))
-
-    # initialize B upfront because it's constant
-    B = np.zeros((6,3))
-    B[0,0] = B[2,1] = B[4,2] =  1.0
-    B[1,0] = B[3,1] = B[5,2] = -1.0
-    #print(B)
-
-    # initialize Y and D matrices, also constant, used to set A later
-    Y1 = np.zeros((4,12))
-    Y1[0,0] = Y1[1,4] = Y1[2,8] = Y1[3,1] = Y1[3,5] = Y1[3,9] = 1.0
-    Y2 = np.zeros((4,12))
-    Y2[0,2] = Y2[1,6] = Y2[2,10] = Y2[3,3] = Y2[3,7] = Y2[3,11] = 1.0
-    D1 = np.zeros((4,12))
-    D1[0,0] = D1[0,9] = D1[1,1] = D1[1,4] = D1[2,5] = D1[2,8] = 1.0
-    D2 = np.zeros((4,12))
-    D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
-
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
-
-    for xfmr_name in Bus:
-        # Note that division is always floating point in Python 3 even if
-        # operands are integer
-        zBaseP = (RatedU[xfmr_name][1]*RatedU[xfmr_name][1])/RatedS[xfmr_name][1]
-        #zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
-        r_ohm_pu = R_ohm[xfmr_name][1]/zBaseP
-        mesh_x_ohm_pu = Mesh_x_ohm[xfmr_name]/zBaseP
-        zsc_1V = complex(2.0*r_ohm_pu, mesh_x_ohm_pu) * (3.0/RatedS[xfmr_name][1])
-        #print('xfmr_name: ' + xfmr_name + ', zBaseP: ' + str(zBaseP) + ', r_ohm_pu: ' + str(r_ohm_pu) + ', mesh_x_ohm_pu: ' + str(mesh_x_ohm_pu) + ', zsc_1V: ' + str(zsc_1V))
-
-        # initialize ZB
-        ZB = np.zeros((3,3), dtype=complex)
-        ZB[0,0] = ZB[1,1] = ZB[2,2] = zsc_1V
-        #print(ZB)
-
-        # set both Vp/Vs for N and top/bottom for A
-        if Connection[xfmr_name][1] == 'Y':
-            Vp = RatedU[xfmr_name][1]/math.sqrt(3.0)
-            top = Y1
-        else:
-            Vp = RatedU[xfmr_name][1]
-            top = D1
-
-        if Connection[xfmr_name][2] == 'Y':
-            Vs = RatedU[xfmr_name][2]/math.sqrt(3.0)
-            bottom = Y2
-        else:
-            Vs = RatedU[xfmr_name][2]
-            bottom = D2
-
-        # initialize N
-        N = np.zeros((12,6))
-        N[0,0] = N[4,2] = N[8,4] =   1.0/Vp
-        N[1,0] = N[5,2] = N[9,4] =  -1.0/Vp
-        N[2,1] = N[6,3] = N[10,5] =  1.0/Vs
-        N[3,1] = N[7,3] = N[11,5] = -1.0/Vs
-        #print(N)
-
-        # initialize A
-        A = np.vstack((top, bottom))
-        #print(A)
-
-        # compute Ycomp = A x N x B x inv(ZB) x B' x N' x A'
-        # there are lots of ways to break this up including not at all, but
-        # here's one way that keeps it from looking overly complex
-        ANB = np.matmul(np.matmul(A, N), B)
-        ANB_invZB = np.matmul(ANB, np.linalg.inv(ZB))
-        ANB_invZB_Bp = np.matmul(ANB_invZB, np.transpose(B))
-        ANB_invZB_BpNp = np.matmul(ANB_invZB_Bp, np.transpose(N))
-        Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
-        #print(Ycomp)
-
-        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, flush=True)
-        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, file=logfile)
-
-        # do Ybus comparisons and determine overall transformer status color
-        # set special case flag that indicates if we need to swap the phases
-        # for each bus to do the Ybus matching
-        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
-        xfmrColorIdx = 0
-        for row in range(4, 7):
-            for col in range(0, 3):
-                Yval = Ycomp[row,col]
-                if Yval != 0j:
-                    if connect_DY_flag:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                    else:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
-
-                    colorIdx = compareY(bus1, bus2, Yval, Ybus)
-                    xfmrColorIdx = max(xfmrColorIdx, colorIdx)
-
-        xfmrs_count += 1
-
-        if xfmrColorIdx == 0:
-            greenCount += 1
-        elif xfmrColorIdx == 1:
-            yellowCount += 1
-        else:
-            redCount += 1
-
-        print("", flush=True)
-        print("", file=logfile)
-
-    print("\nSummary for PowerTransformerEnd transformers:", flush=True)
-    print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
-
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
-
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
-
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
-
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
-
-    print("\nFinished validation for PowerTransformerEnd transformers", flush=True)
-    print("\nFinished validation for PowerTransformerEnd transformers", file=logfile)
-
-    return xfmrs_count
-
-
 def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     global logfile
     logfile = log_file
@@ -520,17 +279,13 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 theta = float(items[12])*math.pi/180.0
                 CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
 
+    # CAPACITORS
+
     bindings = sparql_mgr.ShuntElement_cap_names()
     #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', flush=True)
     #print(bindings, flush=True)
     #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
     #print(bindings, file=logfile)
-
-    global minPercentDiff, maxPercentDiff
-    minPercentDiff = sys.float_info.max
-    maxPercentDiff = -sys.float_info.max
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
 
     # map capacitor query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
@@ -560,6 +315,69 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
             else: # specified phase only
                 Cap_name[bus+ybusPhaseIdx[phase]] = cap_name
                 B_per_section[bus+ybusPhaseIdx[phase]] = b_per_section
+
+    # TRANSFORMERS
+
+    bindings = sparql_mgr.TransformerTank_xfmr_rated()
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_rated query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_rated query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    RatedS = {}
+    RatedU = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        enum = int(obj['enum']['value'])
+        if xfmr_name not in RatedS:
+            RatedS[xfmr_name] = {}
+            RatedU[xfmr_name] = {}
+
+        RatedS[xfmr_name][enum] = int(obj['ratedS']['value'])
+        RatedU[xfmr_name][enum] = int(obj['ratedU']['value'])
+        print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS[xfmr_name][enum]) + ', ratedU: ' + str(RatedU[xfmr_name][enum]))
+
+    bindings = sparql_mgr.TransformerTank_xfmr_nlt()
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_nlt query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    I_exciting = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        if xfmr_name not in I_exciting:
+            I_exciting[xfmr_name] = {}
+
+        I_exciting[xfmr_name] = float(obj['i_exciting']['value'])
+        print('xfmr_name: ' + xfmr_name + ', i_exciting: ' + str(I_exciting[xfmr_name]))
+
+    bindings = sparql_mgr.TransformerTank_xfmr_names()
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', flush=True)
+    #print(bindings, flush=True)
+    #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', file=logfile)
+    #print(bindings, file=logfile)
+
+    Bus = {}
+    Phase = {}
+    for obj in bindings:
+        xfmr_name = obj['xfmr_name']['value']
+        if xfmr_name not in Bus:
+            Bus[xfmr_name] = {}
+            Phase[xfmr_name] = {}
+
+        Bus[xfmr_name][enum] = obj['bus']['value'].upper()
+        Phase[xfmr_name][enum] = obj['phase']['value']
+        print('xfmr_name: ' + xfmr_name + ', bus: ' + Bus[xfmr_name][enum] + ', phase: ' + Phase[xfmr_name][enum])
+
+
+    # Final validation -- check all nodes for shunt elements
+
+    global minPercentDiff, maxPercentDiff
+    minPercentDiff = sys.float_info.max
+    maxPercentDiff = -sys.float_info.max
+    global greenCount, yellowCount, redCount
+    greenCount = yellowCount = redCount = 0
 
     for node1 in CNV:
         numsum = complex(0.0, 0.0)
