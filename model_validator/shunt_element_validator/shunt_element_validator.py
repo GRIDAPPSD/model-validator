@@ -82,34 +82,6 @@ def diffColorIdx(absDiff, perDiff):
         return 1
 
 
-def diffColorRealIdx(absDiff, perDiff):
-    global greenCountReal, yellowCountReal, redCountReal
-
-    if absDiff<1e-3 and perDiff<0.01:
-        greenCountReal += 1
-        return 0
-    elif absDiff>=1e-2 or perDiff>=0.1:
-        redCountReal += 1
-        return 2
-    else:
-        yellowCountReal += 1
-        return 1
-
-
-def diffColorImagIdx(absDiff, perDiff):
-    global greenCountImag, yellowCountImag, redCountImag
-
-    if absDiff<1e-3 and perDiff<0.01:
-        greenCountImag += 1
-        return 0
-    elif absDiff>=1e-2 or perDiff>=0.1:
-        redCountImag += 1
-        return 2
-    else:
-        yellowCountImag += 1
-        return 1
-
-
 def diffPercent(shunt_elem_imag, shunt_adm_imag):
     global minPercentDiff, maxPercentDiff
 
@@ -125,44 +97,6 @@ def diffPercent(shunt_elem_imag, shunt_adm_imag):
 
     minPercentDiff = min(minPercentDiff, percent)
     maxPercentDiff = max(maxPercentDiff, percent)
-
-    return percent
-
-
-def diffPercentReal(YcompValue, YbusValue):
-    global minPercentDiffReal, maxPercentDiffReal
-
-    if YbusValue == 0.0:
-        return 0.0
-
-    ratio = YcompValue/YbusValue
-
-    if ratio > 1.0:
-        percent = 100.0*(ratio - 1.0)
-    else:
-        percent = 100.0*(1.0 - ratio)
-
-    minPercentDiffReal = min(minPercentDiffReal, percent)
-    maxPercentDiffReal = max(maxPercentDiffReal, percent)
-
-    return percent
-
-
-def diffPercentImag(YcompValue, YbusValue):
-    global minPercentDiffImag, maxPercentDiffImag
-
-    if YbusValue == 0.0:
-        return 0.0
-
-    ratio = YcompValue/YbusValue
-
-    if ratio > 1.0:
-        percent = 100.0*(ratio - 1.0)
-    else:
-        percent = 100.0*(1.0 - ratio)
-
-    minPercentDiffImag = min(minPercentDiffImag, percent)
-    maxPercentDiffImag = max(maxPercentDiffImag, percent)
 
     return percent
 
@@ -191,44 +125,6 @@ def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
     print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
-
-
-def compareY(pair_b1, pair_b2, YcompValue, Ybus):
-    noEntryFlag = False
-    if pair_b1 in Ybus and pair_b2 in Ybus[pair_b1]:
-        row = pair_b1
-        col = pair_b2
-        YbusValue = Ybus[row][col]
-    elif pair_b2 in Ybus and pair_b1 in Ybus[pair_b2]:
-        row = pair_b2
-        col = pair_b1
-        YbusValue = Ybus[row][col]
-    else:
-        row = pair_b1
-        col = pair_b2
-        YbusValue = complex(0.0, 0.0)
-        noEntryFlag = True
-
-    print("    between i: " + row + ", and j: " + col, flush=True)
-    print("    between i: " + row + ", and j: " + col, file=logfile)
-
-    if noEntryFlag:
-        print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', flush=True)
-        print('        *** WARNING: Entry NOT FOUND for Ybus[' + row + '][' + col + ']', file=logfile)
-
-    realAbsDiff = abs(YcompValue.real - YbusValue.real)
-    realPerDiff = diffPercentReal(YcompValue.real, YbusValue.real)
-    realColorIdx = diffColorRealIdx(realAbsDiff, realPerDiff)
-    print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + ", computed:" + "{:13.6f}".format(YcompValue.real) + "  " + diffColor(realColorIdx, True), flush=True)
-    print("        Real Ybus[i,j]:" + "{:13.6f}".format(YbusValue.real) + ", computed:" + "{:13.6f}".format(YcompValue.real) + "  " + diffColor(realColorIdx, False), file=logfile)
-
-    imagAbsDiff = abs(YcompValue.imag - YbusValue.imag)
-    imagPerDiff = diffPercentImag(YcompValue.imag, YbusValue.imag)
-    imagColorIdx = diffColorImagIdx(imagAbsDiff, imagPerDiff)
-    print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + ", computed:" + "{:13.6f}".format(YcompValue.imag) + "  " + diffColor(imagColorIdx, True), flush=True)
-    print("        Imag Ybus[i,j]:" + "{:13.6f}".format(YbusValue.imag) + ", computed:" + "{:13.6f}".format(YcompValue.imag) + "  " + diffColor(imagColorIdx, False), file=logfile)
-
-    return max(realColorIdx, imagColorIdx)
 
 
 def start(log_file, feeder_mrid, model_api_topic, simulation_id):
