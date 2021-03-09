@@ -160,81 +160,9 @@ def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
     return colorIdx
 
 
-def start(log_file, feeder_mrid, model_api_topic, simulation_id):
-    global logfile
-    logfile = log_file
+def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
-    print("\nSHUNT_ELEMENT_VALIDATOR starting!!!---------------------------------------------")
-    print("\nSHUNT_ELEMENT_VALIDATOR starting!!!---------------------------------------------", file=logfile)
-
-    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
-
-    gapps = GridAPPSD()
-
-    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic, simulation_id)
-
-    print('Querying Ybus...', flush=True)
-    ysparse,nodelist = sparql_mgr.ybus_export()
-    print('Processing Ybus...', flush=True)
-
-    idx = 1
-    nodes = {}
-    for obj in nodelist:
-        nodes[idx] = obj.strip('\"')
-        idx += 1
-    #print(nodes)
-
-    Ybus = {}
-    Yexp = {}
-    for obj in ysparse:
-        items = obj.split(',')
-        if items[0] == 'Row': # skip header line
-            continue
-        if nodes[int(items[0])] not in Ybus:
-            Ybus[nodes[int(items[0])]] = {}
-        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
-        if nodes[int(items[1])] not in Yexp:
-            Yexp[nodes[int(items[1])]] = {}
-        Yexp[nodes[int(items[1])]][nodes[int(items[0])]] = complex(float(items[2]), float(items[3]))
-    #print(Ybus)
-
-    print('Ybus Processed', flush=True)
-    print('Querying Vnom...', flush=True)
-
-    vnom = sparql_mgr.vnom_export()
-
-    print('Processing Vnom...', flush=True)
-
-    CNV = {}
-    for obj in vnom:
-        items = obj.split(',')
-        if items[0] == 'Bus':  # skip header line
-            continue
-
-        bus = items[0].strip('"')
-        basekV = float(items[1])
-        #print('bus: ' + bus + ', basekV: ' + str(basekV))
-
-        rho = 1000.0*basekV/math.sqrt(3.0)
-
-        node1 = items[2].strip()
-        theta = float(items[4])*math.pi/180.0
-        CNV[bus+'.'+node1] = complex(rho*math.cos(theta), rho*math.sin(theta))
-
-        node2 = items[6].strip()
-        if node2 != '0':
-            theta = float(items[8])*math.pi/180.0
-            CNV[bus+'.'+node2] = complex(rho*math.cos(theta), rho*math.sin(theta))
-
-            node3 = items[10].strip()
-            if node3 != '0':
-                theta = float(items[12])*math.pi/180.0
-                CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
-
-    print('Vnom Processed', flush=True)
-
-    # CAPACITORS
-
+    # CAPACITORS DATA STRUCTURES INITIALIZATION
     bindings = sparql_mgr.ShuntElement_cap_names()
     #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', flush=True)
     #print(bindings, flush=True)
@@ -270,8 +198,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 Cap_name[bus+ybusPhaseIdx[phase]] = cap_name
                 B_per_section[bus+ybusPhaseIdx[phase]] = b_per_section
 
-    # TRANSFORMERS
-
+    # TRANSFORMERS DATA STRUCTURES INITIALIZATION
     bindings = sparql_mgr.TransformerTank_xfmr_rated()
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_rated query results:', flush=True)
     #print(bindings, flush=True)
@@ -355,18 +282,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         print('xfmr_end_name: ' + xfmr_name + ', bus: ' + bus)
 
     # Final validation -- check all nodes for shunt elements
-
-    global minPercentDiffCap, maxPercentDiffCap
-    minPercentDiffCap = sys.float_info.max
-    maxPercentDiffCap = -sys.float_info.max
-    global minPercentDiffTrans, maxPercentDiffTrans
-    minPercentDiffTrans = sys.float_info.max
-    maxPercentDiffTrans = -sys.float_info.max
-    global greenCountCap, yellowCountCap, redCountCap
-    greenCountCap = yellowCountCap = redCountCap = 0
-    global greenCountTrans, yellowCountTrans, redCountTrans
-    greenCountTrans = yellowCountTrans = redCountTrans = 0
-
     for node1 in CNV:
         numsum = complex(0.0, 0.0)
         #print('finding shunt_adm for node: ' + node1)
@@ -439,6 +354,95 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     print("\nFinished validation for ShuntElement elements", flush=True)
     print("\nFinished validation for ShuntElement elements", file=logfile)
+
+    return countCap, countTrans
+
+
+def start(log_file, feeder_mrid, model_api_topic, simulation_id):
+    global logfile
+    logfile = log_file
+
+    print("\nSHUNT_ELEMENT_VALIDATOR starting!!!---------------------------------------------")
+    print("\nSHUNT_ELEMENT_VALIDATOR starting!!!---------------------------------------------", file=logfile)
+
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+
+    gapps = GridAPPSD()
+
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic, simulation_id)
+
+    print('Querying Ybus...', flush=True)
+    ysparse,nodelist = sparql_mgr.ybus_export()
+    print('Processing Ybus...', flush=True)
+
+    idx = 1
+    nodes = {}
+    for obj in nodelist:
+        nodes[idx] = obj.strip('\"')
+        idx += 1
+    #print(nodes)
+
+    Ybus = {}
+    Yexp = {}
+    for obj in ysparse:
+        items = obj.split(',')
+        if items[0] == 'Row': # skip header line
+            continue
+        if nodes[int(items[0])] not in Ybus:
+            Ybus[nodes[int(items[0])]] = {}
+        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+        if nodes[int(items[1])] not in Yexp:
+            Yexp[nodes[int(items[1])]] = {}
+        Yexp[nodes[int(items[1])]][nodes[int(items[0])]] = complex(float(items[2]), float(items[3]))
+    #print(Ybus)
+
+    print('Ybus Processed', flush=True)
+    print('Querying Vnom...', flush=True)
+
+    vnom = sparql_mgr.vnom_export()
+
+    print('Processing Vnom...', flush=True)
+
+    CNV = {}
+    for obj in vnom:
+        items = obj.split(',')
+        if items[0] == 'Bus':  # skip header line
+            continue
+
+        bus = items[0].strip('"')
+        basekV = float(items[1])
+        #print('bus: ' + bus + ', basekV: ' + str(basekV))
+
+        rho = 1000.0*basekV/math.sqrt(3.0)
+
+        node1 = items[2].strip()
+        theta = float(items[4])*math.pi/180.0
+        CNV[bus+'.'+node1] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+        node2 = items[6].strip()
+        if node2 != '0':
+            theta = float(items[8])*math.pi/180.0
+            CNV[bus+'.'+node2] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+            node3 = items[10].strip()
+            if node3 != '0':
+                theta = float(items[12])*math.pi/180.0
+                CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
+
+    print('Vnom Processed', flush=True)
+
+    global minPercentDiffCap, maxPercentDiffCap
+    minPercentDiffCap = sys.float_info.max
+    maxPercentDiffCap = -sys.float_info.max
+    global minPercentDiffTrans, maxPercentDiffTrans
+    minPercentDiffTrans = sys.float_info.max
+    maxPercentDiffTrans = -sys.float_info.max
+    global greenCountCap, yellowCountCap, redCountCap
+    greenCountCap = yellowCountCap = redCountCap = 0
+    global greenCountTrans, yellowCountTrans, redCountTrans
+    greenCountTrans = yellowCountTrans = redCountTrans = 0
+
+    countCap, countTrans = validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV)
 
     # list of lists for the tabular report
     report = []
