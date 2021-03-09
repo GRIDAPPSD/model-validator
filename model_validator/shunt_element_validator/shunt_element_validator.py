@@ -68,13 +68,13 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
-def diffColorIdxCap(absDiff, perDiff):
+def diffColorIdxCap(absDiff):
     global greenCountCap, yellowCountCap, redCountCap
 
-    if absDiff<1e-3 and perDiff<0.01:
+    if absDiff < 1e-3:
         greenCountCap += 1
         return 0
-    elif absDiff>=1e-2 or perDiff>=0.1:
+    elif absDiff >= 1e-2:
         redCountCap += 1
         return 2
     else:
@@ -82,13 +82,13 @@ def diffColorIdxCap(absDiff, perDiff):
         return 1
 
 
-def diffColorIdxTrans(absDiff, perDiff):
+def diffColorIdxTrans(absDiff):
     global greenCountTrans, yellowCountTrans, redCountTrans
 
-    if absDiff<1e-3 and perDiff<0.01:
+    if absDiff < 1e-3:
         greenCountTrans += 1
         return 0
-    elif absDiff>=1e-2 or perDiff>=0.1:
+    elif absDiff >= 1e-2:
         redCountTrans += 1
         return 2
     else:
@@ -135,27 +135,21 @@ def diffPercentTrans(shunt_elem_imag, shunt_adm_imag):
 
 
 def compareCap(cap_name, b_per_section, shunt_adm_imag):
-    print("    for capacitor: " + cap_name, flush=True)
-    print("    for capacitor: " + cap_name, file=logfile)
-
     absDiff = abs(b_per_section - shunt_adm_imag)
     perDiff = diffPercentCap(b_per_section, shunt_adm_imag)
-    colorIdx = diffColorIdxCap(absDiff, perDiff)
-    print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+    colorIdx = diffColorIdxCap(absDiff)
+    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_per_section) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_per_section) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
 
 def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
-    print("    for transformer: " + trans_name, flush=True)
-    print("    for transformer: " + trans_name, file=logfile)
-
     absDiff = abs(shunt_elem_imag - shunt_adm_imag)
     perDiff = diffPercentTrans(shunt_elem_imag, shunt_adm_imag)
-    colorIdx = diffColorIdxTrans(absDiff, perDiff)
-    print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+    colorIdx = diffColorIdxTrans(absDiff)
+    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(shunt_elem_imag) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(shunt_elem_imag) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
@@ -177,7 +171,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     for obj in bindings:
         cap_name = obj['cap_name']['value']
         b_per_section = float(obj['b_per_section']['value'])
-        bus = obj['bus']['value']
+        bus = obj['bus']['value'].upper()
         phase = 'ABC' # no phase specified indicates 3-phase
         if 'phase' in obj:
             phase = obj['phase']['value']
@@ -217,7 +211,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
         RatedS[xfmr_name][enum] = int(obj['ratedS']['value'])
         RatedU[xfmr_name][enum] = int(obj['ratedU']['value'])
-        print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS[xfmr_name][enum]) + ', ratedU: ' + str(RatedU[xfmr_name][enum]))
+        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS[xfmr_name][enum]) + ', ratedU: ' + str(RatedU[xfmr_name][enum]))
 
     bindings = sparql_mgr.TransformerTank_xfmr_nlt()
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
@@ -229,7 +223,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         I_exciting[xfmr_name] = float(obj['i_exciting']['value'])
-        print('xfmr_name: ' + xfmr_name + ', i_exciting: ' + str(I_exciting[xfmr_name]))
+        #print('xfmr_name: ' + xfmr_name + ', i_exciting: ' + str(I_exciting[xfmr_name]))
 
     bindings = sparql_mgr.TransformerTank_xfmr_names()
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', flush=True)
@@ -249,7 +243,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         else:
             Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = xfmr_name
 
-        print('xfmr_tank_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
+        #print('xfmr_tank_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
 
     # TransformerEnd queries
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
@@ -262,8 +256,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         B_S[xfmr_name] = float(obj['b_S']['value'])
-
-        print('xfmr_name: ' + xfmr_name + ', b_S: ' + str(B_S[xfmr_name]))
+        #print('xfmr_name: ' + xfmr_name + ', b_S: ' + str(B_S[xfmr_name]))
 
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
     #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
@@ -278,8 +271,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         Xfmr_end_name[bus+'.1'] = xfmr_name
         Xfmr_end_name[bus+'.2'] = xfmr_name
         Xfmr_end_name[bus+'.3'] = xfmr_name
-
-        print('xfmr_end_name: ' + xfmr_name + ', bus: ' + bus)
+        #print('xfmr_end_name: ' + xfmr_name + ', bus: ' + bus)
 
     # Final validation -- check all nodes for shunt elements
     for node1 in CNV:
