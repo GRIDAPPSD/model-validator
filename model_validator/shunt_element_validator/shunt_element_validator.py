@@ -128,28 +128,34 @@ def diffPercentTrans(shunt_elem_imag, shunt_adm_imag):
     else:
         percent = 100.0*(1.0 - ratio)
 
+    if percent < minPercentDiffTrans:
+        minPercentDiffTrans = percent
+
+    if percent > maxPercentDiffTrans:
+        maxPercentDiffTrans = percent
+
     minPercentDiffTrans = min(minPercentDiffTrans, percent)
     maxPercentDiffTrans = max(maxPercentDiffTrans, percent)
 
     return percent
 
 
-def compareCap(cap_name, b_per_section, shunt_adm_imag):
-    absDiff = abs(b_per_section - shunt_adm_imag)
-    perDiff = diffPercentCap(b_per_section, shunt_adm_imag)
+def compareCap(cap_name, b_S, shunt_adm_imag):
+    absDiff = abs(b_S - shunt_adm_imag)
+    perDiff = diffPercentCap(b_S, shunt_adm_imag)
     colorIdx = diffColorIdxCap(absDiff)
-    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_per_section) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_per_section) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
 
-def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
-    absDiff = abs(shunt_elem_imag - shunt_adm_imag)
-    perDiff = diffPercentTrans(shunt_elem_imag, shunt_adm_imag)
+def compareTrans(trans_name, b_S, shunt_adm_imag):
+    absDiff = abs(b_S - shunt_adm_imag)
+    perDiff = diffPercentTrans(b_S, shunt_adm_imag)
     colorIdx = diffColorIdxTrans(absDiff)
-    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(shunt_elem_imag) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(shunt_elem_imag) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 

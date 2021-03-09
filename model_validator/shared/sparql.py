@@ -814,7 +814,7 @@ class SPARQLManager:
          ?fdr c:IdentifiedObject.mRID ?fdrid.
          ?p r:type c:PowerTransformer.
          ?p c:IdentifiedObject.name ?xfmr_name.
-         ?from c:PowerTransformerEnd.PowerTransformer ?p.
+         ?end c:PowerTransformerEnd.PowerTransformer ?p.
          ?adm c:TransformerCoreAdmittance.TransformerEnd ?end.
          ?end c:TransformerEnd.endNumber ?end_number.
          ?adm c:TransformerCoreAdmittance.b ?b_S.
