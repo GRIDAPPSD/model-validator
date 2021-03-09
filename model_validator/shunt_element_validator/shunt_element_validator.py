@@ -68,22 +68,36 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
-def diffColorIdx(absDiff, perDiff):
-    global greenCount, yellowCount, redCount
+def diffColorIdxCap(absDiff, perDiff):
+    global greenCountCap, yellowCountCap, redCountCap
 
     if absDiff<1e-3 and perDiff<0.01:
-        greenCount += 1
+        greenCountCap += 1
         return 0
     elif absDiff>=1e-2 or perDiff>=0.1:
-        redCount += 1
+        redCountCap += 1
         return 2
     else:
-        yellowCount += 1
+        yellowCountCap += 1
         return 1
 
 
-def diffPercent(shunt_elem_imag, shunt_adm_imag):
-    global minPercentDiff, maxPercentDiff
+def diffColorIdxTrans(absDiff, perDiff):
+    global greenCountTrans, yellowCountTrans, redCountTrans
+
+    if absDiff<1e-3 and perDiff<0.01:
+        greenCountTrans += 1
+        return 0
+    elif absDiff>=1e-2 or perDiff>=0.1:
+        redCountTrans += 1
+        return 2
+    else:
+        yellowCountTrans += 1
+        return 1
+
+
+def diffPercentCap(shunt_elem_imag, shunt_adm_imag):
+    global minPercentDiffCap, maxPercentDiffCap
 
     if shunt_elem_imag == 0.0:
         return 0.0
@@ -95,8 +109,27 @@ def diffPercent(shunt_elem_imag, shunt_adm_imag):
     else:
         percent = 100.0*(1.0 - ratio)
 
-    minPercentDiff = min(minPercentDiff, percent)
-    maxPercentDiff = max(maxPercentDiff, percent)
+    minPercentDiffCap = min(minPercentDiffCap, percent)
+    maxPercentDiffCap = max(maxPercentDiffCap, percent)
+
+    return percent
+
+
+def diffPercentTrans(shunt_elem_imag, shunt_adm_imag):
+    global minPercentDiffTrans, maxPercentDiffTrans
+
+    if shunt_elem_imag == 0.0:
+        return 0.0
+
+    ratio = shunt_adm_imag/shunt_elem_imag
+
+    if ratio > 1.0:
+        percent = 100.0*(ratio - 1.0)
+    else:
+        percent = 100.0*(1.0 - ratio)
+
+    minPercentDiffTrans = min(minPercentDiffTrans, percent)
+    maxPercentDiffTrans = max(maxPercentDiffTrans, percent)
 
     return percent
 
@@ -106,8 +139,8 @@ def compareCap(cap_name, b_per_section, shunt_adm_imag):
     print("    for capacitor: " + cap_name, file=logfile)
 
     absDiff = abs(b_per_section - shunt_adm_imag)
-    perDiff = diffPercent(b_per_section, shunt_adm_imag)
-    colorIdx = diffColorIdx(absDiff, perDiff)
+    perDiff = diffPercentCap(b_per_section, shunt_adm_imag)
+    colorIdx = diffColorIdxCap(absDiff, perDiff)
     print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
     print("        b_per_section:" + "{:10.6f}".format(b_per_section) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
@@ -119,8 +152,8 @@ def compareTrans(trans_name, shunt_elem_imag, shunt_adm_imag):
     print("    for transformer: " + trans_name, file=logfile)
 
     absDiff = abs(shunt_elem_imag - shunt_adm_imag)
-    perDiff = diffPercent(shunt_elem_imag, shunt_adm_imag)
-    colorIdx = diffColorIdx(absDiff, perDiff)
+    perDiff = diffPercentTrans(shunt_elem_imag, shunt_adm_imag)
+    colorIdx = diffColorIdxTrans(absDiff, perDiff)
     print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
     print("        shunt element imag:" + "{:10.6f}".format(shunt_elem_imag) + ", computed shunt admittance:" + "{:10.6f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
@@ -323,11 +356,16 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     # Final validation -- check all nodes for shunt elements
 
-    global minPercentDiff, maxPercentDiff
-    minPercentDiff = sys.float_info.max
-    maxPercentDiff = -sys.float_info.max
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    global minPercentDiffCap, maxPercentDiffCap
+    minPercentDiffCap = sys.float_info.max
+    maxPercentDiffCap = -sys.float_info.max
+    global minPercentDiffTrans, maxPercentDiffTrans
+    minPercentDiffTrans = sys.float_info.max
+    maxPercentDiffTrans = -sys.float_info.max
+    global greenCountCap, yellowCountCap, redCountCap
+    greenCountCap = yellowCountCap = redCountCap = 0
+    global greenCountTrans, yellowCountTrans, redCountTrans
+    greenCountTrans = yellowCountTrans = redCountTrans = 0
 
     for node1 in CNV:
         numsum = complex(0.0, 0.0)
@@ -368,28 +406,64 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 shunt_elem_imag = B_S[xfmr_name]
                 compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
 
-    return
+    print("\nSummary for ShuntElement elements:", flush=True)
+    print("\nSummary for ShuntElement elements:", file=logfile)
 
+    countCap = greenCountCap + yellowCountCap + redCountCap
+    if countCap > 0:
+        print("\nCapacitor minimum % difference:" + "{:11.6f}".format(minPercentDiffCap), flush=True)
+        print("\nCapacitor minimum % difference:" + "{:11.6f}".format(minPercentDiffCap), file=logfile)
+        print("Capacitor maximum % difference:" + "{:11.6f}".format(maxPercentDiffCap), flush=True)
+        print("Capacitor maximum % difference:" + "{:11.6f}".format(maxPercentDiffCap), file=logfile)
+
+    print("\nCapacitor \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountCap), flush=True)
+    print("\nCapacitor \u25cb  count: " + str(greenCountCap), file=logfile)
+    print("Capacitor \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountCap), flush=True)
+    print("Capacitor \u25d1  count: " + str(yellowCountCap), file=logfile)
+    print("Capacitor \u001b[31m\u25cf\u001b[37m  count: " + str(redCountCap), flush=True)
+    print("Capacitor \u25cf  count: " + str(redCountCap), file=logfile)
+
+    countTrans = greenCountTrans + yellowCountTrans + redCountTrans
+    if countTrans > 0:
+        print("\nTransformer minimum % difference:" + "{:11.6f}".format(minPercentDiffTrans), flush=True)
+        print("\nTransformer minimum % difference:" + "{:11.6f}".format(minPercentDiffTrans), file=logfile)
+        print("Transformer maximum % difference:" + "{:11.6f}".format(maxPercentDiffTrans), flush=True)
+        print("Transformer maximum % difference:" + "{:11.6f}".format(maxPercentDiffTrans), file=logfile)
+
+    print("\nTransformer \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountTrans), flush=True)
+    print("\nTransformer \u25cb  count: " + str(greenCountTrans), file=logfile)
+    print("Transformer \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountTrans), flush=True)
+    print("Transformer \u25d1  count: " + str(yellowCountTrans), file=logfile)
+    print("Transformer \u001b[31m\u25cf\u001b[37m  count: " + str(redCountTrans), flush=True)
+    print("Transformer \u25cf  count: " + str(redCountTrans), file=logfile)
+
+    print("\nFinished validation for ShuntElement elements", flush=True)
+    print("\nFinished validation for ShuntElement elements", file=logfile)
 
     # list of lists for the tabular report
     report = []
 
-    #PowerTransformerEnd_xfmrs = 0
-    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus)
-    if PowerTransformerEnd_xfmrs > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    if countCap > 0:
+        VI = float(countCap - redCountCap)/float(countCap)
+        report.append(["Capacitors", countCap, "{:.4f}".format(VI), greenCountCap, yellowCountCap, redCountCap])
     else:
-        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
+        report.append(["Capacitors", countCap])
+
+    if countTrans > 0:
+        VI = float(countTrans - redCountTrans)/float(countTrans)
+        report.append(["Transformers", countTrans, "{:.4f}".format(VI), greenCountTrans, yellowCountTrans, redCountTrans])
+    else:
+        report.append(["Transformers", countTrans])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Shunt Element Type", "# Elements", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Shunt Element Type", "# Elements", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
     print('\nSHUNT_ELEMENT_VALIDATOR DONE!!!', flush=True)
     print('\nSHUNT_ELEMENT_VALIDATOR DONE!!!', file=logfile)
+
+    return
 
 
 def _main():
