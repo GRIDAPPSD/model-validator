@@ -5,9 +5,7 @@
     "Line_name": "_AAE94E4A-2465-6F5E-37B1-3E72183A4E44"
   },
   "application_config": {
-    "applications": [
-
-    ]
+    "applications":[]
   },
   "simulation_config": {
     "start_time": "1373814480",
@@ -36,6 +34,4 @@
 
    "service_configs":[]
 }
-
-
 
