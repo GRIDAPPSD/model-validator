@@ -169,7 +169,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     B_per_section = {}
     for obj in bindings:
         cap_name = obj['cap_name']['value']
-        b_per_section = float(obj['b_per_section']['value'])
+        B_per_section[cap_name] = float(obj['b_per_section']['value'])
         bus = obj['bus']['value'].upper()
         phase = 'ABC' # no phase specified indicates 3-phase
         if 'phase' in obj:
@@ -184,12 +184,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 Cap_name[bus+'.1'] = cap_name
                 Cap_name[bus+'.2'] = cap_name
                 Cap_name[bus+'.3'] = cap_name
-                B_per_section[bus+'.1'] = b_per_section
-                B_per_section[bus+'.2'] = b_per_section
-                B_per_section[bus+'.3'] = b_per_section
             else: # specified phase only
                 Cap_name[bus+ybusPhaseIdx[phase]] = cap_name
-                B_per_section[bus+ybusPhaseIdx[phase]] = b_per_section
 
     # TRANSFORMERS DATA STRUCTURES INITIALIZATION
     bindings = sparql_mgr.TransformerTank_xfmr_rated()
@@ -308,7 +304,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         # add in capacitor contribution if applicable
         if node1 in Cap_name:
             num_elem += 1
-            sum_shunt_imag += B_per_section[node1]
+            cap_name = Cap_name[node1]
+            sum_shunt_imag += B_per_section[cap_name]
             # capacitors only contribute to the imaginary part
 
         # add in TransformerTank transformer contribution if applicable
