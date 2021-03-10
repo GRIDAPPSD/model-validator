@@ -300,24 +300,34 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         if abs(shunt_adm.real)>1.0e-3 or abs(shunt_adm.imag)>1.0e-3:
             print('\nValidating shunt element node: ' + node1, flush=True)
             print('\nValidating shunt element node: ' + node1, file=logfile)
+            num_elem = 0
 
-            if node1 in B_per_section:
+            if node1 in Cap_name:
                 # validate capacitor shunt element
-                #print('*** Found capacitor shunt element, comparing b_per_section: ' + str(B_per_section[node1]) + ', with shunt admittance: ' + str(shunt_adm.imag))
                 compareCap(Cap_name[node1], B_per_section[node1], shunt_adm.imag)
+                num_elem += 1
 
-            elif node1 in Xfmr_tank_name:
+            if node1 in Xfmr_tank_name:
                 # validate TransformerTank transformer
                 xfmr_name = Xfmr_tank_name[node1]
                 zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
                 shunt_elem_imag = -I_exciting[xfmr_name]/(100.0*zBaseS)
                 compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
+                num_elem += 1
 
-            elif node1 in Xfmr_end_name:
+            if node1 in Xfmr_end_name:
                 # validate PowerTransformerEnd transformer
-                xfmr_name = Xfmr_end_name[node1]
-                shunt_elem_imag = B_S[xfmr_name]
-                compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
+            #    xfmr_name = Xfmr_end_name[node1]
+            #    shunt_elem_imag = B_S[xfmr_name]
+            #    compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
+                num_elem += 1
+
+            if num_elem == 0:
+               print('No shunt elements for node: ' + node1)
+               sys.exit()
+            elif num_elem > 1:
+               print('Multiple shunt elements for node: ' + node1)
+               sys.exit()
 
     print("\nSummary for ShuntElement elements:", flush=True)
     print("\nSummary for ShuntElement elements:", file=logfile)
@@ -411,7 +421,11 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         basekV = float(items[1])
         #print('bus: ' + bus + ', basekV: ' + str(basekV))
 
-        rho = 1000.0*basekV/math.sqrt(3.0)
+        # TODO hardwire rho for basekV<0.25 for now at least
+        if basekV < 0.25:
+            rho = 120.0
+        else:
+            rho = 1000.0*basekV/math.sqrt(3.0)
 
         node1 = items[2].strip()
         theta = float(items[4])*math.pi/180.0
