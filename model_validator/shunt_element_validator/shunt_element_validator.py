@@ -68,99 +68,95 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
-def diffColorIdxCap(absDiff):
-    global greenCountCap, yellowCountCap, redCountCap
+def diffColorIdxImag(absDiff):
+    global greenCountImag, yellowCountImag, redCountImag
 
     if absDiff < 1e-3:
-        greenCountCap += 1
+        greenCountImag += 1
         return 0
     elif absDiff >= 1e-2:
-        redCountCap += 1
+        redCountImag += 1
         return 2
     else:
-        yellowCountCap += 1
+        yellowCountImag += 1
         return 1
 
 
-def diffColorIdxTrans(absDiff):
-    global greenCountTrans, yellowCountTrans, redCountTrans
+def diffColorIdxReal(absDiff):
+    global greenCountReal, yellowCountReal, redCountReal
 
     if absDiff < 1e-3:
-        greenCountTrans += 1
+        greenCountReal += 1
         return 0
     elif absDiff >= 1e-2:
-        redCountTrans += 1
+        redCountReal += 1
         return 2
     else:
-        yellowCountTrans += 1
+        yellowCountReal += 1
         return 1
 
 
-def diffPercentCap(shunt_elem_imag, shunt_adm_imag):
-    global minPercentDiffCap, maxPercentDiffCap
+def diffPercentImag(sum_shunt_imag, Yshunt_imag):
+    global minPercentDiffImag, maxPercentDiffImag
 
-    if shunt_elem_imag == 0.0:
+    if sum_shunt_imag == 0.0:
         return 0.0
 
-    ratio = shunt_adm_imag/shunt_elem_imag
+    ratio = Yshunt_imag/sum_shunt_imag
 
     if ratio > 1.0:
         percent = 100.0*(ratio - 1.0)
     else:
         percent = 100.0*(1.0 - ratio)
 
-    minPercentDiffCap = min(minPercentDiffCap, percent)
-    maxPercentDiffCap = max(maxPercentDiffCap, percent)
+    minPercentDiffImag = min(minPercentDiffImag, percent)
+    maxPercentDiffImag = max(maxPercentDiffImag, percent)
 
     return percent
 
 
-def diffPercentTrans(shunt_elem_imag, shunt_adm_imag):
-    global minPercentDiffTrans, maxPercentDiffTrans
+def diffPercentReal(sum_shunt_real, Yshunt_real):
+    global minPercentDiffReal, maxPercentDiffReal
 
-    if shunt_elem_imag == 0.0:
+    if sum_shunt_real == 0.0:
         return 0.0
 
-    ratio = shunt_adm_imag/shunt_elem_imag
+    ratio = Yshunt_real/sum_shunt_real
 
     if ratio > 1.0:
         percent = 100.0*(ratio - 1.0)
     else:
         percent = 100.0*(1.0 - ratio)
 
-    if percent < minPercentDiffTrans:
-        minPercentDiffTrans = percent
-
-    if percent > maxPercentDiffTrans:
-        maxPercentDiffTrans = percent
-
-    minPercentDiffTrans = min(minPercentDiffTrans, percent)
-    maxPercentDiffTrans = max(maxPercentDiffTrans, percent)
+    minPercentDiffReal = min(minPercentDiffReal, percent)
+    maxPercentDiffReal = max(maxPercentDiffReal, percent)
 
     return percent
 
 
-def compareCap(cap_name, b_S, shunt_adm_imag):
-    absDiff = abs(b_S - shunt_adm_imag)
-    perDiff = diffPercentCap(b_S, shunt_adm_imag)
-    colorIdx = diffColorIdxCap(absDiff)
-    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    capacitor " + cap_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+def compareShuntImag(sum_shunt_imag, Yshunt_imag):
+    absDiff = abs(sum_shunt_imag - Yshunt_imag)
+    perDiff = diffPercentImag(sum_shunt_imag, Yshunt_imag)
+    colorIdx = diffColorIdxImag(absDiff)
+    print("    Imag shunt elem total:" + "{:12.8f}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    Imag shunt elem total:" + "{:12.8f}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
 
-def compareTrans(trans_name, b_S, shunt_adm_imag):
-    absDiff = abs(b_S - shunt_adm_imag)
-    perDiff = diffPercentTrans(b_S, shunt_adm_imag)
-    colorIdx = diffColorIdxTrans(absDiff)
-    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    xfmr " + trans_name + " b_S:" + "{:12.8f}".format(b_S) + ", computed Y_shunt_imag:" + "{:12.8f}".format(shunt_adm_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+def compareShuntReal(sum_shunt_real, Yshunt_real):
+    absDiff = abs(sum_shunt_real - Yshunt_real)
+    perDiff = diffPercentReal(sum_shunt_real, Yshunt_real)
+    colorIdx = diffColorIdxReal(absDiff)
+    print("    Real shunt elem total:" + "{:12.8f}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_real) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    Real shunt elem total:" + "{:12.8f}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_real) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
 
 def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
+    # map query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
     # CAPACITORS DATA STRUCTURES INITIALIZATION
     bindings = sparql_mgr.ShuntElement_cap_names()
@@ -168,9 +164,6 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     #print(bindings, flush=True)
     #print('SHUNT_ELEMENT_VALIDATOR ShuntElement cap_names query results:', file=logfile)
     #print(bindings, file=logfile)
-
-    # map capacitor query phase values to nodelist indexes
-    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
     Cap_name = {}
     B_per_section = {}
@@ -206,18 +199,18 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     #print(bindings, file=logfile)
 
     # TransformerTank queries
-    RatedS = {}
-    RatedU = {}
+    RatedS_tank = {}
+    RatedU_tank = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         enum = int(obj['enum']['value'])
-        if xfmr_name not in RatedS:
-            RatedS[xfmr_name] = {}
-            RatedU[xfmr_name] = {}
+        if xfmr_name not in RatedS_tank:
+            RatedS_tank[xfmr_name] = {}
+            RatedU_tank[xfmr_name] = {}
 
-        RatedS[xfmr_name][enum] = int(obj['ratedS']['value'])
-        RatedU[xfmr_name][enum] = int(obj['ratedU']['value'])
-        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS[xfmr_name][enum]) + ', ratedU: ' + str(RatedU[xfmr_name][enum]))
+        RatedS_tank[xfmr_name][enum] = int(obj['ratedS']['value'])
+        RatedU_tank[xfmr_name][enum] = int(obj['ratedU']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS_tank[xfmr_name][enum]) + ', ratedU: ' + str(RatedU_tank[xfmr_name][enum]))
 
     bindings = sparql_mgr.TransformerTank_xfmr_nlt()
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_nlt query results:', flush=True)
@@ -225,11 +218,13 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_nlt query results:', file=logfile)
     #print(bindings, file=logfile)
 
+    Noloadloss = {}
     I_exciting = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
+        Noloadloss[xfmr_name] = float(obj['noloadloss_kW']['value'])
         I_exciting[xfmr_name] = float(obj['i_exciting']['value'])
-        #print('xfmr_name: ' + xfmr_name + ', i_exciting: ' + str(I_exciting[xfmr_name]))
+        #print('xfmr_name: ' + xfmr_name + ', noloadloss: ' + str(Noloadloss[xfmr_name]) + ', i_exciting: ' + str(I_exciting[xfmr_name]))
 
     bindings = sparql_mgr.TransformerTank_xfmr_names()
     #print('SHUNT_ELEMENT_VALIDATOR TransformerTank xfmr_names query results:', flush=True)
@@ -259,10 +254,12 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     #print(bindings, file=logfile)
 
     B_S = {}
+    G_S = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         B_S[xfmr_name] = float(obj['b_S']['value'])
-        #print('xfmr_name: ' + xfmr_name + ', b_S: ' + str(B_S[xfmr_name]))
+        G_S[xfmr_name] = float(obj['g_S']['value'])
+        #print('xfmr_name: ' + xfmr_name + ', b_S: ' + str(B_S[xfmr_name]) + ', g_S: ' + str(G_S[xfmr_name])
 
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_names()
     #print('SHUNT_ELEMENT_VALIDATOR PowerTransformerEnd xfmr_names query results:', flush=True)
@@ -271,13 +268,20 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     #print(bindings, file=logfile)
 
     Xfmr_end_name = {}
+    RatedU_end = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
+        end_number = int(obj['end_number']['value'])
         bus = obj['bus']['value'].upper()
         Xfmr_end_name[bus+'.1'] = xfmr_name
         Xfmr_end_name[bus+'.2'] = xfmr_name
         Xfmr_end_name[bus+'.3'] = xfmr_name
-        #print('xfmr_end_name: ' + xfmr_name + ', bus: ' + bus)
+
+        if xfmr_name not in RatedU_end:
+            RatedU_end[xfmr_name] = {}
+
+        RatedU_end[xfmr_name][end_number] = int(obj['ratedU']['value'])
+        #print('xfmr_end_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', ratedU: ' + str(RatedU_end[xfmr_name][end_number]))
 
     # Final validation -- check all nodes for shunt elements
     for node1 in CNV:
@@ -291,79 +295,88 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 #print('\tbackward summing connection to node: ' + node2)
                 numsum += Ybus[node1][node2]*CNV[node2]
 
-        shunt_adm = numsum/CNV[node1]
+        Yshunt = numsum/CNV[node1]
 
         #print('cnv(' + node1 + ') = ' + str(CNV[node1]))
-        #print('shunt_admittance(' + node1 + ') = ' + str(shunt_adm))
+        #print('Yshunt(' + node1 + ') = ' + str(Yshunt))
 
-        # criteria to recognize shunt elements based on admittance
-        if abs(shunt_adm.real)>1.0e-3 or abs(shunt_adm.imag)>1.0e-3:
-            print('\nValidating shunt element node: ' + node1, flush=True)
-            print('\nValidating shunt element node: ' + node1, file=logfile)
-            num_elem = 0
+        # sum over all capacitors and transformers for their contribution
+        # to the total shunt admittance to compare with the computed Yshunt
+        sum_shunt_imag = sum_shunt_real = 0.0
+        num_elem = 0
 
-            if node1 in Cap_name:
-                # validate capacitor shunt element
-                compareCap(Cap_name[node1], B_per_section[node1], shunt_adm.imag)
-                num_elem += 1
+        # add in capacitor contribution if applicable
+        if node1 in Cap_name:
+            num_elem += 1
+            sum_shunt_imag += B_per_section[node1]
+            # capacitors only contribute to the imaginary part
 
-            if node1 in Xfmr_tank_name:
-                # validate TransformerTank transformer
-                xfmr_name = Xfmr_tank_name[node1]
-                zBaseS = (RatedU[xfmr_name][2]*RatedU[xfmr_name][2])/RatedS[xfmr_name][2]
-                shunt_elem_imag = -I_exciting[xfmr_name]/(100.0*zBaseS)
-                compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
-                num_elem += 1
+        # add in TransformerTank transformer contribution if applicable
+        if node1 in Xfmr_tank_name:
+            num_elem += 1
+            xfmr_name = Xfmr_tank_name[node1]
+            ratedU_sq = RatedU_tank[xfmr_name][2]*RatedU_tank[xfmr_name][2]
+            zBaseS = ratedU_sq/RatedS_tank[xfmr_name][2]
+            sum_shunt_imag += -I_exciting[xfmr_name]/(100.0*zBaseS)
+            sum_shunt_real += (Noloadloss[xfmr_name]*1000.0)/ratedU_sq
 
-            if node1 in Xfmr_end_name:
-                # validate PowerTransformerEnd transformer
-            #    xfmr_name = Xfmr_end_name[node1]
-            #    shunt_elem_imag = B_S[xfmr_name]
-            #    compareTrans(xfmr_name, shunt_elem_imag, shunt_adm.imag)
-                num_elem += 1
+        # add in PowerTransformerEnd transformer contribution if applicable
+        if node1 in Xfmr_end_name:
+            num_elem += 1
+            xfmr_name = Xfmr_end_name[node1]
+            ratedU_ratio = RatedU_end[xfmr_name][1]/RatedU_end[xfmr_name][2]
+            ratedU_sq = ratedU_ratio*ratedU_ratio
+            sum_shunt_imag += -B_S[xfmr_name]*ratedU_sq
+            sum_shunt_real += G_S[xfmr_name]*ratedU_sq
 
-            if num_elem == 0:
-               print('No shunt elements for node: ' + node1)
-               sys.exit()
-            elif num_elem > 1:
-               print('Multiple shunt elements for node: ' + node1)
-               sys.exit()
+        print('\nValidating shunt element node: ' + node1, flush=True)
+        print('\nValidating shunt element node: ' + node1, file=logfile)
+
+        compareShuntImag(sum_shunt_imag, Yshunt.imag)
+        compareShuntReal(sum_shunt_real, Yshunt.real)
+
+        if num_elem == 0:
+           print('    *** No shunt elements for node: ' + node1)
+           #sys.exit()
+        elif num_elem > 1:
+           print('    *** Multiple shunt elements for node: ' + node1)
+           #sys.exit()
 
     print("\nSummary for ShuntElement elements:", flush=True)
     print("\nSummary for ShuntElement elements:", file=logfile)
 
-    countCap = greenCountCap + yellowCountCap + redCountCap
-    if countCap > 0:
-        print("\nCapacitor minimum % difference:" + "{:11.6f}".format(minPercentDiffCap), flush=True)
-        print("\nCapacitor minimum % difference:" + "{:11.6f}".format(minPercentDiffCap), file=logfile)
-        print("Capacitor maximum % difference:" + "{:11.6f}".format(maxPercentDiffCap), flush=True)
-        print("Capacitor maximum % difference:" + "{:11.6f}".format(maxPercentDiffCap), file=logfile)
+    countImag = greenCountImag + yellowCountImag + redCountImag
+    if countImag > 0:
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nCapacitor \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountCap), flush=True)
-    print("\nCapacitor \u25cb  count: " + str(greenCountCap), file=logfile)
-    print("Capacitor \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountCap), flush=True)
-    print("Capacitor \u25d1  count: " + str(yellowCountCap), file=logfile)
-    print("Capacitor \u001b[31m\u25cf\u001b[37m  count: " + str(redCountCap), flush=True)
-    print("Capacitor \u25cf  count: " + str(redCountCap), file=logfile)
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    countTrans = greenCountTrans + yellowCountTrans + redCountTrans
-    if countTrans > 0:
-        print("\nTransformer minimum % difference:" + "{:11.6f}".format(minPercentDiffTrans), flush=True)
-        print("\nTransformer minimum % difference:" + "{:11.6f}".format(minPercentDiffTrans), file=logfile)
-        print("Transformer maximum % difference:" + "{:11.6f}".format(maxPercentDiffTrans), flush=True)
-        print("Transformer maximum % difference:" + "{:11.6f}".format(maxPercentDiffTrans), file=logfile)
+    countReal = greenCountReal + yellowCountReal + redCountReal
+    if countReal > 0:
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nTransformer \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountTrans), flush=True)
-    print("\nTransformer \u25cb  count: " + str(greenCountTrans), file=logfile)
-    print("Transformer \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountTrans), flush=True)
-    print("Transformer \u25d1  count: " + str(yellowCountTrans), file=logfile)
-    print("Transformer \u001b[31m\u25cf\u001b[37m  count: " + str(redCountTrans), flush=True)
-    print("Transformer \u25cf  count: " + str(redCountTrans), file=logfile)
+    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
     print("\nFinished validation for ShuntElement elements", flush=True)
     print("\nFinished validation for ShuntElement elements", file=logfile)
 
-    return countCap, countTrans
+    return countImag, countReal
 
 
 def start(log_file, feeder_mrid, model_api_topic, simulation_id):
@@ -443,38 +456,38 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     print('Vnom Processed', flush=True)
 
-    global minPercentDiffCap, maxPercentDiffCap
-    minPercentDiffCap = sys.float_info.max
-    maxPercentDiffCap = -sys.float_info.max
-    global minPercentDiffTrans, maxPercentDiffTrans
-    minPercentDiffTrans = sys.float_info.max
-    maxPercentDiffTrans = -sys.float_info.max
-    global greenCountCap, yellowCountCap, redCountCap
-    greenCountCap = yellowCountCap = redCountCap = 0
-    global greenCountTrans, yellowCountTrans, redCountTrans
-    greenCountTrans = yellowCountTrans = redCountTrans = 0
+    global minPercentDiffImag, maxPercentDiffImag
+    minPercentDiffImag = sys.float_info.max
+    maxPercentDiffImag = -sys.float_info.max
+    global minPercentDiffReal, maxPercentDiffReal
+    minPercentDiffReal = sys.float_info.max
+    maxPercentDiffReal = -sys.float_info.max
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
+    global greenCountReal, yellowCountReal, redCountReal
+    greenCountReal = yellowCountReal = redCountReal = 0
 
-    countCap, countTrans = validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV)
+    countImag, countReal = validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV)
 
     # list of lists for the tabular report
     report = []
 
-    if countCap > 0:
-        VI = float(countCap - redCountCap)/float(countCap)
-        report.append(["Capacitors", countCap, "{:.4f}".format(VI), greenCountCap, yellowCountCap, redCountCap])
+    if countImag > 0:
+        VI = float(countImag - redCountImag)/float(countImag)
+        report.append(["Imaginary", countImag, "{:.4f}".format(VI), greenCountImag, yellowCountImag, redCountImag])
     else:
-        report.append(["Capacitors", countCap])
+        report.append(["Imaginary", countImag])
 
-    if countTrans > 0:
-        VI = float(countTrans - redCountTrans)/float(countTrans)
-        report.append(["Transformers", countTrans, "{:.4f}".format(VI), greenCountTrans, yellowCountTrans, redCountTrans])
+    if countReal > 0:
+        VI = float(countReal - redCountReal)/float(countReal)
+        report.append(["Real", countReal, "{:.4f}".format(VI), greenCountReal, yellowCountReal, redCountReal])
     else:
-        report.append(["Transformers", countTrans])
+        report.append(["Real", countReal])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Shunt Element Type", "# Elements", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Shunt Component", "# Nodes", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Shunt Element Type", "# Elements", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Shunt Component", "# Nodes", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
     print('\nSHUNT_ELEMENT_VALIDATOR DONE!!!', flush=True)
     print('\nSHUNT_ELEMENT_VALIDATOR DONE!!!', file=logfile)
