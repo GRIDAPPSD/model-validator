@@ -96,47 +96,8 @@ def diffColorIdxReal(absDiff):
         return 1
 
 
-def diffPercentImag(sum_shunt_imag, Yshunt_imag):
-    global minPercentDiffImag, maxPercentDiffImag
-
-    if sum_shunt_imag == 0.0:
-        return 0.0
-
-    ratio = Yshunt_imag/sum_shunt_imag
-
-    if ratio > 1.0:
-        percent = 100.0*(ratio - 1.0)
-    else:
-        percent = 100.0*(1.0 - ratio)
-
-    minPercentDiffImag = min(minPercentDiffImag, percent)
-    maxPercentDiffImag = max(maxPercentDiffImag, percent)
-
-    return percent
-
-
-def diffPercentReal(sum_shunt_real, Yshunt_real):
-    global minPercentDiffReal, maxPercentDiffReal
-
-    if sum_shunt_real == 0.0:
-        return 0.0
-
-    ratio = Yshunt_real/sum_shunt_real
-
-    if ratio > 1.0:
-        percent = 100.0*(ratio - 1.0)
-    else:
-        percent = 100.0*(1.0 - ratio)
-
-    minPercentDiffReal = min(minPercentDiffReal, percent)
-    maxPercentDiffReal = max(maxPercentDiffReal, percent)
-
-    return percent
-
-
 def compareShuntImag(sum_shunt_imag, Yshunt_imag):
     absDiff = abs(sum_shunt_imag - Yshunt_imag)
-    perDiff = diffPercentImag(sum_shunt_imag, Yshunt_imag)
     colorIdx = diffColorIdxImag(absDiff)
     print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
     print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
@@ -146,7 +107,6 @@ def compareShuntImag(sum_shunt_imag, Yshunt_imag):
 
 def compareShuntReal(sum_shunt_real, Yshunt_real):
     absDiff = abs(sum_shunt_real - Yshunt_real)
-    perDiff = diffPercentReal(sum_shunt_real, Yshunt_real)
     colorIdx = diffColorIdxReal(absDiff)
     print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, True), flush=True)
     print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, False), file=logfile)
@@ -394,12 +354,6 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("\nSummary for ShuntElement elements:", file=logfile)
 
     countImag = greenCountImag + yellowCountImag + redCountImag
-    if countImag > 0:
-        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
-
     print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
     print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
     print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
@@ -408,12 +362,6 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     countReal = greenCountReal + yellowCountReal + redCountReal
-    if countReal > 0:
-        print("\nReal minimum % difference:" + "{:12.6g}".format(minPercentDiffReal), flush=True)
-        print("\nReal minimum % difference:" + "{:12.6g}".format(minPercentDiffReal), file=logfile)
-        print("Real maximum % difference:" + "{:12.6g}".format(maxPercentDiffReal), flush=True)
-        print("Real maximum % difference:" + "{:12.6g}".format(maxPercentDiffReal), file=logfile)
-
     print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
     print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
     print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
@@ -513,12 +461,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     print('Vnom Processed', flush=True)
 
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
     global greenCountImag, yellowCountImag, redCountImag
     greenCountImag = yellowCountImag = redCountImag = 0
     global greenCountReal, yellowCountReal, redCountReal
