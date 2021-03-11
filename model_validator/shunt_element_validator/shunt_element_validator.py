@@ -295,6 +295,12 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         RatedU_end[xfmr_name][end_number] = int(obj['ratedU']['value'])
         #print('xfmr_end_name: ' + xfmr_name + ', end_number: ' + str(end_number) + ', bus: ' + bus + ', ratedU: ' + str(RatedU_end[xfmr_name][end_number]))
 
+    # Just for checking how often we encounter the more exotic cases
+    MultiElem = {}
+    MultiCap = {}
+    MultiXfmrTank = {}
+    MultiXfmrEnd = {}
+
     # Final validation -- check all nodes for shunt elements
     for node1 in CNV:
         numsum = complex(0.0, 0.0)
@@ -323,6 +329,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 num_elem += 1
                 sum_shunt_imag += B_per_section[cap]
                 # capacitors only contribute to the imaginary part
+            if len(Cap_name[node1]) > 1:
+                MultiCap[node1] = len(Cap_name[node1])
 
         # add in TransformerTank transformer contribution if applicable
         if node1 in Xfmr_tank_name:
@@ -332,6 +340,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 zBaseS = ratedU_sq/RatedS_tank[xfmr][2]
                 sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
                 sum_shunt_real += (Noloadloss[xfmr]*1000.0)/ratedU_sq
+            if len(Xfmr_tank_name[node1]) > 1:
+                MultiXfmrTank[node1] = len(Xfmr_tank_name[node1])
 
         # add in PowerTransformerEnd transformer contribution if applicable
         if node1 in Xfmr_end_name:
@@ -341,6 +351,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 ratedU_sq = ratedU_ratio*ratedU_ratio
                 sum_shunt_imag += -B_S[xfmr]*ratedU_sq
                 sum_shunt_real += G_S[xfmr]*ratedU_sq
+            if len(Xfmr_end_name[node1]) > 1:
+                MultiXfmrEnd[node1] = len(Xfmr_end_name[node1])
 
         print('\nValidating shunt element node: ' + node1, flush=True)
         print('\nValidating shunt element node: ' + node1, file=logfile)
@@ -353,6 +365,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
            #sys.exit()
         elif num_elem > 1:
            print('    *** Multiple shunt elements for node: ' + node1)
+           MultiElem[node1] = num_elem
            #sys.exit()
 
     print("\nSummary for ShuntElement elements:", flush=True)
@@ -385,6 +398,15 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
     print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
     print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+
+    if len(MultiElem) > 0:
+        print("\nMultiple elements for the following nodes: " + str(MultiElem))
+    if len(MultiCap) > 0:
+        print("\nMultiple capacitors for the following nodes: " + str(MultiCap))
+    if len(MultiXfmrTank) > 0:
+        print("\nMultiple tank transformers for the following nodes: " + str(MultiXfmrTank))
+    if len(MultiXfmrEnd) > 0:
+        print("Multiple end transformers for the following nodes: " + str(MultiXfmrEnd))
 
     print("\nFinished validation for ShuntElement elements", flush=True)
     print("\nFinished validation for ShuntElement elements", file=logfile)
