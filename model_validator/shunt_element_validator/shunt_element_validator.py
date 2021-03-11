@@ -138,8 +138,8 @@ def compareShuntImag(sum_shunt_imag, Yshunt_imag):
     absDiff = abs(sum_shunt_imag - Yshunt_imag)
     perDiff = diffPercentImag(sum_shunt_imag, Yshunt_imag)
     colorIdx = diffColorIdxImag(absDiff)
-    print("    Imag shunt elem total:" + "{:12.8f}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    Imag shunt elem total:" + "{:12.8f}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
@@ -148,8 +148,8 @@ def compareShuntReal(sum_shunt_real, Yshunt_real):
     absDiff = abs(sum_shunt_real - Yshunt_real)
     perDiff = diffPercentReal(sum_shunt_real, Yshunt_real)
     colorIdx = diffColorIdxReal(absDiff)
-    print("    Real shunt elem total:" + "{:12.8f}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_real) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    Real shunt elem total:" + "{:12.8f}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.8f}".format(Yshunt_real) + "  " + diffColor(colorIdx, False), file=logfile)
+    print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
@@ -358,10 +358,10 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
     countReal = greenCountReal + yellowCountReal + redCountReal
     if countReal > 0:
-        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:12.6g}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:12.6g}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:12.6g}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:12.6g}".format(maxPercentDiffReal), file=logfile)
 
     print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
     print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
