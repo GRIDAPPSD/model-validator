@@ -181,11 +181,17 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
         if mode != 'timeScheduled':
             if phase == 'ABC': # 3-phase
-                Cap_name[bus+'.1'] = cap_name
-                Cap_name[bus+'.2'] = cap_name
-                Cap_name[bus+'.3'] = cap_name
+                if bus+'.1' not in Cap_name:
+                    Cap_name[bus+'.1'] = []
+                    Cap_name[bus+'.2'] = []
+                    Cap_name[bus+'.3'] = []
+                Cap_name[bus+'.1'].append(cap_name)
+                Cap_name[bus+'.2'].append(cap_name)
+                Cap_name[bus+'.3'].append(cap_name)
             else: # specified phase only
-                Cap_name[bus+ybusPhaseIdx[phase]] = cap_name
+                if bus+ybusPhaseIdx[phase] not in Cap_name:
+                    Cap_name[bus+ybusPhaseIdx[phase]] = []
+                Cap_name[bus+ybusPhaseIdx[phase]].append(cap_name)
 
     # TRANSFORMERS DATA STRUCTURES INITIALIZATION
     bindings = sparql_mgr.TransformerTank_xfmr_rated()
@@ -234,11 +240,17 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         bus = obj['bus']['value'].upper()
         phase = obj['phase']['value']
         if phase == 'ABC':
-            Xfmr_tank_name[bus+'.1'] = xfmr_name
-            Xfmr_tank_name[bus+'.2'] = xfmr_name
-            Xfmr_tank_name[bus+'.3'] = xfmr_name
+            if bus+'.1' not in Xfmr_tank_name:
+                Xfmr_tank_name[bus+'.1'] = []
+                Xfmr_tank_name[bus+'.2'] = []
+                Xfmr_tank_name[bus+'.3'] = []
+            Xfmr_tank_name[bus+'.1'].append(xfmr_name)
+            Xfmr_tank_name[bus+'.2'].append(xfmr_name)
+            Xfmr_tank_name[bus+'.3'].append(xfmr_name)
         else:
-            Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = xfmr_name
+            if bus+ybusPhaseIdx[phase] not in Xfmr_tank_name:
+                Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = []
+            Xfmr_tank_name[bus+ybusPhaseIdx[phase]].append(xfmr_name)
 
         #print('xfmr_tank_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
 
@@ -269,9 +281,13 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         xfmr_name = obj['xfmr_name']['value']
         end_number = int(obj['end_number']['value'])
         bus = obj['bus']['value'].upper()
-        Xfmr_end_name[bus+'.1'] = xfmr_name
-        Xfmr_end_name[bus+'.2'] = xfmr_name
-        Xfmr_end_name[bus+'.3'] = xfmr_name
+        if bus+'.1' not in Xfmr_end_name:
+            Xfmr_end_name[bus+'.1'] = []
+            Xfmr_end_name[bus+'.2'] = []
+            Xfmr_end_name[bus+'.3'] = []
+        Xfmr_end_name[bus+'.1'].append(xfmr_name)
+        Xfmr_end_name[bus+'.2'].append(xfmr_name)
+        Xfmr_end_name[bus+'.3'].append(xfmr_name)
 
         if xfmr_name not in RatedU_end:
             RatedU_end[xfmr_name] = {}
@@ -303,28 +319,28 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
         # add in capacitor contribution if applicable
         if node1 in Cap_name:
-            num_elem += 1
-            cap_name = Cap_name[node1]
-            sum_shunt_imag += B_per_section[cap_name]
-            # capacitors only contribute to the imaginary part
+            for cap in Cap_name[node1]:
+                num_elem += 1
+                sum_shunt_imag += B_per_section[cap]
+                # capacitors only contribute to the imaginary part
 
         # add in TransformerTank transformer contribution if applicable
         if node1 in Xfmr_tank_name:
-            num_elem += 1
-            xfmr_name = Xfmr_tank_name[node1]
-            ratedU_sq = RatedU_tank[xfmr_name][2]*RatedU_tank[xfmr_name][2]
-            zBaseS = ratedU_sq/RatedS_tank[xfmr_name][2]
-            sum_shunt_imag += -I_exciting[xfmr_name]/(100.0*zBaseS)
-            sum_shunt_real += (Noloadloss[xfmr_name]*1000.0)/ratedU_sq
+            for xfmr in Xfmr_tank_name[node1]:
+                num_elem += 1
+                ratedU_sq = RatedU_tank[xfmr][2]*RatedU_tank[xfmr][2]
+                zBaseS = ratedU_sq/RatedS_tank[xfmr][2]
+                sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
+                sum_shunt_real += (Noloadloss[xfmr]*1000.0)/ratedU_sq
 
         # add in PowerTransformerEnd transformer contribution if applicable
         if node1 in Xfmr_end_name:
-            num_elem += 1
-            xfmr_name = Xfmr_end_name[node1]
-            ratedU_ratio = RatedU_end[xfmr_name][1]/RatedU_end[xfmr_name][2]
-            ratedU_sq = ratedU_ratio*ratedU_ratio
-            sum_shunt_imag += -B_S[xfmr_name]*ratedU_sq
-            sum_shunt_real += G_S[xfmr_name]*ratedU_sq
+            for xfmr in Xfmr_end_name[node1]:
+                num_elem += 1
+                ratedU_ratio = RatedU_end[xfmr][1]/RatedU_end[xfmr][2]
+                ratedU_sq = ratedU_ratio*ratedU_ratio
+                sum_shunt_imag += -B_S[xfmr]*ratedU_sq
+                sum_shunt_real += G_S[xfmr]*ratedU_sq
 
         print('\nValidating shunt element node: ' + node1, flush=True)
         print('\nValidating shunt element node: ' + node1, file=logfile)
