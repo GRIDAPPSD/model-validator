@@ -68,20 +68,6 @@ def diffColor(colorIdx, colorFlag):
         return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
 
-def diffColorIdxImag(absDiff):
-    global greenCountImag, yellowCountImag, redCountImag
-
-    if absDiff < 1e-3:
-        greenCountImag += 1
-        return 0
-    elif absDiff >= 1e-2:
-        redCountImag += 1
-        return 2
-    else:
-        yellowCountImag += 1
-        return 1
-
-
 def diffColorIdxReal(absDiff):
     global greenCountReal, yellowCountReal, redCountReal
 
@@ -96,13 +82,18 @@ def diffColorIdxReal(absDiff):
         return 1
 
 
-def compareShuntImag(sum_shunt_imag, Yshunt_imag):
-    absDiff = abs(sum_shunt_imag - Yshunt_imag)
-    colorIdx = diffColorIdxImag(absDiff)
-    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
-    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
+def diffColorIdxImag(absDiff):
+    global greenCountImag, yellowCountImag, redCountImag
 
-    return colorIdx
+    if absDiff < 1e-3:
+        greenCountImag += 1
+        return 0
+    elif absDiff >= 1e-2:
+        redCountImag += 1
+        return 2
+    else:
+        yellowCountImag += 1
+        return 1
 
 
 def compareShuntReal(sum_shunt_real, Yshunt_real):
@@ -110,6 +101,15 @@ def compareShuntReal(sum_shunt_real, Yshunt_real):
     colorIdx = diffColorIdxReal(absDiff)
     print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, True), flush=True)
     print("    Real shunt element total:" + "{:12.6g}".format(sum_shunt_real) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_real) + "  " + diffColor(colorIdx, False), file=logfile)
+
+    return colorIdx
+
+
+def compareShuntImag(sum_shunt_imag, Yshunt_imag):
+    absDiff = abs(sum_shunt_imag - Yshunt_imag)
+    colorIdx = diffColorIdxImag(absDiff)
+    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, True), flush=True)
+    print("    Imag shunt element total:" + "{:12.6g}".format(sum_shunt_imag) + ", computed Yshunt:" + "{:12.6g}".format(Yshunt_imag) + "  " + diffColor(colorIdx, False), file=logfile)
 
     return colorIdx
 
@@ -219,7 +219,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = []
             Xfmr_tank_name[bus+ybusPhaseIdx[phase]].append(xfmr_name)
 
-        #print('xfmr_tank_name: ' + xfmr_name + ', bus: ' + bus + ', phase: ' + phase)
+        print('xfmr_tank_name: ' + xfmr_name + ', enum: ' + str(enum) + ', bus: ' + bus + ', phase: ' + phase)
 
     # TransformerEnd queries
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
@@ -263,7 +263,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
         Enum_end[xfmr_name][bus] = enum
         RatedU_end[xfmr_name][enum] = int(obj['ratedU']['value'])
-        #print('xfmr_end_name: ' + xfmr_name + ', end_number: ' + str(enum) + ', bus: ' + bus + ', ratedU: ' + str(RatedU_end[xfmr_name][enum]))
+        print('xfmr_end_name: ' + xfmr_name + ', end_number: ' + str(enum) + ', bus: ' + bus + ', ratedU: ' + str(RatedU_end[xfmr_name][enum]))
+    #sys.exit()
 
     # Just for checking how often we encounter the more exotic cases
     MultiElem = {}
@@ -300,6 +301,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         if node1 in Cap_name:
             for cap in Cap_name[node1]:
                 num_elem += 1
+                # no real component contribution for capacitors
                 sum_shunt_imag += B_per_section[cap]
                 print('Adding capacitor imag contribution: ' + str(B_per_section[cap]))
                 # capacitors only contribute to the imaginary part
@@ -313,14 +315,14 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         if node1 in Xfmr_tank_name:
             for xfmr in Xfmr_tank_name[node1]:
                 print('Checking tank transformer name: ' + xfmr +', enum: ' + str(Enum_tank[xfmr]))
-                if Enum_tank[xfmr][bus] == 2:
+                if Enum_tank[xfmr][bus] >= 2:
                     num_elem += 1
                     ratedU_sq = RatedU_tank[xfmr][2]*RatedU_tank[xfmr][2]
                     zBaseS = ratedU_sq/RatedS_tank[xfmr][2]
-                    sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
-                    print('Adding tank transformer imag contribution: ' + str(-I_exciting[xfmr]/(100.0*zBaseS)))
                     sum_shunt_real += (Noloadloss[xfmr]*1000.0)/ratedU_sq
                     print('Adding tank transformer real contribution: ' + str((Noloadloss[xfmr]*1000.0)/ratedU_sq))
+                    sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
+                    print('Adding tank transformer imag contribution: ' + str(-I_exciting[xfmr]/(100.0*zBaseS)))
             if len(Xfmr_tank_name[node1]) > 1:
                 MultiXfmrTank[node1] = len(Xfmr_tank_name[node1])
 
@@ -332,15 +334,15 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                     num_elem += 1
                     ratedU_ratio = RatedU_end[xfmr][1]/RatedU_end[xfmr][2]
                     ratedU_sq = ratedU_ratio*ratedU_ratio
-                    sum_shunt_imag += -B_S[xfmr]*ratedU_sq
-                    print('Adding tank transformer imag contribution: ' + str(-B_S[xfmr]*ratedU_sq))
                     sum_shunt_real += G_S[xfmr]*ratedU_sq
                     print('Adding tank transformer real contribution: ' + str(G_S[xfmr]*ratedU_sq))
+                    sum_shunt_imag += -B_S[xfmr]*ratedU_sq
+                    print('Adding tank transformer imag contribution: ' + str(-B_S[xfmr]*ratedU_sq))
             if len(Xfmr_end_name[node1]) > 1:
                 MultiXfmrEnd[node1] = len(Xfmr_end_name[node1])
 
-        compareShuntImag(sum_shunt_imag, Yshunt.imag)
         compareShuntReal(sum_shunt_real, Yshunt.real)
+        compareShuntImag(sum_shunt_imag, Yshunt.imag)
 
         if num_elem == 0:
            print('    *** No shunt elements for node: ' + node1)
@@ -353,14 +355,6 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("\nSummary for ShuntElement elements:", flush=True)
     print("\nSummary for ShuntElement elements:", file=logfile)
 
-    countImag = greenCountImag + yellowCountImag + redCountImag
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
-
     countReal = greenCountReal + yellowCountReal + redCountReal
     print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
     print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
@@ -368,6 +362,14 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
     print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
     print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+
+    countImag = greenCountImag + yellowCountImag + redCountImag
+    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
     if len(MultiElem) > 0:
         print("\nMultiple elements for the following nodes: " + str(MultiElem))
@@ -381,7 +383,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
     print("\nFinished validation for ShuntElement elements", flush=True)
     print("\nFinished validation for ShuntElement elements", file=logfile)
 
-    return countImag, countReal
+    return countReal, countImag
 
 
 def start(log_file, feeder_mrid, model_api_topic, simulation_id):
@@ -439,11 +441,12 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         basekV = float(items[1])
         #print('bus: ' + bus + ', basekV: ' + str(basekV))
 
+        rho = 1000.0*basekV/math.sqrt(3.0)
         # TODO hardwire rho for basekV<0.25 for now at least
-        if basekV < 0.25:
-            rho = 120.0
-        else:
-            rho = 1000.0*basekV/math.sqrt(3.0)
+        #if basekV < 0.25:
+        #    rho = 120.0
+        #else:
+        #    rho = 1000.0*basekV/math.sqrt(3.0)
 
         node1 = items[2].strip()
         theta = float(items[4])*math.pi/180.0
@@ -461,27 +464,27 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     print('Vnom Processed', flush=True)
 
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
     global greenCountReal, yellowCountReal, redCountReal
     greenCountReal = yellowCountReal = redCountReal = 0
+    global greenCountImag, yellowCountImag, redCountImag
+    greenCountImag = yellowCountImag = redCountImag = 0
 
-    countImag, countReal = validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV)
+    countReal, countImag = validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV)
 
     # list of lists for the tabular report
     report = []
-
-    if countImag > 0:
-        VI = float(countImag - redCountImag)/float(countImag)
-        report.append(["Imaginary", countImag, "{:.4f}".format(VI), greenCountImag, yellowCountImag, redCountImag])
-    else:
-        report.append(["Imaginary", countImag])
 
     if countReal > 0:
         VI = float(countReal - redCountReal)/float(countReal)
         report.append(["Real", countReal, "{:.4f}".format(VI), greenCountReal, yellowCountReal, redCountReal])
     else:
         report.append(["Real", countReal])
+
+    if countImag > 0:
+        VI = float(countImag - redCountImag)/float(countImag)
+        report.append(["Imaginary", countImag, "{:.4f}".format(VI), greenCountImag, yellowCountImag, redCountImag])
+    else:
+        report.append(["Imaginary", countImag])
 
     print('\n', flush=True)
     print(tabulate(report, headers=["Shunt Component", "# Nodes", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
