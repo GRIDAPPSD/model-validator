@@ -196,14 +196,19 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
 
     Xfmr_tank_name = {}
     Enum_tank = {}
+    BaseV_tank = {}
     for obj in bindings:
         xfmr_name = obj['xfmr_name']['value']
         enum = int(obj['enum']['value'])
         bus = obj['bus']['value'].upper()
+        baseV = float(obj['baseV']['value'])
+
         if xfmr_name not in Enum_tank:
             Enum_tank[xfmr_name] = {}
+            BaseV_tank[xfmr_name] = {}
 
         Enum_tank[xfmr_name][bus] = enum
+        BaseV_tank[xfmr_name][bus] = baseV
 
         phase = obj['phase']['value']
         if phase == 'ABC':
@@ -266,14 +271,25 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         RatedU_end[xfmr_name][enum] = int(obj['ratedU']['value'])
         #print('xfmr_end_name: ' + xfmr_name + ', end_number: ' + str(enum) + ', bus: ' + bus + ', ratedU: ' + str(RatedU_end[xfmr_name][enum]))
 
-    # Just for checking how often we encounter the more exotic cases
+    # just for checking how often we encounter the more exotic cases
     MultiElem = {}
     MultiCap = {}
     MultiXfmrTank = {}
     MultiXfmrEnd = {}
 
+    # this will let us skip the .2 node validation when the .1 has been
+    # identified as a split phase tank transformer
+    skipNode2 = None
+
     # Final validation -- check all nodes for shunt elements
     for node1 in CNV:
+
+        # determine whether this is a .2 node associated with a split
+        # phase tank transformer where we skip validation
+        if skipNode2 and node1==skipNode2:
+            skipNode2 = None
+            continue
+
         numsum = complex(0.0, 0.0)
         #print('finding shunt_adm for node: ' + node1)
         for node2 in Yexp[node1]:
@@ -311,12 +327,13 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
         # strip phase off node to find bus as this is needed for transformers
         bus = node1.split('.')[0]
 
+        # this is when it seems to be a split phase transformer, but the
+        # baseV value exceeds the threshold so we want to skip validation
+        skipValidation3 = False
+
         # add in TransformerTank transformer contribution if applicable
         if node1 in Xfmr_tank_name:
             for xfmr in Xfmr_tank_name[node1]:
-                # TODO Shiva will provide guidance on how to handle these
-                # split phase tank transformers where you get s1 and s2 phases
-                # and end_number==3 that I'm just hacking at now
                 if Enum_tank[xfmr][bus] >= 2:
                     num_elem += 1
                     ratedU_sq = RatedU_tank[xfmr][2]*RatedU_tank[xfmr][2]
@@ -325,17 +342,35 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                     #print('Adding tank transformer real contribution: ' + str((Noloadloss[xfmr]*1000.0)/ratedU_sq))
                     sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
                     #print('Adding tank transformer imag contribution: ' + str(-I_exciting[xfmr]/(100.0*zBaseS)))
-                elif Enum_tank[xfmr][bus] == 3:
-                    num_elem += 2
-                    ratedU_sq = RatedU_tank[xfmr][2]*RatedU_tank[xfmr][2]
-                    zBaseS = ratedU_sq/RatedS_tank[xfmr][2]
-                    # double the contributions for enum==3 because there is
-                    # also an enum==2 that has the same contribution and the
-                    # Enum_tank dictionary replaces that when it gets enum==3
-                    sum_shunt_real += (2.0*Noloadloss[xfmr]*1000.0)/ratedU_sq
-                    #print('Adding tank transformer real contribution: ' + str((2.0*Noloadloss[xfmr]*1000.0)/ratedU_sq))
-                    sum_shunt_imag += (-2.0*I_exciting[xfmr])/(100.0*zBaseS)
-                    #print('Adding tank transformer imag contribution: ' + str((-2.0*I_exciting[xfmr])/(100.0*zBaseS)))
+
+                if Enum_tank[xfmr][bus] == 3:
+                    # this is the other split phase node to check
+                    skipNode2 = bus + '.2'
+                    # check if the baseV value is below the magic threshold
+                    if BaseV_tank[xfmr][bus] < 300:
+                        # determine Yshunt for the .2 node
+                        print('*** SHIVA NODE: ' + node1,flush=True)
+                        print('*** SHIVA NODE: ' + node1,file=logfile)
+                        numsum = complex(0.0, 0.0)
+                        #print('finding shunt_adm for node: ' + skipNode2)
+                        for node2 in Yexp[skipNode2]:
+                            #print('\tforward summing connection to node: ' + node2)
+                            numsum += Yexp[skipNode2][node2]*CNV[node2]
+                        for node2 in Ybus[skipNode2]:
+                            if node2 != skipNode2:
+                                #print('\tbackward summing connection to node: ' + node2)
+                                numsum += Ybus[skipNode2][node2]*CNV[node2]
+
+                        # subtract the .2 Yshunt from the .1 Yshunt to
+                        # get the admittance to compare against
+                        Yshunt -= numsum/CNV[skipNode2]
+
+                    else:
+                        # baseV was above threshold to be certain of it being
+                        # a split phase transformer
+                        print("\tWARNING: Skipping validation for possible split phase transformer with baseV > 300", flush=True)
+                        print("\tWARNING: Skipping validation for possible split phase transformer with baseV > 300", file=logfile)
+                        skipValidation3 = True
 
             if len(Xfmr_tank_name[node1]) > 1:
                 MultiXfmrTank[node1] = len(Xfmr_tank_name[node1])
@@ -355,8 +390,9 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
             if len(Xfmr_end_name[node1]) > 1:
                 MultiXfmrEnd[node1] = len(Xfmr_end_name[node1])
 
-        compareShuntReal(sum_shunt_real, Yshunt.real)
-        compareShuntImag(sum_shunt_imag, Yshunt.imag)
+        if not skipValidation3:
+            compareShuntReal(sum_shunt_real, Yshunt.real)
+            compareShuntImag(sum_shunt_imag, Yshunt.imag)
 
         if num_elem == 0:
            print('    *** No shunt elements for node: ' + node1)
