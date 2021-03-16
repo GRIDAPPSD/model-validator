@@ -463,17 +463,24 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         #    rho = 1000.0*basekV/math.sqrt(3.0)
 
         node1 = items[2].strip()
-        theta = float(items[4])*math.pi/180.0
+        angle = float(items[4])
+        # the following bit of cleverness rounds to the nearest 30
+        angle1 = float(30 * round(int(angle)/30))
+        theta = angle1*math.pi/180.0
         CNV[bus+'.'+node1] = complex(rho*math.cos(theta), rho*math.sin(theta))
 
         node2 = items[6].strip()
         if node2 != '0':
-            theta = float(items[8])*math.pi/180.0
+            angle = float(items[8])
+            angle2 = float(30 * round(int(angle)/30))
+            theta = angle2*math.pi/180.0
             CNV[bus+'.'+node2] = complex(rho*math.cos(theta), rho*math.sin(theta))
 
             node3 = items[10].strip()
             if node3 != '0':
-                theta = float(items[12])*math.pi/180.0
+                angle = float(items[12])
+                angle3 = float(30 * round(int(angle)/30))
+                theta = angle3*math.pi/180.0
                 CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
 
     print('Vnom Processed', flush=True)
