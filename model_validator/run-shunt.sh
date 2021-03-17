@@ -43,22 +43,22 @@ if [[ ! -z "$SIMID" ]]; then
     # a fresh instance for each MV invocation
     # comment out this pkill when we want to use the same microservices instance
     # for multple MV invocations
-    pkill -f microservices.py -U $USER
+#    pkill -f microservices.py -U $USER
 
     # only start microservices if not already running
-    if ! pgrep -f microservices.py -U $USER > /dev/null; then
-        python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
-        if [[ "$1" == "9500" ]]; then
-            echo "Sleeping 40 seconds to allow microservices to initialize..."
-            sleep 40
-        else
-            echo "Sleeping 10 seconds to allow microservices to initialize..."
-            sleep 10
-        fi
-    fi
+#    if ! pgrep -f microservices.py -U $USER > /dev/null; then
+#        python3 shared/microservices.py --request "$SIMREQ" --simid "$SIMID" &
+#        if [[ "$1" == "9500" ]]; then
+#            echo "Sleeping 40 seconds to allow microservices to initialize..."
+#            sleep 40
+#        else
+#            echo "Sleeping 10 seconds to allow microservices to initialize..."
+#            sleep 10
+#        fi
+#    fi
 
-#    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
-    ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
+    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
+#    ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 else
 #    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
     ./supervisor.py "$SIMREQ" 2>&1 | tee validator.log
@@ -73,7 +73,7 @@ fi
 #python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 power_transformer_validator/power_transformer_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 switching_equipment_validator/switching_equipment_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
-#python3 shunt_element_validator/shunt_element_validator.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
+python3 shunt_element_validator/shunt_element_validator.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
 
 if [[ ! -z "$SIMID" ]]; then
     # kill microservices so that it starts up with the new simulation next time
