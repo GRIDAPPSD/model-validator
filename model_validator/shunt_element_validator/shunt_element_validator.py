@@ -224,8 +224,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 Xfmr_tank_name[bus+ybusPhaseIdx[phase]] = []
             Xfmr_tank_name[bus+ybusPhaseIdx[phase]].append(xfmr_name)
 
-        print('xfmr_tank_name: ' + xfmr_name + ', enum: ' + str(enum) + ', bus: ' + bus + ', phase: ' + phase)
-    #sys.exit()
+        #print('xfmr_tank_name: ' + xfmr_name + ', enum: ' + str(enum) + ', bus: ' + bus + ', phase: ' + phase)
 
     # TransformerEnd queries
     bindings = sparql_mgr.PowerTransformerEnd_xfmr_admittances()
@@ -349,8 +348,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                     # check if the baseV value is below the magic threshold
                     if BaseV_tank[xfmr][bus] < 300:
                         # determine Yshunt for the .2 node
-                        print('*** SHIVA NODE: ' + node1,flush=True)
-                        print('*** SHIVA NODE: ' + node1,file=logfile)
+                        print('*** SHIVA SPLIT PHASE TRANSFORMER NODE: ' + node1,flush=True)
+                        print('*** SHIVA SPLIT PHASE TRANSFORMER NODE: ' + node1,file=logfile)
                         numsum = complex(0.0, 0.0)
                         #print('finding shunt_adm for node: ' + skipNode2)
                         for node2 in Yexp[skipNode2]:
