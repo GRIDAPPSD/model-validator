@@ -172,9 +172,19 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', file=logfile)
+def fillYsys(bus1, bus2, Yval, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
+    if bus2 not in Ysys:
+        Ysys[bus2] = {}
+
+    Ysys[bus1][bus2] = Ysys[bus2][bus1] = Yval
+
+
+def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', file=logfile)
 
     # return # of xfmrs validated
     xfmrs_count = 0
@@ -186,8 +196,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+            print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
     Mesh_x_ohm = {}
@@ -218,8 +229,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', flush=True)
+            print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
     Bus = {}
@@ -234,8 +246,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         # can't handle 3-winding transformers so issue a warning and skip
         # to the next transformer in that case
         if end_number == 3:
-            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
-            print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
+            if cmpFlag:
+                print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
+                print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
 
             # need to clear out the previous dictionary entries for this
             # 3-winding transformer so it isn't processed below
@@ -281,18 +294,19 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
     D2 = np.zeros((4,12))
     D2[0,2] = D2[0,11] = D2[1,3] = D2[1,6] = D2[2,7] = D2[2,10] = 1.0
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     for xfmr_name in Bus:
         # Note that division is always floating point in Python 3 even if
@@ -346,8 +360,9 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
         Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
         #print(Ycomp)
 
-        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, flush=True)
-        print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, file=logfile)
+        if cmpFlag:
+            print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, flush=True)
+            print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, file=logfile)
 
         # do Ybus comparisons and determine overall transformer status color
         # set special case flag that indicates if we need to swap the phases
@@ -365,57 +380,63 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus):
                         bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
                         bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
 
-                    colorIdx = compareY(bus1, bus2, Yval, Ybus)
-                    xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+                    if cmpFlag:
+                        colorIdx = compareY(bus1, bus2, Yval, Ybus)
+                        xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+                    else:
+                        fillYsys(bus1, bus2, Yval, Ysys)
 
         xfmrs_count += 1
 
-        if xfmrColorIdx == 0:
-            greenCount += 1
-        elif xfmrColorIdx == 1:
-            yellowCount += 1
-        else:
-            redCount += 1
+        if cmpFlag:
+            if xfmrColorIdx == 0:
+                greenCount += 1
+            elif xfmrColorIdx == 1:
+                yellowCount += 1
+            else:
+                redCount += 1
 
-        print("", flush=True)
-        print("", file=logfile)
+            print("", flush=True)
+            print("", file=logfile)
 
-    print("\nSummary for PowerTransformerEnd transformers:", flush=True)
-    print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for PowerTransformerEnd transformers:", flush=True)
+        print("\nSummary for PowerTransformerEnd transformers:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for PowerTransformerEnd transformers", flush=True)
-    print("\nFinished validation for PowerTransformerEnd transformers", file=logfile)
+        print("\nFinished validation for PowerTransformerEnd transformers", flush=True)
+        print("\nFinished validation for PowerTransformerEnd transformers", file=logfile)
 
     return xfmrs_count
 
 
-def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
-    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', file=logfile)
+def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', file=logfile)
 
     # return # of xfmrs validated
     xfmrs_count = 0
@@ -427,8 +448,9 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
+            print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
     RatedS = {}
@@ -484,8 +506,9 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
-        print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', flush=True)
+            print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank: NO TRANSFORMER MATCHES', file=logfile)
         return xfmrs_count
 
     Bus = {}
@@ -549,18 +572,19 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
     # map transformer query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     for xfmr_name in Bus:
         # determine the type of transformer to drive the computation
@@ -657,8 +681,9 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
         # do Ybus comparisons and determine overall transformer status color
         xfmrColorIdx = 0
 
-        print('Validating TranformerTank transformer_name: ' + xfmr_name, flush=True)
-        print('Validating TranformerTank transformer_name: ' + xfmr_name, file=logfile)
+        if cmpFlag:
+            print('Validating TranformerTank transformer_name: ' + xfmr_name, flush=True)
+            print('Validating TranformerTank transformer_name: ' + xfmr_name, file=logfile)
 
         if Bkey == '3p':
             for row in range(4, 7):
@@ -674,79 +699,93 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus):
                             bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
                             bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
 
-                        colorIdx = compareY(bus1, bus2, Yval, Ybus)
-                        xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+                        if cmpFlag:
+                            colorIdx = compareY(bus1, bus2, Yval, Ybus)
+                            xfmrColorIdx = max(xfmrColorIdx, colorIdx)
+                        else:
+                            fillYsys(bus1, bus2, Yval, Ysys)
 
         elif Bkey == '3w':
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
             bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
             Yval = Ycomp[2,0]
-            colorIdx20 = compareY(bus1, bus2, Yval, Ybus)
+            if cmpFlag:
+                colorIdx20 = compareY(bus1, bus2, Yval, Ybus)
+            else:
+                fillYsys(bus1, bus2, Yval, Ysys)
 
             bus2 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
             Yval = Ycomp[5,0]
-            colorIdx50 = compareY(bus1, bus2, Yval, Ybus)
-
-            xfmrColorIdx = max(colorIdx20, colorIdx50)
+            if cmpFlag:
+                colorIdx50 = compareY(bus1, bus2, Yval, Ybus)
+                xfmrColorIdx = max(colorIdx20, colorIdx50)
+            else:
+                fillYsys(bus1, bus2, Yval, Ysys)
 
         else:
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
             bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
             Yval = Ycomp[2,0]
 
-            xfmrColorIdx = compareY(bus1, bus2, Yval, Ybus)
+            if cmpFlag:
+                xfmrColorIdx = compareY(bus1, bus2, Yval, Ybus)
+            else:
+                fillYsys(bus1, bus2, Yval, Ysys)
 
         xfmrs_count += 1
 
-        if xfmrColorIdx == 0:
-            greenCount += 1
-        elif xfmrColorIdx == 1:
-            yellowCount += 1
-        else:
-            redCount += 1
+        if cmpFlag:
+            if xfmrColorIdx == 0:
+                greenCount += 1
+            elif xfmrColorIdx == 1:
+                yellowCount += 1
+            else:
+                redCount += 1
 
-        print("", flush=True)
-        print("", file=logfile)
+            print("", flush=True)
+            print("", file=logfile)
 
-    print("\nSummary for TransformerTank transformers:", flush=True)
-    print("\nSummary for TransformerTank transformers:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for TransformerTank transformers:", flush=True)
+        print("\nSummary for TransformerTank transformers:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for TransformerTank transformers", flush=True)
-    print("\nFinished validation for TransformerTank transformers", file=logfile)
+        print("\nFinished validation for TransformerTank transformers", flush=True)
+        print("\nFinished validation for TransformerTank transformers", file=logfile)
 
     return xfmrs_count
 
 
-def start(log_file, feeder_mrid, model_api_topic):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
     global logfile
     logfile = log_file
 
-    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------")
-    print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------", file=logfile)
+    if cmpFlag:
+        print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------")
+        print("\nPOWER_TRANSFORMER_VALIDATOR starting!!!-----------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
 
@@ -773,33 +812,37 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    # list of lists for the tabular report
-    report = []
+    if cmpFlag:
+        # list of lists for the tabular report
+        report = []
+
 
     #PowerTransformerEnd_xfmrs = 0
-    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus)
-    if PowerTransformerEnd_xfmrs > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
+    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if PowerTransformerEnd_xfmrs > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
 
-    TransformerTank_xfmrs = validate_TransformerTank_xfmrs(sparql_mgr, Ybus)
-    if TransformerTank_xfmrs > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["TransformerTank", TransformerTank_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["TransformerTank", TransformerTank_xfmrs])
+    TransformerTank_xfmrs = validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if TransformerTank_xfmrs > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["TransformerTank", TransformerTank_xfmrs, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["TransformerTank", TransformerTank_xfmrs])
 
-    print('\n', flush=True)
-    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
-    print('\n', file=logfile)
-    print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+        print('\n', flush=True)
+        print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+        print('\n', file=logfile)
+        print(tabulate(report, headers=["Transformer Type", "# Transformers", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
-    print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', flush=True)
-    print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', file=logfile)
+        print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', flush=True)
+        print('\nPOWER_TRANSFORMER_VALIDATOR DONE!!!', file=logfile)
 
 
 def _main():
