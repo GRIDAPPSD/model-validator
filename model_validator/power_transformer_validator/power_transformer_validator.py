@@ -795,29 +795,30 @@ def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    ysparse,nodelist = sparql_mgr.ybus_export()
-
-    idx = 1
-    nodes = {}
-    for obj in nodelist:
-        nodes[idx] = obj.strip('\"')
-        idx += 1
-    #print(nodes)
-
-    Ybus = {}
-    for obj in ysparse:
-        items = obj.split(',')
-        if items[0] == 'Row':
-            continue
-        if nodes[int(items[0])] not in Ybus:
-            Ybus[nodes[int(items[0])]] = {}
-        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
-    #print(Ybus)
-
     if cmpFlag:
+        ysparse,nodelist = sparql_mgr.ybus_export()
+
+        idx = 1
+        nodes = {}
+        for obj in nodelist:
+            nodes[idx] = obj.strip('\"')
+            idx += 1
+        #print(nodes)
+
+        Ybus = {}
+        for obj in ysparse:
+            items = obj.split(',')
+            if items[0] == 'Row':
+                continue
+            if nodes[int(items[0])] not in Ybus:
+                Ybus[nodes[int(items[0])]] = {}
+            Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+        #print(Ybus)
+
         # list of lists for the tabular report
         report = []
-
+    else:
+        Ybus = None
 
     #PowerTransformerEnd_xfmrs = 0
     PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys)
@@ -864,7 +865,9 @@ def _main():
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     log_file = open('power_transformer_validator.log', 'w')
 
-    start(log_file, feeder_mrid, model_api_topic)    
+    cmpFlag = False
+    Ysys = {}
+    start(log_file, feeder_mrid, model_api_topic, cmpFlag, Ysys)
 
 
 if __name__ == "__main__":
