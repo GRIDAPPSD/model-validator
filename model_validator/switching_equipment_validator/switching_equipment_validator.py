@@ -141,10 +141,24 @@ def compareY(is_Open, pair_b1, pair_b2, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
+def fillYsys(is_Open, bus1, bus2, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
 
-def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
-    print('\nSWITCHING_EQUIPMENT_VALIDATOR switches validation...\n', flush=True)
-    print('\nSWITCHING_EQUIPMENT_VALIDATOR switches validation...\n', file=logfile)
+    if bus2 in Ysys[bus1]:
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', flush=True)
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', file=logfile)
+
+    if is_Open:
+        Ysys[bus1][bus2] = complex(0.0, 0.0)
+    else:
+        Ysys[bus1][bus2] = complex(-500.0, 500.0)
+
+
+def validate_SwitchingEquipment_switches(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nSWITCHING_EQUIPMENT_VALIDATOR switches validation...\n', flush=True)
+        print('\nSWITCHING_EQUIPMENT_VALIDATOR switches validation...\n', file=logfile)
 
     # return # of switches validated
     switches_count = 0
@@ -156,16 +170,18 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nSWITCHING_EQUIPMENT_VALIDATOR switches: NO SWITCH MATCHES', flush=True)
-        print('\nSWITCHING_EQUIPMENT_VALIDATOR switches: NO SWITCH MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nSWITCHING_EQUIPMENT_VALIDATOR switches: NO SWITCH MATCHES', flush=True)
+            print('\nSWITCHING_EQUIPMENT_VALIDATOR switches: NO SWITCH MATCHES', file=logfile)
         return switches_count
 
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     # map transformer query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
@@ -183,68 +199,80 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus):
         #phases_side2 = obj['phases_side2']['value']
         #print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
 
-        print('Validating switch_name: ' + sw_name, flush=True)
-        print('Validating switch_name: ' + sw_name, file=logfile)
+        if cmpFlag:
+            print('Validating switch_name: ' + sw_name, flush=True)
+            print('Validating switch_name: ' + sw_name, file=logfile)
 
         if phases_side1 == '':
             # 3-phase switch
-            colorIdx11 = compareY(is_Open, bus1+'.1', bus2+'.1', Ybus)
-            colorIdx22 = compareY(is_Open, bus1+'.2', bus2+'.2', Ybus)
-            colorIdx33 = compareY(is_Open, bus1+'.3', bus2+'.3', Ybus)
-            switchColorIdx = max(colorIdx11, colorIdx22, colorIdx33)
+            if cmpFlag:
+                colorIdx11 = compareY(is_Open, bus1+'.1', bus2+'.1', Ybus)
+                colorIdx22 = compareY(is_Open, bus1+'.2', bus2+'.2', Ybus)
+                colorIdx33 = compareY(is_Open, bus1+'.3', bus2+'.3', Ybus)
+                switchColorIdx = max(colorIdx11, colorIdx22, colorIdx33)
+            else:
+                fillYsys(is_Open, bus1+'.1', bus2+'.1', Ysys)
+                fillYsys(is_Open, bus1+'.2', bus2+'.2', Ysys)
+                fillYsys(is_Open, bus1+'.3', bus2+'.3', Ysys)
 
         else:
             # 1- or 2-phase switch
             switchColorIdx = 0
             for phase in phases_side1:
                 if phase in ybusPhaseIdx:
-                    colorIdx = compareY(is_Open, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ybus)
-                    switchColorIdx = max(switchColorIdx, colorIdx)
-                else:
+                    if cmpFlag:
+                        colorIdx = compareY(is_Open, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ybus)
+                        switchColorIdx = max(switchColorIdx, colorIdx)
+                    else:
+                        fillYsys(is_Open, bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ysys)
+                elif cmpFlag:
                     print('    *** WARNING: switch phase other than A, B, or C found, ' + phases_side1 + ', for switch : ' + sw_name + '\n', flush=True)
                     print('    *** WARNING: switch phase other than A, B, or C found, ' + phases_side1 + ', for switch : ' + sw_name + '\n', file=logfile)
 
         switches_count += 1
 
-        if switchColorIdx == 0:
-            greenCount += 1
-        elif switchColorIdx == 1:
-            yellowCount += 1
-        else:
-            redCount += 1
+        if cmpFlag:
+            if switchColorIdx == 0:
+                greenCount += 1
+            elif switchColorIdx == 1:
+                yellowCount += 1
+            else:
+                redCount += 1
 
-        print("", flush=True)
-        print("", file=logfile)
+            print("", flush=True)
+            print("", file=logfile)
 
-    print("\nSummary for SwitchingEquipment switches:", flush=True)
-    print("\nSummary for SwitchingEquipment switches:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for SwitchingEquipment switches:", flush=True)
+        print("\nSummary for SwitchingEquipment switches:", file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for SwitchingEquipment switches", flush=True)
-    print("\nFinished validation for SwitchingEquipment switches", file=logfile)
+        print("\nFinished validation for SwitchingEquipment switches", flush=True)
+        print("\nFinished validation for SwitchingEquipment switches", file=logfile)
 
     return switches_count
 
 
-def start(log_file, feeder_mrid, model_api_topic):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
     global logfile
     logfile = log_file
 
-    print("\nSWITCHING_EQUIPMENT_VALIDATOR starting!!!-----------------------------------------")
-    print("\nSWITCHING_EQUIPMENT_VALIDATOR starting!!!-----------------------------------------", file=logfile)
+    if cmpFlag:
+        print("\nSWITCHING_EQUIPMENT_VALIDATOR starting!!!-----------------------------------------")
+        print("\nSWITCHING_EQUIPMENT_VALIDATOR starting!!!-----------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
 
@@ -252,43 +280,47 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
 
-    ysparse,nodelist = sparql_mgr.ybus_export()
+    if cmpFlag:
+        ysparse,nodelist = sparql_mgr.ybus_export()
 
-    idx = 1
-    nodes = {}
-    for obj in nodelist:
-        nodes[idx] = obj.strip('\"')
-        idx += 1
-    #print(nodes)
+        idx = 1
+        nodes = {}
+        for obj in nodelist:
+            nodes[idx] = obj.strip('\"')
+            idx += 1
+        #print(nodes)
 
-    Ybus = {}
-    for obj in ysparse:
-        items = obj.split(',')
-        if items[0] == 'Row':
-            continue
-        if nodes[int(items[0])] not in Ybus:
-            Ybus[nodes[int(items[0])]] = {}
-        Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
-    #print(Ybus)
+        Ybus = {}
+        for obj in ysparse:
+            items = obj.split(',')
+            if items[0] == 'Row':
+                continue
+            if nodes[int(items[0])] not in Ybus:
+                Ybus[nodes[int(items[0])]] = {}
+            Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
+        #print(Ybus)
 
-    # list of lists for the tabular report
-    report = []
-
-    SwitchingEquipment_switches = validate_SwitchingEquipment_switches(sparql_mgr, Ybus)
-    if SwitchingEquipment_switches > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append([SwitchingEquipment_switches, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        # list of lists for the tabular report
+        report = []
     else:
-        report.append([SwitchingEquipment_switches])
+        Ybus = None
 
-    print('\n', flush=True)
-    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
-    print('\n', file=logfile)
-    print(tabulate(report, headers=["# Switches", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+    SwitchingEquipment_switches = validate_SwitchingEquipment_switches(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if SwitchingEquipment_switches > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append([SwitchingEquipment_switches, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append([SwitchingEquipment_switches])
 
-    print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', flush=True)
-    print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', file=logfile)
+        print('\n', flush=True)
+        print(tabulate(report, headers=["# Switches", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+        print('\n', file=logfile)
+        print(tabulate(report, headers=["# Switches", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
+
+        print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', flush=True)
+        print('\nSWITCHING_EQUIPMENT_VALIDATOR DONE!!!', file=logfile)
 
 
 def _main():
@@ -308,7 +340,7 @@ def _main():
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     log_file = open('switching_equipment_validator.log', 'w')
 
-    start(log_file, feeder_mrid, model_api_topic)    
+    start(log_file, feeder_mrid, model_api_topic)
 
 
 if __name__ == "__main__":
