@@ -177,8 +177,8 @@ def fillYsys(bus1, bus2, Yval, Ysys):
         Ysys[bus1] = {}
 
     if bus2 in Ysys[bus1]:
-        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling transformer value\n', flush=True)
-        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling transformer value\n', file=logfile)
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling power transformer value\n', flush=True)
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling power transformer value\n', file=logfile)
 
     Ysys[bus1][bus2] = Yval
 
