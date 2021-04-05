@@ -172,9 +172,21 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
+def fillYsys(bus1, bus2, Yval, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
+
+    if bus2 in Ysys[bus1]:
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', flush=True)
+        print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', file=logfile)
+
+    Ysys[bus1][bus2] = Yval
+
+
+def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance validation...', file=logfile)
 
     # return # of lines validated
     line_count = 0
@@ -186,8 +198,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
         return line_count
 
     Zabc = {}
@@ -224,25 +237,27 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR PerLengthPhaseImpedance: NO LINE MATCHES', file=logfile)
         return line_count
 
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     last_name = ''
     for obj in bindings:
@@ -255,8 +270,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phase: ' + phase)
 
         if line_name!=last_name and line_config in Zabc:
-            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, flush=True)
-            print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, file=logfile)
+            if cmpFlag:
+                print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, flush=True)
+                print("\nValidating PerLengthPhaseImpedance line_name: " + line_name, file=logfile)
 
             last_name = line_name
             line_idx = 0
@@ -276,15 +292,18 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
         line_idx += 1
 
         if Ycomp.size == 1:
-            # do comparisons now
-            colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
+            if cmpFlag:
+                # do comparisons now
+                colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ybus)
 
-            if colorIdx == 0:
-                greenCount += 1
-            elif colorIdx == 1:
-                yellowCount += 1
+                if colorIdx == 0:
+                    greenCount += 1
+                elif colorIdx == 1:
+                    yellowCount += 1
+                else:
+                    redCount += 1
             else:
-                redCount += 1
+                fillYsys(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ysys)
 
         elif Ycomp.size == 4:
             if line_idx == 1:
@@ -294,18 +313,23 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i1b1 = bus1 + ybusPhaseIdx[phase]
                 pair_i1b2 = bus2 + ybusPhaseIdx[phase]
 
-                # do comparisons now
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
+                if cmpFlag:
+                    # do comparisons now
+                    colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                    colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                    colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                    colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
 
-                if colorIdx == 0:
-                    greenCount += 1
-                elif colorIdx == 1:
-                    yellowCount += 1
+                    if colorIdx == 0:
+                        greenCount += 1
+                    elif colorIdx == 1:
+                        yellowCount += 1
+                    else:
+                        redCount += 1
                 else:
-                    redCount += 1
+                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
 
         elif Ycomp.size == 9:
             if line_idx == 1:
@@ -318,58 +342,68 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus):
                 pair_i2b1 = bus1 + ybusPhaseIdx[phase]
                 pair_i2b2 = bus2 + ybusPhaseIdx[phase]
 
-                # do comparisons now
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
+                if cmpFlag:
+                    # do comparisons now
+                    colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                    colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                    colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                    colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                    colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                    colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
+                    colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
-                if colorIdx == 0:
-                    greenCount += 1
-                elif colorIdx == 1:
-                    yellowCount += 1
+                    if colorIdx == 0:
+                        greenCount += 1
+                    elif colorIdx == 1:
+                        yellowCount += 1
+                    else:
+                        redCount += 1
                 else:
-                    redCount += 1
+                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsys(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
+                    fillYsys(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
+                    fillYsys(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
 
-    print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
-    print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
+        print("\nSummary for PerLengthPhaseImpedance lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
-    print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
+        print("\nFinished validation for PerLengthPhaseImpedance lines", flush=True)
+        print("\nFinished validation for PerLengthPhaseImpedance lines", file=logfile)
 
     return line_count
 
 
-def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', file=logfile)
+def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', flush=True)
+        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance validation...', file=logfile)
 
     # return # of lines validated
     line_count = 0
@@ -381,8 +415,9 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
         return line_count
 
     Zabc = {}
@@ -412,22 +447,24 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR PerLengthSequenceImpedance: NO LINE MATCHES', file=logfile)
         return line_count
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -437,8 +474,9 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
         line_config = obj['line_config']['value']
         #print('line_name: ' + line_name + ', line_config: ' + line_config + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2)
 
-        print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, flush=True)
-        print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, file=logfile)
+        if cmpFlag:
+            print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, flush=True)
+            print("\nValidating PerLengthSequenceImpedance line_name: " + line_name, file=logfile)
 
         # multiply by scalar length
         lenZabc = Zabc[line_config] * length
@@ -452,58 +490,68 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus):
 
         line_count += 1
 
-        # do comparisons now
-        colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
-        colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
-        colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
-        colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
-        colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
-        colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
-        colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
+        if cmpFlag:
+            # do comparisons now
+            colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
+            colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
+            colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
+            colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
+            colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
+            colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+            colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
-        if colorIdx == 0:
-            greenCount += 1
-        elif colorIdx == 1:
-            yellowCount += 1
+            if colorIdx == 0:
+                greenCount += 1
+            elif colorIdx == 1:
+                yellowCount += 1
+            else:
+                redCount += 1
         else:
-            redCount += 1
+            fillYsys(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
+            fillYsys(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
+            fillYsys(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
+            fillYsys(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
+            fillYsys(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
+            fillYsys(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
 
-    print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
-    print("\nSummary for PerLengthSequenceImpedance lines:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
+        print("\nSummary for PerLengthSequenceImpedance lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for PerLengthSequenceImpedance lines", flush=True)
-    print("\nFinished validation for PerLengthSequenceImpedance lines", file=logfile)
+        print("\nFinished validation for PerLengthSequenceImpedance lines", flush=True)
+        print("\nFinished validation for PerLengthSequenceImpedance lines", file=logfile)
 
     return line_count
 
 
-def validate_ACLineSegment_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
+def validate_ACLineSegment_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', flush=True)
+        print('\nLINE_MODEL_VALIDATOR ACLineSegment validation...', file=logfile)
 
     # return # of lines validated
     line_count = 0
@@ -515,22 +563,24 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR ACLineSegment: NO LINE MATCHES', file=logfile)
         return line_count
 
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     for obj in bindings:
         line_name = obj['line_name']['value']
@@ -546,8 +596,9 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
         #b0 = float(obj['b0_S']['value'])
         #print('line_name: ' + line_name + ', length: ' + str(length) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', r1: ' + str(r1) + ', x1: ' + str(x1) + ', r0: ' + str(r0) + ', x0: ' + str(x0))
 
-        print("\nValidating ACLineSegment line_name: " + line_name, flush=True)
-        print("\nValidating ACLineSegment line_name: " + line_name, file=logfile)
+        if cmpFlag:
+            print("\nValidating ACLineSegment line_name: " + line_name, flush=True)
+            print("\nValidating ACLineSegment line_name: " + line_name, file=logfile)
 
         Zs = complex((r0 + 2.0*r1)/3.0, (x0 + 2.0*x1)/3.0)
         Zm = complex((r0 - r1)/3.0, (x0 - x1)/3.0)
@@ -569,51 +620,60 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus):
 
         line_count += 1
 
-        # do comparisons now
-        colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
-        colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
-        colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
-        colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
-        colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
-        colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
-        colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
+        if cmpFlag:
+            # do comparisons now
+            colorIdx00 = compareY(bus1+'.1', bus2+'.1', Ycomp[0,0], Ybus)
+            colorIdx10 = compareY(bus1+'.2', bus2+'.1', Ycomp[1,0], Ybus)
+            colorIdx11 = compareY(bus1+'.2', bus2+'.2', Ycomp[1,1], Ybus)
+            colorIdx20 = compareY(bus1+'.3', bus2+'.1', Ycomp[2,0], Ybus)
+            colorIdx21 = compareY(bus1+'.3', bus2+'.2', Ycomp[2,1], Ybus)
+            colorIdx22 = compareY(bus1+'.3', bus2+'.3', Ycomp[2,2], Ybus)
+            colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
 
-        if colorIdx == 0:
-            greenCount += 1
-        elif colorIdx == 1:
-            yellowCount += 1
+            if colorIdx == 0:
+                greenCount += 1
+            elif colorIdx == 1:
+                yellowCount += 1
+            else:
+                redCount += 1
         else:
-            redCount += 1
+            fillYsys(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
+            fillYsys(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
+            fillYsys(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
+            fillYsys(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
+            fillYsys(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
+            fillYsys(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
 
-    print("\nSummary for ACLineSegment lines:", flush=True)
-    print("\nSummary for ACLineSegment lines:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for ACLineSegment lines:", flush=True)
+        print("\nSummary for ACLineSegment lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for ACLineSegment lines", flush=True)
-    print("\nFinished validation for ACLineSegment lines", file=logfile)
+        print("\nFinished validation for ACLineSegment lines", flush=True)
+        print("\nFinished validation for ACLineSegment lines", file=logfile)
 
     return line_count
 
@@ -758,9 +818,10 @@ def offDiagZprim(i, j, wireinfo, wire_spacing_info, wire_cn_ts, XCoord, YCoord, 
     return Zprim
 
 
-def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
-    print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', flush=True)
-    print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', file=logfile)
+def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
+    if cmpFlag:
+        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', flush=True)
+        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo validation...', file=logfile)
 
     # return # of lines validated
     line_count = 0
@@ -884,23 +945,25 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
     #print(bindings, file=logfile)
 
     if len(bindings) == 0:
-        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', flush=True)
-        print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', file=logfile)
+        if cmpFlag:
+            print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', flush=True)
+            print('\nLINE_MODEL_VALIDATOR WireInfo_and_WireSpacingInfo: NO LINE MATCHES', file=logfile)
         return line_count
 
-    # initialize summary statistics
-    global minPercentDiffReal, maxPercentDiffReal
-    minPercentDiffReal = sys.float_info.max
-    maxPercentDiffReal = -sys.float_info.max
-    global minPercentDiffImag, maxPercentDiffImag
-    minPercentDiffImag = sys.float_info.max
-    maxPercentDiffImag = -sys.float_info.max
-    global greenCountReal, yellowCountReal, redCountReal
-    greenCountReal = yellowCountReal = redCountReal = 0
-    global greenCountImag, yellowCountImag, redCountImag
-    greenCountImag = yellowCountImag = redCountImag = 0
-    global greenCount, yellowCount, redCount
-    greenCount = yellowCount = redCount = 0
+    if cmpFlag:
+        # initialize summary statistics
+        global minPercentDiffReal, maxPercentDiffReal
+        minPercentDiffReal = sys.float_info.max
+        maxPercentDiffReal = -sys.float_info.max
+        global minPercentDiffImag, maxPercentDiffImag
+        minPercentDiffImag = sys.float_info.max
+        maxPercentDiffImag = -sys.float_info.max
+        global greenCountReal, yellowCountReal, redCountReal
+        greenCountReal = yellowCountReal = redCountReal = 0
+        global greenCountImag, yellowCountImag, redCountImag
+        greenCountImag = yellowCountImag = redCountImag = 0
+        global greenCount, yellowCount, redCount
+        greenCount = yellowCount = redCount = 0
 
     # map line_name query phase values to nodelist indexes
     ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 'N': '.4', 's1': '.1', 's2': '.2'}
@@ -965,8 +1028,9 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
                 if dim == 2:
                     Zprim = np.empty((3,3), dtype=complex)
                 else:
-                    print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), flush=True)
-                    print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), file=logfile)
+                    if cmpFlag:
+                        print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), flush=True)
+                        print('WARNING: TapeShieldCableInfo implementation only supports 1 phase and not the number found: ' + str(dim-1), file=logfile)
                     tape_skip = True
                     continue
 
@@ -1060,12 +1124,13 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
         # to know when to trigger the Ybus comparison code
         # for ConcentricNeutralCableInfo, a flag is the easiest
         if (wireinfo=='OverheadWireInfo' and phase == 'N') or (wireinfo=='ConcentricNeutralCableInfo' and CN_done):
-            if line_name == tape_line:
-                print("\nValidating TapeShieldCableInfo line_name: " + line_name, flush=True)
-                print("\nValidating TapeShieldCableInfo line_name: " + line_name, file=logfile)
-            else:
-                print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
-                print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
+            if cmpFlag:
+                if line_name == tape_line:
+                    print("\nValidating TapeShieldCableInfo line_name: " + line_name, flush=True)
+                    print("\nValidating TapeShieldCableInfo line_name: " + line_name, file=logfile)
+                else:
+                    print("\nValidating " + wireinfo + " line_name: " + line_name, flush=True)
+                    print("\nValidating " + wireinfo + " line_name: " + line_name, file=logfile)
 
             if wireinfo == 'ConcentricNeutralCableInfo':
                 # the Z-hat slicing below is based on having an 'N' phase so need to
@@ -1096,73 +1161,92 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus):
             line_count += 1
 
             if Ycomp.size == 1:
-                colorIdx = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                if cmpFlag:
+                    colorIdx = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                else:
+                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
 
             elif Ycomp.size == 4:
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
+                if cmpFlag:
+                    colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                    colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                    colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                    colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
+                else:
+                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
 
             elif Ycomp.size == 9:
-                colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
-                colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
-                colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
-                colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
-                colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
-                colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
-                colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
+                if cmpFlag:
+                    colorIdx00 = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
+                    colorIdx10 = compareY(pair_i1b1, pair_i0b2, Ycomp[1,0], Ybus)
+                    colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
+                    colorIdx20 = compareY(pair_i2b1, pair_i0b2, Ycomp[2,0], Ybus)
+                    colorIdx21 = compareY(pair_i2b1, pair_i1b2, Ycomp[2,1], Ybus)
+                    colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
+                    colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
+                else:
+                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsys(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
+                    fillYsys(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
+                    fillYsys(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
 
-            if colorIdx == 0:
-                greenCount += 1
-            elif colorIdx == 1:
-                yellowCount += 1
-            else:
-                redCount += 1
+            if cmpFlag:
+                if colorIdx == 0:
+                    greenCount += 1
+                elif colorIdx == 1:
+                    yellowCount += 1
+                else:
+                    redCount += 1
 
             phaseIdx = 0
         else:
             phaseIdx += 1
 
-    print("\nSummary for WireInfo_and_WireSpacingInfo lines:", flush=True)
-    print("\nSummary for WireInfo_and_WireSpacingInfo lines:", file=logfile)
+    if cmpFlag:
+        print("\nSummary for WireInfo_and_WireSpacingInfo lines:", flush=True)
+        print("\nSummary for WireInfo_and_WireSpacingInfo lines:", file=logfile)
 
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
-    print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
-    print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), flush=True)
+        print("\nReal minimum % difference:" + "{:11.6f}".format(minPercentDiffReal), file=logfile)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), flush=True)
+        print("Real maximum % difference:" + "{:11.6f}".format(maxPercentDiffReal), file=logfile)
 
-    print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
-    print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
-    print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
-    print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
-    print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
-    print("Real \u25cf  count: " + str(redCountReal), file=logfile)
+        print("\nReal \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountReal), flush=True)
+        print("\nReal \u25cb  count: " + str(greenCountReal), file=logfile)
+        print("Real \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountReal), flush=True)
+        print("Real \u25d1  count: " + str(yellowCountReal), file=logfile)
+        print("Real \u001b[31m\u25cf\u001b[37m  count: " + str(redCountReal), flush=True)
+        print("Real \u25cf  count: " + str(redCountReal), file=logfile)
 
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
-    print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
-    print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), flush=True)
+        print("\nImag minimum % difference:" + "{:11.6f}".format(minPercentDiffImag), file=logfile)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), flush=True)
+        print("Imag maximum % difference:" + "{:11.6f}".format(maxPercentDiffImag), file=logfile)
 
-    print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
-    print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
-    print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
-    print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
-    print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
-    print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
+        print("\nImag \u001b[32m\u25cf\u001b[37m  count: " + str(greenCountImag), flush=True)
+        print("\nImag \u25cb  count: " + str(greenCountImag), file=logfile)
+        print("Imag \u001b[33m\u25cf\u001b[37m  count: " + str(yellowCountImag), flush=True)
+        print("Imag \u25d1  count: " + str(yellowCountImag), file=logfile)
+        print("Imag \u001b[31m\u25cf\u001b[37m  count: " + str(redCountImag), flush=True)
+        print("Imag \u25cf  count: " + str(redCountImag), file=logfile)
 
-    print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", flush=True)
-    print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", file=logfile)
+        print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", flush=True)
+        print("\nFinished validation for WireInfo_and_WireSpacingInfo lines", file=logfile)
 
     return line_count
 
 
-def start(log_file, feeder_mrid, model_api_topic):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
     global logfile
     logfile = log_file
 
-    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------")
-    print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------", file=logfile)
+    if cmpFlag:
+        print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------")
+        print("\nLINE_MODEL_VALIDATOR starting!!!----------------------------------------------------", file=logfile)
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
 
@@ -1189,53 +1273,53 @@ def start(log_file, feeder_mrid, model_api_topic):
         Ybus[nodes[int(items[0])]][nodes[int(items[1])]] = complex(float(items[2]), float(items[3]))
     #print(Ybus)
 
-    # list of lists for the tabular report
-    report = []
+    if cmpFlag:
+        # list of lists for the tabular report
+        report = []
 
-    PerLengthPhaseImpedance_lines = validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus)
+    PerLengthPhaseImpedance_lines = validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if PerLengthPhaseImpedance_lines > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines])
 
-    if PerLengthPhaseImpedance_lines > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["PerLengthPhaseImpedance", PerLengthPhaseImpedance_lines])
+    PerLengthSequenceImpedance_lines = validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if PerLengthSequenceImpedance_lines > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines])
 
-    PerLengthSequenceImpedance_lines = validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus)
+    ACLineSegment_lines = validate_ACLineSegment_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if ACLineSegment_lines > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["ACLineSegment", ACLineSegment_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["ACLineSegment", ACLineSegment_lines])
 
-    if PerLengthSequenceImpedance_lines > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["PerLengthSequenceImpedance", PerLengthSequenceImpedance_lines])
+    WireInfo_and_WireSpacingInfo_lines = validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
+    if cmpFlag:
+        if WireInfo_and_WireSpacingInfo_lines > 0:
+            count = greenCount + yellowCount + redCount
+            VI = float(count - redCount)/float(count)
+            report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+        else:
+            report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines])
 
-    ACLineSegment_lines = validate_ACLineSegment_lines(sparql_mgr, Ybus)
+        print('\n', flush=True)
+        print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
+        print('\n', file=logfile)
+        print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
 
-    if ACLineSegment_lines > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["ACLineSegment", ACLineSegment_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["ACLineSegment", ACLineSegment_lines])
-
-    WireInfo_and_WireSpacingInfo_lines = validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus)
-
-    if WireInfo_and_WireSpacingInfo_lines > 0:
-        count = greenCount + yellowCount + redCount
-        VI = float(count - redCount)/float(count)
-        report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
-    else:
-        report.append(["WireInfo_and_WireSpacingInfo", WireInfo_and_WireSpacingInfo_lines])
-
-    print('\n', flush=True)
-    print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, True), diffColor(1, True), diffColor(2, True)], tablefmt="fancy_grid"), flush=True)
-    print('\n', file=logfile)
-    print(tabulate(report, headers=["Line Type", "# Lines", "VI", diffColor(0, False), diffColor(1, False), diffColor(2, False)], tablefmt="fancy_grid"), file=logfile)
-
-    print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
-    print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
-
+        print('\nLINE_MODEL_VALIDATOR DONE!!!', flush=True)
+        print('\nLINE_MODEL_VALIDATOR DONE!!!', file=logfile)
 
 
 def _main():
@@ -1255,7 +1339,7 @@ def _main():
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     log_file = open('line_model_validator.log', 'w')
 
-    start(log_file, feeder_mrid, model_api_topic)    
+    start(log_file, feeder_mrid, model_api_topic)
 
 
 if __name__ == "__main__":
