@@ -172,7 +172,7 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def fillYsys(bus1, bus2, Yval, Ysys):
+def fillYsysUnique(bus1, bus2, Yval, Ysys):
     if bus1 not in Ysys:
         Ysys[bus1] = {}
 
@@ -181,6 +181,36 @@ def fillYsys(bus1, bus2, Yval, Ysys):
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', file=logfile)
 
     Ysys[bus1][bus2] = Yval
+
+
+def fillYsysAdd(bus1, bus2, Yval, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
+
+    if bus2 in Ysys[bus1]:
+        Ysys[bus1][bus2] += Yval
+    else:
+        Ysys[bus1][bus2] = Yval
+
+
+def fillYsysNoSwap(bus1, bus2, Yval, Ysys):
+    #print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
+    fillYsysUnique(bus1, bus2, Yval, Ysys)
+    fillYsysAdd(bus1, bus1, -Yval, Ysys)
+    fillYsysAdd(bus2, bus2, -Yval, Ysys)
+
+
+def fillYsysSwap(bus1, bus2, Yval, Ysys):
+    #print('fillYsysSwap bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
+    fillYsysUnique(bus1, bus2, Yval, Ysys)
+
+    # extract the node and phase from bus1 and bus2
+    node1,phase1 = bus1.split('.')
+    node2,phase2 = bus2.split('.')
+
+    # mix-and-match nodes and phases for filling Ysys
+    fillYsysAdd(bus1, node1+'.'+phase2, -Yval, Ysys)
+    fillYsysAdd(node2+'.'+phase1, bus2, -Yval, Ysys)
 
 
 def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
@@ -303,7 +333,7 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
                 else:
                     redCount += 1
             else:
-                fillYsys(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ysys)
+                fillYsysNoSwap(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], Ycomp[0,0], Ysys)
 
         elif Ycomp.size == 4:
             if line_idx == 1:
@@ -327,9 +357,9 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
                     else:
                         redCount += 1
                 else:
-                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsysNoSwap(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsysSwap(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsysNoSwap(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
 
         elif Ycomp.size == 9:
             if line_idx == 1:
@@ -359,12 +389,12 @@ def validate_PerLengthPhaseImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
                     else:
                         redCount += 1
                 else:
-                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
-                    fillYsys(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
-                    fillYsys(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
-                    fillYsys(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
+                    fillYsysNoSwap(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsysSwap(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsysNoSwap(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsysSwap(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
+                    fillYsysSwap(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
+                    fillYsysNoSwap(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
 
     if cmpFlag:
         print("\nSummary for PerLengthPhaseImpedance lines:", flush=True)
@@ -507,12 +537,12 @@ def validate_PerLengthSequenceImpedance_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
             else:
                 redCount += 1
         else:
-            fillYsys(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
-            fillYsys(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
-            fillYsys(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
-            fillYsys(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
-            fillYsys(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
-            fillYsys(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
+            fillYsysNoSwap(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
+            fillYsysSwap(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
+            fillYsysNoSwap(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
+            fillYsysSwap(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
+            fillYsysSwap(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
+            fillYsysNoSwap(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
 
     if cmpFlag:
         print("\nSummary for PerLengthSequenceImpedance lines:", flush=True)
@@ -637,12 +667,12 @@ def validate_ACLineSegment_lines(sparql_mgr, Ybus, cmpFlag, Ysys):
             else:
                 redCount += 1
         else:
-            fillYsys(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
-            fillYsys(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
-            fillYsys(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
-            fillYsys(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
-            fillYsys(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
-            fillYsys(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
+            fillYsysNoSwap(bus1+'.1', bus2+'.1', Ycomp[0,0], Ysys)
+            fillYsysSwap(bus1+'.2', bus2+'.1', Ycomp[1,0], Ysys)
+            fillYsysNoSwap(bus1+'.2', bus2+'.2', Ycomp[1,1], Ysys)
+            fillYsysSwap(bus1+'.3', bus2+'.1', Ycomp[2,0], Ysys)
+            fillYsysSwap(bus1+'.3', bus2+'.2', Ycomp[2,1], Ysys)
+            fillYsysNoSwap(bus1+'.3', bus2+'.3', Ycomp[2,2], Ysys)
 
     if cmpFlag:
         print("\nSummary for ACLineSegment lines:", flush=True)
@@ -1164,7 +1194,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
                 if cmpFlag:
                     colorIdx = compareY(pair_i0b1, pair_i0b2, Ycomp[0,0], Ybus)
                 else:
-                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsysNoSwap(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
 
             elif Ycomp.size == 4:
                 if cmpFlag:
@@ -1173,9 +1203,9 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
                     colorIdx11 = compareY(pair_i1b1, pair_i1b2, Ycomp[1,1], Ybus)
                     colorIdx = max(colorIdx00, colorIdx10, colorIdx11)
                 else:
-                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsysNoSwap(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsysSwap(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsysNoSwap(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
 
             elif Ycomp.size == 9:
                 if cmpFlag:
@@ -1187,12 +1217,12 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
                     colorIdx22 = compareY(pair_i2b1, pair_i2b2, Ycomp[2,2], Ybus)
                     colorIdx = max(colorIdx00, colorIdx10, colorIdx11, colorIdx20, colorIdx21, colorIdx22)
                 else:
-                    fillYsys(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
-                    fillYsys(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
-                    fillYsys(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
-                    fillYsys(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
-                    fillYsys(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
+                    fillYsysNoSwap(pair_i0b1, pair_i0b2, Ycomp[0,0], Ysys)
+                    fillYsysSwap(pair_i1b1, pair_i0b2, Ycomp[1,0], Ysys)
+                    fillYsysNoSwap(pair_i1b1, pair_i1b2, Ycomp[1,1], Ysys)
+                    fillYsysSwap(pair_i2b1, pair_i0b2, Ycomp[2,0], Ysys)
+                    fillYsysSwap(pair_i2b1, pair_i1b2, Ycomp[2,1], Ysys)
+                    fillYsysNoSwap(pair_i2b1, pair_i2b2, Ycomp[2,2], Ysys)
 
             if cmpFlag:
                 if colorIdx == 0:

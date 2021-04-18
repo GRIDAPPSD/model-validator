@@ -141,7 +141,7 @@ def compareY(pair_b1, pair_b2, is_Open, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def fillYsys(bus1, bus2, is_Open, Ysys):
+def fillYsysUnique(bus1, bus2, Ysys):
     if bus1 not in Ysys:
         Ysys[bus1] = {}
 
@@ -149,8 +149,25 @@ def fillYsys(bus1, bus2, is_Open, Ysys):
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', file=logfile)
 
+    Ysys[bus1][bus2] = complex(-500.0, 500.0)
+
+
+def fillYsysAdd(bus1, bus2, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
+
+    if bus2 in Ysys[bus1]:
+        Ysys[bus1][bus2] += complex(500.0, -500.0)
+    else:
+        Ysys[bus1][bus2] = complex(500.0, -500.0)
+
+
+def fillYsysNoSwap(bus1, bus2, is_Open, Ysys):
+    print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2 + ', is_Open: ' + str(is_Open), flush=True)
     if not is_Open:
-        Ysys[bus1][bus2] = complex(-500.0, 500.0)
+        fillYsysUnique(bus1, bus2, Ysys)
+        fillYsysAdd(bus1, bus1, Ysys)
+        fillYsysAdd(bus2, bus2, Ysys)
 
 
 def validate_SwitchingEquipment_switches(sparql_mgr, Ybus, cmpFlag, Ysys):
@@ -203,26 +220,28 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus, cmpFlag, Ysys):
 
         if phases_side1 == '':
             # 3-phase switch
+            #print('3-phase switch found bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
             if cmpFlag:
                 colorIdx11 = compareY(bus1+'.1', bus2+'.1', is_Open, Ybus)
                 colorIdx22 = compareY(bus1+'.2', bus2+'.2', is_Open, Ybus)
                 colorIdx33 = compareY(bus1+'.3', bus2+'.3', is_Open, Ybus)
                 switchColorIdx = max(colorIdx11, colorIdx22, colorIdx33)
             else:
-                fillYsys(bus1+'.1', bus2+'.1', is_Open, Ysys)
-                fillYsys(bus1+'.2', bus2+'.2', is_Open, Ysys)
-                fillYsys(bus1+'.3', bus2+'.3', is_Open, Ysys)
+                fillYsysNoSwap(bus1+'.1', bus2+'.1', is_Open, Ysys)
+                fillYsysNoSwap(bus1+'.2', bus2+'.2', is_Open, Ysys)
+                fillYsysNoSwap(bus1+'.3', bus2+'.3', is_Open, Ysys)
 
         else:
             # 1- or 2-phase switch
             switchColorIdx = 0
             for phase in phases_side1:
+                #print('1/2-phase switch found phase: ' + phase + ', bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
                 if phase in ybusPhaseIdx:
                     if cmpFlag:
                         colorIdx = compareY(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], is_Open, Ybus)
                         switchColorIdx = max(switchColorIdx, colorIdx)
                     else:
-                        fillYsys(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], is_Open, Ysys)
+                        fillYsysNoSwap(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], is_Open, Ysys)
                 elif cmpFlag:
                     print('    *** WARNING: switch phase other than A, B, or C found, ' + phases_side1 + ', for switch : ' + sw_name + '\n', flush=True)
                     print('    *** WARNING: switch phase other than A, B, or C found, ' + phases_side1 + ', for switch : ' + sw_name + '\n', file=logfile)
