@@ -172,7 +172,7 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
     return max(realColorIdx, imagColorIdx)
 
 
-def fillYsys(bus1, bus2, Yval, Ysys):
+def fillYsysUnique(bus1, bus2, Yval, Ysys):
     if bus1 not in Ysys:
         Ysys[bus1] = {}
 
@@ -181,6 +181,16 @@ def fillYsys(bus1, bus2, Yval, Ysys):
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling power transformer value\n', file=logfile)
 
     Ysys[bus1][bus2] = Yval
+
+
+def fillYsysAdd(bus1, bus2, Yval, Ysys):
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
+
+    if bus2 in Ysys[bus1]:
+        Ysys[bus1][bus2] += Yval
+    else:
+        Ysys[bus1][bus2] = Yval
 
 
 def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
@@ -362,35 +372,32 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
         Ycomp = np.matmul(ANB_invZB_BpNp, np.transpose(A))
         #print(Ycomp)
 
+        bus1 = Bus[xfmr_name][1]
+        bus2 = Bus[xfmr_name][2]
+
+        # set special case flag that indicates if we need to swap the phases
+        # for each bus to do the Ybus matching
+        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
+
         if cmpFlag:
             print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, flush=True)
             print('Validating PowerTranformerEnd transformer_name: ' + xfmr_name, file=logfile)
 
-        # do Ybus comparisons and determine overall transformer status color
-        # set special case flag that indicates if we need to swap the phases
-        # for each bus to do the Ybus matching
-        connect_DY_flag = Connection[xfmr_name][1]=='D' and Connection[xfmr_name][2]=='Y'
-        xfmrColorIdx = 0
-        for row in range(4, 7):
-            for col in range(0, 3):
-                Yval = Ycomp[row,col]
-                if Yval != 0j:
-                    if connect_DY_flag:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                    else:
-                        bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
-                        bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
+            # do Ybus comparisons and determine overall transformer status color
+            xfmrColorIdx = 0
+            for row in range(4, 7):
+                for col in range(0, 3):
+                    Yval = Ycomp[row,col]
+                    if Yval != 0j:
+                        if connect_DY_flag:
+                            colorIdx = compareY(bus1+'.'+str(row-3), bus2+'.'+str(col+1), Yval, Ybus)
+                        else:
+                            colorIdx = compareY(bus1+'.'+str(col+1), bus2+'.'+str(row-3), Yval, Ybus)
 
-                    if cmpFlag:
-                        colorIdx = compareY(bus1, bus2, Yval, Ybus)
                         xfmrColorIdx = max(xfmrColorIdx, colorIdx)
-                    else:
-                        fillYsys(bus1, bus2, Yval, Ysys)
 
-        xfmrs_count += 1
+            xfmrs_count += 1
 
-        if cmpFlag:
             if xfmrColorIdx == 0:
                 greenCount += 1
             elif xfmrColorIdx == 1:
@@ -400,6 +407,59 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
 
             print("", flush=True)
             print("", file=logfile)
+
+        else:
+            # delete row and column 8 and 4 making a 6x6 matrix
+            Ycomp = np.delete(Ycomp, 7, 0)
+            Ycomp = np.delete(Ycomp, 7, 1)
+            Ycomp = np.delete(Ycomp, 3, 0)
+            Ycomp = np.delete(Ycomp, 3, 1)
+
+            if connect_DY_flag:
+                fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+            else:
+                fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+                fillYsysAdd(bus1+'.1', bus1+'.2', Ycomp[1,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+                fillYsysAdd(bus1+'.1', bus1+'.3', Ycomp[2,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
+                fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
+                fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+                fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+
 
     if cmpFlag:
         print("\nSummary for PowerTransformerEnd transformers:", flush=True)
@@ -688,41 +748,94 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
             print('Validating TranformerTank transformer_name: ' + xfmr_name, file=logfile)
 
         if Bkey == '3p':
-            for row in range(4, 7):
-                for col in range(0, 3):
-                    Yval = Ycomp[row,col]
-                    if Yval != 0j:
-                        # special case where we need to swap the phases
-                        # for each bus to do the Ybus matching
-                        if Akey == '3p_DY':
-                            bus1 = Bus[xfmr_name][1] + '.' + str(row-3)
-                            bus2 = Bus[xfmr_name][2] + '.' + str(col+1)
-                        else:
-                            bus1 = Bus[xfmr_name][1] + '.' + str(col+1)
-                            bus2 = Bus[xfmr_name][2] + '.' + str(row-3)
+            bus1 = Bus[xfmr_name][1]
+            bus2 = Bus[xfmr_name][2]
 
-                        if cmpFlag:
-                            colorIdx = compareY(bus1, bus2, Yval, Ybus)
+            if cmpFlag:
+                for row in range(4, 7):
+                    for col in range(0, 3):
+                        Yval = Ycomp[row,col]
+                        if Yval != 0j:
+                            # special case where we need to swap the phases
+                            # for each bus to do the Ybus matching
+                            if Akey == '3p_DY':
+                                colorIdx = compareY(bus1+'.'+str(row-3), bus2+'.'+str(col+1), Yval, Ybus)
+                            else:
+                                colorIdx = compareY(bus1+'.'+str(col+1), bus2+'.'+str(row-3), Yval, Ybus)
+
                             xfmrColorIdx = max(xfmrColorIdx, colorIdx)
-                        else:
-                            fillYsys(bus1, bus2, Yval, Ysys)
+            else:
+                # delete row and column 8 and 4 making a 6x6 matrix
+                Ycomp = np.delete(Ycomp, 7, 0)
+                Ycomp = np.delete(Ycomp, 7, 1)
+                Ycomp = np.delete(Ycomp, 3, 0)
+                Ycomp = np.delete(Ycomp, 3, 1)
+
+                if Akey == '3p_DY':
+                    fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+                    fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
+                    fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+                    fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
+                    fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
+                    fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                    fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
+                    fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
+                    fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+                    fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
+                    fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
+                    fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+                else:
+                    fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+                    fillYsysAdd(bus1+'.1', bus1+'.2', Ycomp[1,0], Ysys)
+                    fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+                    fillYsysAdd(bus1+'.1', bus1+'.3', Ycomp[2,0], Ysys)
+                    fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
+                    fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
+                    fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
+                    fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
+                    fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+                    fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
+                    fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
+                    fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
 
         elif Bkey == '3w':
-            bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
-            bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
-            Yval = Ycomp[2,0]
             if cmpFlag:
+                bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
+                bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
+                Yval = Ycomp[2,0]
                 colorIdx20 = compareY(bus1, bus2, Yval, Ybus)
-            else:
-                fillYsys(bus1, bus2, Yval, Ysys)
 
-            bus2 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
-            Yval = Ycomp[5,0]
-            if cmpFlag:
-                colorIdx50 = compareY(bus1, bus2, Yval, Ybus)
+                bus3 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
+                Yval = Ycomp[5,0]
+                colorIdx50 = compareY(bus1, bus3, Yval, Ybus)
                 xfmrColorIdx = max(colorIdx20, colorIdx50)
+
             else:
-                fillYsys(bus1, bus2, Yval, Ysys)
+                print('TransformerTank Bkey=3w case Ycomp size: ' + str(Ycomp.size), flush=True)
+                BOOT=0
+                # delete row and column 6 and 3 making a 4x4 matrix
+                Ycomp = np.delete(Ycomp, 5, 0)
+                Ycomp = np.delete(Ycomp, 5, 1)
+                Ycomp = np.delete(Ycomp, 2, 0)
+                Ycomp = np.delete(Ycomp, 2, 1)
 
         else:
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
@@ -732,11 +845,19 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
             if cmpFlag:
                 xfmrColorIdx = compareY(bus1, bus2, Yval, Ybus)
             else:
-                fillYsys(bus1, bus2, Yval, Ysys)
+                # delete row and column 4 and 2 making a 2x2 matrix
+                Ycomp = np.delete(Ycomp, 3, 0)
+                Ycomp = np.delete(Ycomp, 3, 1)
+                Ycomp = np.delete(Ycomp, 1, 0)
+                Ycomp = np.delete(Ycomp, 1, 1)
 
-        xfmrs_count += 1
+                fillYsysAdd(bus1, bus1, Ycomp[0,0], Ysys)
+                fillYsysUnique(bus2, bus1, Ycomp[1,0], Ysys)
+                fillYsysAdd(bus2, bus2, Ycomp[1,1], Ysys)
 
         if cmpFlag:
+            xfmrs_count += 1
+
             if xfmrColorIdx == 0:
                 greenCount += 1
             elif xfmrColorIdx == 1:
@@ -865,10 +986,9 @@ def _main():
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     log_file = open('power_transformer_validator.log', 'w')
 
-    cmpFlag = False
-    Ysys = {}
-    start(log_file, feeder_mrid, model_api_topic, cmpFlag, Ysys)
+    start(log_file, feeder_mrid, model_api_topic)
 
 
 if __name__ == "__main__":
     _main()
+
