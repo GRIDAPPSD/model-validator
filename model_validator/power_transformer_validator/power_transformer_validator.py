@@ -817,25 +817,37 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                     fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
 
         elif Bkey == '3w':
+            bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
+            bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
+            bus3 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
+
             if cmpFlag:
-                bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
-                bus2 = Bus[xfmr_name][2] + ybusPhaseIdx[Phase[xfmr_name][2]]
                 Yval = Ycomp[2,0]
                 colorIdx20 = compareY(bus1, bus2, Yval, Ybus)
 
-                bus3 = Bus[xfmr_name][3] + ybusPhaseIdx[Phase[xfmr_name][3]]
                 Yval = Ycomp[5,0]
                 colorIdx50 = compareY(bus1, bus3, Yval, Ybus)
                 xfmrColorIdx = max(colorIdx20, colorIdx50)
 
             else:
-                print('TransformerTank Bkey=3w case Ycomp size: ' + str(Ycomp.size), flush=True)
-                BOOT=0
-                # delete row and column 6 and 3 making a 4x4 matrix
-                Ycomp = np.delete(Ycomp, 5, 0)
-                Ycomp = np.delete(Ycomp, 5, 1)
-                Ycomp = np.delete(Ycomp, 2, 0)
-                Ycomp = np.delete(Ycomp, 2, 1)
+                # split phase transformers are a bit tricky, but Shiva
+                # figured out how it needs to be done with reducing the
+                # matrix and how the 3 buses come into it
+
+                # delete row and column 5, 4, and 2 making a 3x3 matrix
+                Ycomp = np.delete(Ycomp, 4, 0)
+                Ycomp = np.delete(Ycomp, 4, 1)
+                Ycomp = np.delete(Ycomp, 3, 0)
+                Ycomp = np.delete(Ycomp, 3, 1)
+                Ycomp = np.delete(Ycomp, 1, 0)
+                Ycomp = np.delete(Ycomp, 1, 1)
+
+                fillYsysAdd(bus1, bus1, Ycomp[0,0], Ysys)
+                fillYsysAdd(bus2, bus1, Ycomp[1,0], Ysys)
+                fillYsysAdd(bus2, bus2, Ycomp[1,1], Ysys)
+                fillYsysUnique(bus3, bus1, Ycomp[2,0], Ysys)
+                fillYsysUnique(bus3, bus2, Ycomp[2,1], Ysys)
+                fillYsysAdd(bus3, bus3, Ycomp[2,2], Ysys)
 
         else:
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
