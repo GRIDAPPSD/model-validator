@@ -145,11 +145,14 @@ def fillYsysUnique(bus1, bus2, Ysys):
     if bus1 not in Ysys:
         Ysys[bus1] = {}
 
+    if bus2 not in Ysys:
+        Ysys[bus2] = {}
+
     if bus2 in Ysys[bus1]:
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', file=logfile)
 
-    Ysys[bus1][bus2] = complex(-500.0, 500.0)
+    Ysys[bus1][bus2] = Ysys[bus2][bus1] = complex(-500.0, 500.0)
 
 
 def fillYsysAdd(bus1, bus2, Ysys):
@@ -161,9 +164,15 @@ def fillYsysAdd(bus1, bus2, Ysys):
     else:
         Ysys[bus1][bus2] = complex(500.0, -500.0)
 
+    if bus1 != bus2:
+        if bus2 not in Ysys:
+            Ysys[bus2] = {}
+
+        Ysys[bus2][bus1] = Ysys[bus1][bus2]
+
 
 def fillYsysNoSwap(bus1, bus2, is_Open, Ysys):
-    print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2 + ', is_Open: ' + str(is_Open), flush=True)
+    #print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2 + ', is_Open: ' + str(is_Open), flush=True)
     if not is_Open:
         fillYsysUnique(bus1, bus2, Ysys)
         fillYsysAdd(bus1, bus1, Ysys)

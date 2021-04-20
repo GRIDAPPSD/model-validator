@@ -173,17 +173,26 @@ def compareY(pair_b1, pair_b2, YcompValue, Ybus):
 
 
 def fillYsysUnique(bus1, bus2, Yval, Ysys):
+    if Yval == 0j:
+        return
+
     if bus1 not in Ysys:
         Ysys[bus1] = {}
+
+    if bus2 not in Ysys:
+        Ysys[bus2] = {}
 
     if bus2 in Ysys[bus1]:
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', file=logfile)
 
-    Ysys[bus1][bus2] = Yval
+    Ysys[bus1][bus2] = Ysys[bus2][bus1] = Yval
 
 
 def fillYsysAdd(bus1, bus2, Yval, Ysys):
+    if Yval == 0j:
+        return
+
     if bus1 not in Ysys:
         Ysys[bus1] = {}
 
@@ -191,6 +200,12 @@ def fillYsysAdd(bus1, bus2, Yval, Ysys):
         Ysys[bus1][bus2] += Yval
     else:
         Ysys[bus1][bus2] = Yval
+
+    if bus1 != bus2:
+        if bus2 not in Ysys:
+            Ysys[bus2] = {}
+
+        Ysys[bus2][bus1] = Ysys[bus1][bus2]
 
 
 def fillYsysNoSwap(bus1, bus2, Yval, Ysys):
