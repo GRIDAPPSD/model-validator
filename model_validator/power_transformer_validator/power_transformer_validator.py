@@ -859,10 +859,10 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 Ycomp = np.delete(Ycomp, 1, 1)
 
                 fillYsysAdd(bus1, bus1, Ycomp[0,0], Ysys)
-                fillYsysAdd(bus2, bus1, Ycomp[1,0], Ysys)
+                fillYsysUnique(bus2, bus1, Ycomp[1,0], Ysys)
                 fillYsysAdd(bus2, bus2, Ycomp[1,1], Ysys)
                 fillYsysUnique(bus3, bus1, Ycomp[2,0], Ysys)
-                fillYsysUnique(bus3, bus2, Ycomp[2,1], Ysys)
+                fillYsysAdd(bus3, bus2, Ycomp[2,1], Ysys)
                 fillYsysAdd(bus3, bus3, Ycomp[2,2], Ysys)
 
         else:
