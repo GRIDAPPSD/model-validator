@@ -230,14 +230,14 @@ def fillYsysAdd(bus1, bus2, Yval, Ysys):
 
 def fillYsysNoSwap(bus1, bus2, Yval, Ysys):
     #print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-    fillYsysUnique(bus1, bus2, Yval, Ysys)
+    fillYsysUnique(bus2, bus1, Yval, Ysys)
     fillYsysAdd(bus1, bus1, -Yval, Ysys)
     fillYsysAdd(bus2, bus2, -Yval, Ysys)
 
 
 def fillYsysSwap(bus1, bus2, Yval, Ysys):
     #print('fillYsysSwap bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-    fillYsysUniqueUpper(bus1, bus2, Yval, Ysys)
+    fillYsysUniqueUpper(bus2, bus1, Yval, Ysys)
 
     # extract the node and phase from bus1 and bus2
     node1,phase1 = bus1.split('.')

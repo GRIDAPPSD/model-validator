@@ -175,7 +175,7 @@ def fillYsysAdd(bus1, bus2, Ysys):
 def fillYsysNoSwap(bus1, bus2, is_Open, Ysys):
     #print('fillYsysNoSwap bus1: ' + bus1 + ', bus2: ' + bus2 + ', is_Open: ' + str(is_Open), flush=True)
     if not is_Open:
-        fillYsysUnique(bus1, bus2, Ysys)
+        fillYsysUnique(bus2, bus1, Ysys)
         fillYsysAdd(bus1, bus1, Ysys)
         fillYsysAdd(bus2, bus2, Ysys)
 
