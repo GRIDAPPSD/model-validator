@@ -70,10 +70,19 @@ fi
 #python3 transformer_capacity/transformer_capacity.py --request "$SIMREQ" 2>&1 | tee validator.log
 #python3 ac_line_ampacity/ac_line_ampacity.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
 #python3 topology_validator/topology_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+
+# Ybus based validation modules
+# invoke line_model_validator with "./run-validator 9500 nosim"
 #python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+# invoke power_transformer_validator with "./run-validator 9500 nosim"
 #python3 power_transformer_validator/power_transformer_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+# invoke switching_equipment_validator with "./run-validator 9500 nosim"
 #python3 switching_equipment_validator/switching_equipment_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+# invoke shunt_element_validator with "./run-validator 9500"
 #python3 shunt_element_validator/shunt_element_validator.py --request "$SIMREQ" --simid $SIMID 2>&1 | tee validator.log
+# invoke ysystem_validator with "./run-validator 9500 nosim"
+#python3 load_flow_validator/ysystem_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+# End of Ybus based validation
 
 if [[ ! -z "$SIMID" ]]; then
     # kill microservices so that it starts up with the new simulation next time
