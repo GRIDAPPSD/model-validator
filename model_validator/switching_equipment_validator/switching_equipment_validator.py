@@ -51,6 +51,7 @@ import json
 import sys
 import os
 import importlib
+import inspect
 import numpy as np
 from tabulate import tabulate
 
@@ -152,6 +153,10 @@ def fillYsysUnique(bus1, bus2, Ysys):
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', file=logfile)
 
+    # if needed, here's how to find the two immediate calling functions
+    #if bus2=='X2673305B.1' and bus1=='X2673305B.2':
+    #    print('*** fillYsysUnique bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
+
     #Ysys[bus1][bus2] = Ysys[bus2][bus1] = complex(-500.0, 500.0)
     Ysys[bus1][bus2] = complex(-500.0, 500.0)
 
@@ -159,6 +164,10 @@ def fillYsysUnique(bus1, bus2, Ysys):
 def fillYsysAdd(bus1, bus2, Ysys):
     if bus1 not in Ysys:
         Ysys[bus1] = {}
+
+    # if needed, here's how to find the two immediate calling functions
+    #if bus2=='X2673305B.1' and bus1=='X2673305B.2':
+    #    print('*** fillYsysAdd bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
 
     if bus2 in Ysys[bus1]:
         Ysys[bus1][bus2] += complex(500.0, -500.0)
