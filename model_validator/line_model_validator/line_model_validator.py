@@ -51,6 +51,7 @@ import json
 import sys
 import os
 import importlib
+import inspect
 import numpy as np
 from tabulate import tabulate
 
@@ -183,6 +184,10 @@ def fillYsysUnique(bus1, bus2, Yval, Ysys):
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', file=logfile)
 
+    # if needed, here's how to print the calling functions
+    #elif bus1.startswith('R20185.') and bus2.startswith('L2823592_CAP.'):
+    #    print('*** fillYsysUnique bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
+
     Ysys[bus1][bus2] = Yval
 
 
@@ -196,6 +201,10 @@ def fillYsysUniqueUpper(bus1, bus2, Yval, Ysys):
     if bus2 in Ysys[bus1]:
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', flush=True)
         print('    *** WARNING: Unexpected existing value found for Ysys[' + bus1 + '][' + bus2 + '] when filling line model value\n', file=logfile)
+
+    # if needed, here's how to print the calling functions
+    #elif bus1.startswith('R20185.') and bus2.startswith('L2823592_CAP.'):
+    #    print('*** fillYsysUniqueUpper bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
 
     # extract the node and phase from bus1 and bus2
     node1,phase1 = bus1.split('.')
