@@ -199,17 +199,17 @@ def fillYsysAdd(bus1, bus2, Yval, Ysys):
     if Yval == 0j:
         return
 
-    if bus2 not in Ysys:
-        Ysys[bus2] = {}
+    if bus1 not in Ysys:
+        Ysys[bus1] = {}
 
     # if needed for debugging, here's how to find the calling functions
     #if bus2=='X2673305B.1' and bus1=='X2673305B.2':
     #    print('*** fillYsysAdd bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
 
-    if bus1 in Ysys[bus2]:
-        Ysys[bus2][bus1] += Yval
+    if bus2 in Ysys[bus1]:
+        Ysys[bus1][bus2] += Yval
     else:
-        Ysys[bus2][bus1] = Yval
+        Ysys[bus1][bus2] = Yval
 
 
 def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
@@ -434,11 +434,10 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
             Ycomp = np.delete(Ycomp, 3, 0)
             Ycomp = np.delete(Ycomp, 3, 1)
 
+            # TODO Shiva is going to try to figure out how to get rid of
+            # this phase swapping oddness
             if connect_DY_flag:
                 #print('*** connect_DY_flag True end transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                # TODO fillYsys calls with comments after them were done to
-                # TEMPORARILY eliminate unmatched Ysys entries for the 9500
-                # node model
                 fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
                 fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
                 fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
@@ -446,25 +445,22 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
                 fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
-                #fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys) # comment this out for 9500 hack
-                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
                 fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
-                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
-                #fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys) # comment this out for 9500 hack
+                fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
                 fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
                 fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
-                #fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys) # comment this out for 9500 hack
-                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
                 fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
                 fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
                 fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
             else:
                 #print('*** connect_DY_flag False end transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                # TODO fillYsys calls with comments after them were done to
-                # TEMPORARILY eliminate unmatched Ysys entries for the 9500
-                # node model
                 fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
                 fillYsysAdd(bus1+'.1', bus1+'.2', Ycomp[1,0], Ysys)
                 fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
@@ -472,16 +468,16 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
                 fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
-                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
-                #fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys) # comment this out for 9500 hack
+                fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
                 fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
-                #fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys) # comment this out for 9500 hack
+                fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
-                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
                 fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
                 fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
-                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
-                #fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys) # comment this out for 9500 hack
+                fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
                 fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
                 fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
@@ -798,11 +794,9 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 Ycomp = np.delete(Ycomp, 3, 0)
                 Ycomp = np.delete(Ycomp, 3, 1)
 
-                # TODO Hack the Akey check so the else clause is always run to
-                # TEMPORARILY eliminate unmatched Ysys entries for the 9500
-                # node model
-                #if Akey == '3p_DY':
-                if Akey == '3p_DY_will_never_happen':
+                # TODO Shiva is going to try to figure out how to get rid of
+                # this phase swapping oddness
+                if Akey == '3p_DY':
                     #print('*** 3p_DY tank transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
                     fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
                     fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
@@ -811,16 +805,16 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                     fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
                     fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
                     fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
                     fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
                     fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
                     fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
                     fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
@@ -834,16 +828,16 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                     fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
                     fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
                     fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
+                    fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
                     fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
                     fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
+                    fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
+                    fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
                     fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
                     fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
@@ -875,14 +869,11 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 Ycomp = np.delete(Ycomp, 1, 0)
                 Ycomp = np.delete(Ycomp, 1, 1)
 
-                # TODO fillYsys calls with comments after them were done to
-                # TEMPORARILY eliminate unmatched Ysys entries for the 9500
-                # node model
                 fillYsysAdd(bus1, bus1, Ycomp[0,0], Ysys)
                 fillYsysUnique(bus2, bus1, Ycomp[1,0], Ysys)
                 fillYsysAdd(bus2, bus2, Ycomp[1,1], Ysys)
                 fillYsysUnique(bus3, bus1, Ycomp[2,0], Ysys)
-                #fillYsysAdd(bus3, bus2, Ycomp[2,1], Ysys) # comment this out for 9500 hack
+                fillYsysAdd(bus3, bus2, Ycomp[2,1], Ysys)
                 fillYsysAdd(bus3, bus3, Ycomp[2,2], Ysys)
 
         else:
