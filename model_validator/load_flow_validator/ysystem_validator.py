@@ -153,48 +153,48 @@ def _main():
 
     for bus1 in list(Ybus):
         for bus2 in list(Ybus[bus1]):
+            delYFlag = False
             if (bus1 in Ysys) and (bus2 in Ysys[bus1]):
-                del Ybus[bus1][bus2]
                 del Ysys[bus1][bus2]
-
-                if len(Ybus[bus1]) == 0:
-                    del Ybus[bus1]
                 if len(Ysys[bus1]) == 0:
                     del Ysys[bus1]
 
-    # reverse bus cleanup
-    for bus1 in list(Ybus):
-        for bus2 in list(Ybus[bus1]):
-            if (bus2 in Ysys) and (bus1 in Ysys[bus2]):
                 del Ybus[bus1][bus2]
-                del Ysys[bus2][bus1]
-
                 if len(Ybus[bus1]) == 0:
                     del Ybus[bus1]
+                delYFlag = True
+
+            if (bus2 in Ysys) and (bus1 in Ysys[bus2]):
+                del Ysys[bus2][bus1]
                 if len(Ysys[bus2]) == 0:
                     del Ysys[bus2]
 
-    print('\n***** Unmatched Ysys:\n')
+                if not delYFlag:
+                    del Ybus[bus1][bus2]
+                    if len(Ybus[bus1]) == 0:
+                        del Ybus[bus1]
+
+    print('\n***** Unmatched in Ysys:\n')
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
 
-    print('Unmatched Ysys #bus1 items: ' + str(len(Ysys)))
+    print('Unmatched in Ysys #bus1 items: ' + str(len(Ysys)))
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('Unmatched Ysys total items: ' + str(count) + '\n')
+    print('Unmatched in Ysys total items: ' + str(count) + '\n')
 
-    print('\n***** Unmatched Ybus:\n')
+    print('\n***** Unmatched in Ybus:\n')
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
             print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
 
-    print('Unmatched Ybus #bus1 items: ' + str(len(Ybus)))
+    print('Unmatched in Ybus #bus1 items: ' + str(len(Ybus)))
     count = 0
     for bus1 in Ybus:
         count += len(Ybus[bus1])
-    print('Unmatched Ybus total items: ' + str(count) + '\n')
+    print('Unmatched in Ybus total items: ' + str(count) + '\n')
 
 
 if __name__ == "__main__":
