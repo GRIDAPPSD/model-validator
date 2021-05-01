@@ -188,7 +188,10 @@ def _main():
     print('\n***** Unmatched in Ybus:\n')
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
-            print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
+            if abs(Ybus[bus1][bus2] - complex(0.0, 0.0)) > 1.0e-9:
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
+            else:
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO')
 
     print('Unmatched in Ybus #bus1 items: ' + str(len(Ybus)))
     count = 0
