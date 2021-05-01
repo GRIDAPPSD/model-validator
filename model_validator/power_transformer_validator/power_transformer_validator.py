@@ -434,55 +434,44 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
             Ycomp = np.delete(Ycomp, 3, 0)
             Ycomp = np.delete(Ycomp, 3, 1)
 
-            # TODO Shiva is going to try to figure out how to get rid of
-            # this phase swapping oddness
+            # fill Ysys directly from Ycomp
+            # first fill the ones that are independent of connect_DY_flag
+            # either because the same bus is used or the same phase
+            fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+            fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
+            fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+            fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
+            fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
+            fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+            fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+            fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+            fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+            fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
+            fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+            fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+            fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
+            fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
+            fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+
+            # now fill the ones that are dependent on connect_DY_flag, which
+            # are different bus and different phase
             if connect_DY_flag:
                 #print('*** connect_DY_flag True end transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
-                fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
-                fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
-                fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
-                fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
-                fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
-                fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
-                fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
-                fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
-                fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
-                fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
-                fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
-                fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
-                fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
-                fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+
             else:
                 #print('*** connect_DY_flag False end transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
-                fillYsysAdd(bus1+'.1', bus1+'.2', Ycomp[1,0], Ysys)
-                fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
-                fillYsysAdd(bus1+'.1', bus1+'.3', Ycomp[2,0], Ysys)
-                fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
-                fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
-                fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
-                fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
-                fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
                 fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
-                fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
-                fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
                 fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
                 fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
-                fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
-                fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
-                fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
-                fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
-
 
     if cmpFlag:
         print("\nSummary for PowerTransformerEnd transformers:", flush=True)
@@ -794,54 +783,44 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 Ycomp = np.delete(Ycomp, 3, 0)
                 Ycomp = np.delete(Ycomp, 3, 1)
 
-                # TODO Shiva is going to try to figure out how to get rid of
-                # this phase swapping oddness
+                # fill Ysys directly from Ycomp
+                # first fill the ones that are independent of Akey
+                # either because the same bus is used or the same phase
+                fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
+                fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
+                fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
+                fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
+                fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
+                fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
+                fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
+                fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
+                fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+
+                # now fill the ones that are dependent on Akey, which
+                # are different bus and different phase
                 if Akey == '3p_DY':
                     #print('*** 3p_DY tank transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                    fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
-                    fillYsysAdd(bus1+'.2', bus1+'.1', Ycomp[1,0], Ysys)
-                    fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
-                    fillYsysAdd(bus1+'.3', bus1+'.1', Ycomp[2,0], Ysys)
-                    fillYsysAdd(bus1+'.3', bus1+'.2', Ycomp[2,1], Ysys)
-                    fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[4,0], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[5,0], Ysys)
-                    fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[3,1], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[5,1], Ysys)
-                    fillYsysAdd(bus2+'.2', bus2+'.1', Ycomp[4,3], Ysys)
-                    fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[3,2], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[4,2], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
-                    fillYsysAdd(bus2+'.3', bus2+'.1', Ycomp[5,3], Ysys)
-                    fillYsysAdd(bus2+'.3', bus2+'.2', Ycomp[5,4], Ysys)
-                    fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
+
                 else:
                     #print('*** NOT 3p_DY tank transformer bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
-                    fillYsysAdd(bus1+'.1', bus1+'.1', Ycomp[0,0], Ysys)
-                    fillYsysAdd(bus1+'.1', bus1+'.2', Ycomp[1,0], Ysys)
-                    fillYsysAdd(bus1+'.2', bus1+'.2', Ycomp[1,1], Ysys)
-                    fillYsysAdd(bus1+'.1', bus1+'.3', Ycomp[2,0], Ysys)
-                    fillYsysAdd(bus1+'.2', bus1+'.3', Ycomp[2,1], Ysys)
-                    fillYsysAdd(bus1+'.3', bus1+'.3', Ycomp[2,2], Ysys)
-                    fillYsysUnique(bus2+'.1', bus1+'.1', Ycomp[3,0], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.1', Ycomp[4,0], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.1', Ycomp[5,0], Ysys)
-                    fillYsysAdd(bus2+'.1', bus2+'.1', Ycomp[3,3], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.2', Ycomp[3,1], Ysys)
-                    fillYsysUnique(bus2+'.2', bus1+'.2', Ycomp[4,1], Ysys)
                     fillYsysUnique(bus2+'.3', bus1+'.2', Ycomp[5,1], Ysys)
-                    fillYsysAdd(bus2+'.1', bus2+'.2', Ycomp[4,3], Ysys)
-                    fillYsysAdd(bus2+'.2', bus2+'.2', Ycomp[4,4], Ysys)
                     fillYsysUnique(bus2+'.1', bus1+'.3', Ycomp[3,2], Ysys)
                     fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
-                    fillYsysUnique(bus2+'.3', bus1+'.3', Ycomp[5,2], Ysys)
-                    fillYsysAdd(bus2+'.1', bus2+'.3', Ycomp[5,3], Ysys)
-                    fillYsysAdd(bus2+'.2', bus2+'.3', Ycomp[5,4], Ysys)
-                    fillYsysAdd(bus2+'.3', bus2+'.3', Ycomp[5,5], Ysys)
 
         elif Bkey == '3w':
             bus1 = Bus[xfmr_name][1] + ybusPhaseIdx[Phase[xfmr_name][1]]
