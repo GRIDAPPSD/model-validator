@@ -280,6 +280,12 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
             if cmpFlag:
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', flush=True)
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported: ' + xfmr_name + '\n', file=logfile)
+            else:
+                bus1 = Bus[xfmr_name][1]
+                bus2 = Bus[xfmr_name][2]
+                bus3 = obj['bus']['value'].upper()
+                print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', flush=True)
+                print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', file=logfile)
 
             # need to clear out the previous dictionary entries for this
             # 3-winding transformer so it isn't processed below
