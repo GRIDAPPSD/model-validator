@@ -101,55 +101,52 @@ def _main():
     start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
     #print('line_model_validator Ysys...')
     #print(Ysys)
-    print('line_model # bus1 items: ' + str(len(Ysys)))
-    count = 0
+    line_count = 0
     for bus1 in Ysys:
-        count += len(Ysys[bus1])
-    print('line_model # bus1+bus2 values: ' + str(count) + '\n')
+        line_count += len(Ysys[bus1])
+    print('\nLine_model # entries: ' + str(line_count) + '\n')
 
     mod_import = importlib.import_module('power_transformer_validator.power_transformer_validator')
     start_func = getattr(mod_import, 'start')
     start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
     #print('power_transformer_validator Ysys...')
     #print(Ysys)
-    print('power_transformer # bus1 items: ' + str(len(Ysys)))
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('power_transformer # bus1+bus2 values: ' + str(count) + '\n')
+    xfmr_count = count - line_count
+    print('Power_transformer # entries: ' + str(xfmr_count) + '\n')
 
     mod_import = importlib.import_module('switching_equipment_validator.switching_equipment_validator')
     start_func = getattr(mod_import, 'start')
     start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
     #print('switching_equipment_validator (final) Ysys...')
     #print(Ysys)
-    print('switching_equipment # bus1 items: ' + str(len(Ysys)))
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('switching_equipment # bus1+bus2 values: ' + str(count) + '\n')
+    switch_count = count - line_count - xfmr_count
+    print('Switching_equipment # entries: ' + str(switch_count) + '\n')
 
     #print('\n***** Full Ysys:\n')
     #for bus1 in Ysys:
     #    for bus2 in Ysys[bus1]:
     #        print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
 
-    print('Full Ysys #bus1 items: ' + str(len(Ysys)))
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('Full Ysys total items: ' + str(count) + '\n')
+    print('Full Ysystem # entries: ' + str(count) + '\n')
 
     #print('\n***** Full Ybus:\n')
     #for bus1 in Ybus:
     #    for bus2 in Ybus[bus1]:
     #        print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
 
-    print('Full Ybus #bus1 items: ' + str(len(Ysys)))
     count = 0
     for bus1 in Ybus:
         count += len(Ybus[bus1])
-    print('Full Ybus total items: ' + str(count) + '\n')
+    print('Full Ybus # entries: ' + str(count) + '\n')
 
     for bus1 in list(Ybus):
         for bus2 in list(Ybus[bus1]):
@@ -174,18 +171,20 @@ def _main():
                     if len(Ybus[bus1]) == 0:
                         del Ybus[bus1]
 
-    print('\n***** Unmatched in Ysys:\n')
+    count = 0
+    for bus1 in Ysys:
+        count += len(Ysys[bus1])
+    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n')
+
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
 
-    print('Unmatched in Ysys #bus1 items: ' + str(len(Ysys)))
     count = 0
-    for bus1 in Ysys:
-        count += len(Ysys[bus1])
-    print('Unmatched in Ysys total items: ' + str(count) + '\n')
+    for bus1 in Ybus:
+        count += len(Ybus[bus1])
+    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n')
 
-    print('\n***** Unmatched in Ybus:\n')
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
             if abs(Ybus[bus1][bus2] - complex(0.0, 0.0)) > 1.0e-9:
@@ -193,11 +192,7 @@ def _main():
             else:
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO')
 
-    print('Unmatched in Ybus #bus1 items: ' + str(len(Ybus)))
-    count = 0
-    for bus1 in Ybus:
-        count += len(Ybus[bus1])
-    print('Unmatched in Ybus total items: ' + str(count) + '\n')
+    print('')
 
 
 if __name__ == "__main__":
