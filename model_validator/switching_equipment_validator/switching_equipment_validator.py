@@ -302,7 +302,7 @@ def validate_SwitchingEquipment_switches(sparql_mgr, Ybus, cmpFlag, Ysys):
     return switches_count
 
 
-def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None, Unsupported=None):
     global logfile
     logfile = log_file
 

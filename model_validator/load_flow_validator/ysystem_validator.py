@@ -95,10 +95,11 @@ def _main():
     #print(Ybus)
 
     Ysys = {}
+    Unsupported = {}
 
     mod_import = importlib.import_module('line_model_validator.line_model_validator')
     start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
+    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
     #print('line_model_validator Ysys...')
     #print(Ysys)
     line_count = 0
@@ -108,7 +109,7 @@ def _main():
 
     mod_import = importlib.import_module('power_transformer_validator.power_transformer_validator')
     start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
+    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
     #print('power_transformer_validator Ysys...')
     #print(Ysys)
     count = 0
@@ -119,7 +120,7 @@ def _main():
 
     mod_import = importlib.import_module('switching_equipment_validator.switching_equipment_validator')
     start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys)
+    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
     #print('switching_equipment_validator (final) Ysys...')
     #print(Ysys)
     count = 0
@@ -188,7 +189,12 @@ def _main():
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
             if abs(Ybus[bus1][bus2] - complex(0.0, 0.0)) > 1.0e-9:
-                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
+                short_bus1 = bus1.split('.')[0]
+                short_bus2 = bus2.split('.')[0]
+                if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1]:
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer')
+                else:
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
             else:
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO')
 

@@ -1314,7 +1314,7 @@ def validate_WireInfo_and_WireSpacingInfo_lines(sparql_mgr, Ybus, cmpFlag, Ysys)
     return line_count
 
 
-def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None, Unsupported=None):
     global logfile
     logfile = log_file
 

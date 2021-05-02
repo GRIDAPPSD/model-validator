@@ -251,7 +251,7 @@ def fillYsys_6x6(bus1, bus2, DY_flag, Ycomp, Ysys):
         fillYsysUnique(bus2+'.2', bus1+'.3', Ycomp[4,2], Ysys)
 
 
-def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
+def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsupported):
     if cmpFlag:
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', flush=True)
         print('\nPOWER_TRANSFORMER_VALIDATOR PowerTransformerEnd validation...\n', file=logfile)
@@ -325,6 +325,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
                 bus3 = obj['bus']['value'].upper()
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', flush=True)
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', file=logfile)
+                Unsupported[bus1] = Unsupported[bus2] = Unsupported[bus3] = (bus1, bus2, bus3)
 
             # need to clear out the previous dictionary entries for this
             # 3-winding transformer so it isn't processed below
@@ -515,7 +516,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
     return xfmrs_count
 
 
-def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
+def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsupported):
     if cmpFlag:
         print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', flush=True)
         print('\nPOWER_TRANSFORMER_VALIDATOR TransformerTank validation...\n', file=logfile)
@@ -891,7 +892,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys):
     return xfmrs_count
 
 
-def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
+def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None, Unsupported=None):
     global logfile
     logfile = log_file
 
@@ -931,7 +932,7 @@ def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
         Ybus = None
 
     #PowerTransformerEnd_xfmrs = 0
-    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys)
+    PowerTransformerEnd_xfmrs = validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsupported)
     if cmpFlag:
         if PowerTransformerEnd_xfmrs > 0:
             count = greenCount + yellowCount + redCount
@@ -940,7 +941,7 @@ def start(log_file, feeder_mrid, model_api_topic, cmpFlag=True, Ysys=None):
         else:
             report.append(["PowerTransformerEnd", PowerTransformerEnd_xfmrs])
 
-    TransformerTank_xfmrs = validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys)
+    TransformerTank_xfmrs = validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsupported)
     if cmpFlag:
         if TransformerTank_xfmrs > 0:
             count = greenCount + yellowCount + redCount
