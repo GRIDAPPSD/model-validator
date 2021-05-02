@@ -52,6 +52,14 @@ import importlib
 from gridappsd import GridAPPSD
 
 
+def redCircle(colorFlag):
+    return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
+
+
+def yellowCircle(colorFlag):
+    return '\u001b[33m\u25cf\u001b[37m' if colorFlag else '\u25d1'
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
@@ -172,8 +180,8 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
-            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag), flush=True)
-            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag), file=logfile)
+            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(True), flush=True)
+            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(False), file=logfile)
 
     count = 0
     for bus1 in Ybus:
@@ -187,14 +195,14 @@ def start(log_file, feeder_mrid, model_api_topic):
                 short_bus1 = bus1.split('.')[0]
                 short_bus2 = bus2.split('.')[0]
                 if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1][0]:
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], flush=True)
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], file=logfile)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(True) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], flush=True)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(False) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], file=logfile)
                 else:
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), flush=True)
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), file=logfile)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + redCircle(True), flush=True)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + redCircle(False), file=logfile)
             else:
-                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO', flush=True)
-                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO', file=logfile)
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(True) + ',***NEAR_ZERO', flush=True)
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(False) + ',***NEAR_ZERO', file=logfile)
 
     print('')
 
