@@ -325,7 +325,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsuppor
                 bus3 = obj['bus']['value'].upper()
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', flush=True)
                 print('    *** WARNING: 3-winding PowerTransformerEnd transformers are not supported, xfmr: ' + xfmr_name + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', bus3: ' + bus3 + '\n', file=logfile)
-                Unsupported[bus1] = Unsupported[bus2] = Unsupported[bus3] = (bus1, bus2, bus3)
+                Unsupported[bus1] = Unsupported[bus2] = Unsupported[bus3] = [(bus1, bus2, bus3), '3-winding transformer']
 
             # need to clear out the previous dictionary entries for this
             # 3-winding transformer so it isn't processed below

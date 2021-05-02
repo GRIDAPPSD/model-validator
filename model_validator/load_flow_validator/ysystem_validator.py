@@ -186,9 +186,9 @@ def start(log_file, feeder_mrid, model_api_topic):
             if abs(Ybus[bus1][bus2] - complex(0.0, 0.0)) > 1.0e-9:
                 short_bus1 = bus1.split('.')[0]
                 short_bus2 = bus2.split('.')[0]
-                if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1]:
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer', flush=True)
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer', file=logfile)
+                if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1][0]:
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], flush=True)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: ' + Unsupported[short_bus1][1], file=logfile)
                 else:
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), flush=True)
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), file=logfile)
