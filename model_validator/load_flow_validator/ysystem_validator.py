@@ -48,6 +48,7 @@ import os
 import argparse
 import json
 import importlib
+from tabulate import tabulate
 
 from gridappsd import GridAPPSD
 
@@ -136,22 +137,22 @@ def start(log_file, feeder_mrid, model_api_topic):
     #    for bus2 in Ysys[bus1]:
     #        print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
 
-    count = 0
+    ysysCount = 0
     for bus1 in Ysys:
-        count += len(Ysys[bus1])
-    print('Total computed # entries: ' + str(count) + '\n', flush=True)
-    print('Total computed # entries: ' + str(count) + '\n', file=logfile)
+        ysysCount += len(Ysys[bus1])
+    print('Total computed # entries: ' + str(ysysCount) + '\n', flush=True)
+    print('Total computed # entries: ' + str(ysysCount) + '\n', file=logfile)
 
     #print('\n*** Full Ybus:\n')
     #for bus1 in Ybus:
     #    for bus2 in Ybus[bus1]:
     #        print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
 
-    count = 0
+    ybusCount = 0
     for bus1 in Ybus:
-        count += len(Ybus[bus1])
-    print('Total Ybus # entries: ' + str(count) + '\n', flush=True)
-    print('Total Ybus # entries: ' + str(count) + '\n', file=logfile)
+        ybusCount += len(Ybus[bus1])
+    print('Total Ybus # entries: ' + str(ybusCount) + '\n', flush=True)
+    print('Total Ybus # entries: ' + str(ybusCount) + '\n', file=logfile)
 
     for bus1 in list(Ybus):
         for bus2 in list(Ybus[bus1]):
@@ -176,31 +177,31 @@ def start(log_file, feeder_mrid, model_api_topic):
                     if len(Ybus[bus1]) == 0:
                         del Ybus[bus1]
 
-    count = 0
+    redCount = 0
     for bus1 in Ysys:
-        count += len(Ysys[bus1])
-    if count > 0:
-        print('\n*** Missing Ybus entries: ' + str(count) + '\n', flush=True)
-        print('\n*** Missing Ybus entries: ' + str(count) + '\n', file=logfile)
-    else:
-        print('\n*** Missing Ybus entries: ' + str(count) + ' ' + greenCircle(True) + '\n', flush=True)
-        print('\n*** Missing Ybus entries: ' + str(count) + ' ' + greenCircle(False) + '\n', file=logfile)
+        redCount += len(Ysys[bus1])
+    print('\n*** Missing Ybus entries: ' + str(redCount) + '\n', flush=True)
+    print('\n*** Missing Ybus entries: ' + str(redCount) + '\n', file=logfile)
+
+    greenCount = ybusCount - redCount
+    yellowCount = 0
+    VI = float(greenCount)/float(ybusCount)
+    report = []
+    report.append(["Missing entries", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(True), flush=True)
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(False), file=logfile)
 
-    count = 0
+    redYellowCount = 0
     for bus1 in Ybus:
-        count += len(Ybus[bus1])
-    if count > 0:
-        print('\n*** Unexpected Ybus entries: ' + str(count) + '\n', flush=True)
-        print('\n*** Unexpected Ybus entries: ' + str(count) + '\n', file=logfile)
-    else:
-        print('\n*** Unexpected Ybus entries: ' + str(count) + ' ' + greenCircle(True) + '\n', flush=True)
-        print('\n*** Unexpected Ybus entries: ' + str(count) + ' ' + greenCircle(False) + '\n', file=logfile)
+        redYellowCount += len(Ybus[bus1])
+    print('\n*** Unexpected Ybus entries: ' + str(redYellowCount) + '\n', flush=True)
+    print('\n*** Unexpected Ybus entries: ' + str(redYellowCount) + '\n', file=logfile)
 
+    yellowCount = 0
+    redCount = 0
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
             if abs(Ybus[bus1][bus2] - complex(0.0, 0.0)) > 1.0e-9:
@@ -209,14 +210,26 @@ def start(log_file, feeder_mrid, model_api_topic):
                 if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1][0]:
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(True) + ' ,***UNSUPPORTED: ' + Unsupported[short_bus1][1], flush=True)
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(False) + ' ,***UNSUPPORTED: ' + Unsupported[short_bus1][1], file=logfile)
+                    yellowCount += 1
                 else:
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + redCircle(True), flush=True)
                     print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + redCircle(False), file=logfile)
+                    redCount += 1
             else:
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(True) + ' ,***NEAR_ZERO', flush=True)
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(False) + ' ,***NEAR_ZERO', file=logfile)
+                yellowCount += 1
 
-    print('')
+    greenCount = ybusCount - redYellowCount
+    VI = float(greenCount)/float(ybusCount)
+    report.append(["Unexpected entries", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+
+    print('\n', flush=True)
+    print(tabulate(report, headers=["Ybus entry type", "# entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
+    print('', flush=True)
+    print('\n', file=logfile)
+    print(tabulate(report, headers=["Ybus entry type", "# entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
+    print('', file=logfile)
 
 
 def _main():
