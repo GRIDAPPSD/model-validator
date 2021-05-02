@@ -52,6 +52,10 @@ import importlib
 from gridappsd import GridAPPSD
 
 
+def greenCircle(colorFlag):
+    return '\u001b[32m\u25cf\u001b[37m' if colorFlag else '\u25cb'
+
+
 def redCircle(colorFlag):
     return '\u001b[31m\u25cf\u001b[37m' if colorFlag else '\u25cf'
 
@@ -175,8 +179,12 @@ def start(log_file, feeder_mrid, model_api_topic):
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', flush=True)
-    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', file=logfile)
+    if count > 0:
+        print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', flush=True)
+        print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', file=logfile)
+    else:
+        print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + ' ' + greenCircle(True) + '\n', flush=True)
+        print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + ' ' + greenCircle(False) + '\n', file=logfile)
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
@@ -186,8 +194,12 @@ def start(log_file, feeder_mrid, model_api_topic):
     count = 0
     for bus1 in Ybus:
         count += len(Ybus[bus1])
-    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', flush=True)
-    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', file=logfile)
+    if count > 0:
+        print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', flush=True)
+        print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', file=logfile)
+    else:
+        print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + ' ' + greenCircle(True) + '\n', flush=True)
+        print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + ' ' + greenCircle(False) + '\n', file=logfile)
 
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
