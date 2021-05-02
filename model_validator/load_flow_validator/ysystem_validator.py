@@ -221,7 +221,7 @@ def start(log_file, feeder_mrid, model_api_topic):
                 yellowCount += 1
 
     greenCount = ybusCount - redYellowCount
-    VI = float(greenCount)/float(ybusCount)
+    VI = float(ybusCount - redCount)/float(ybusCount)
     report.append(["Unexpected entries", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     print('\n', flush=True)
