@@ -92,7 +92,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     line_count = 0
     for bus1 in Ysys:
         line_count += len(Ysys[bus1])
-    print('\nLine_model # entries: ' + str(line_count) + '\n')
+    print('\nLine_model # entries: ' + str(line_count) + '\n', flush=True)
+    print('\nLine_model # entries: ' + str(line_count) + '\n', file=logfile)
 
     mod_import = importlib.import_module('power_transformer_validator.power_transformer_validator')
     start_func = getattr(mod_import, 'start')
@@ -103,7 +104,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     for bus1 in Ysys:
         count += len(Ysys[bus1])
     xfmr_count = count - line_count
-    print('Power_transformer # entries: ' + str(xfmr_count) + '\n')
+    print('Power_transformer # entries: ' + str(xfmr_count) + '\n', flush=True)
+    print('Power_transformer # entries: ' + str(xfmr_count) + '\n', file=logfile)
 
     mod_import = importlib.import_module('switching_equipment_validator.switching_equipment_validator')
     start_func = getattr(mod_import, 'start')
@@ -114,7 +116,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     for bus1 in Ysys:
         count += len(Ysys[bus1])
     switch_count = count - line_count - xfmr_count
-    print('Switching_equipment # entries: ' + str(switch_count) + '\n')
+    print('Switching_equipment # entries: ' + str(switch_count) + '\n', flush=True)
+    print('Switching_equipment # entries: ' + str(switch_count) + '\n', file=logfile)
 
     #print('\n***** Full Ysys:\n')
     #for bus1 in Ysys:
@@ -124,7 +127,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('Full Ysystem # entries: ' + str(count) + '\n')
+    print('Full Ysystem # entries: ' + str(count) + '\n', flush=True)
+    print('Full Ysystem # entries: ' + str(count) + '\n', file=logfile)
 
     #print('\n***** Full Ybus:\n')
     #for bus1 in Ybus:
@@ -134,7 +138,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     count = 0
     for bus1 in Ybus:
         count += len(Ybus[bus1])
-    print('Full Ybus # entries: ' + str(count) + '\n')
+    print('Full Ybus # entries: ' + str(count) + '\n', flush=True)
+    print('Full Ybus # entries: ' + str(count) + '\n', file=logfile)
 
     for bus1 in list(Ybus):
         for bus2 in list(Ybus[bus1]):
@@ -162,16 +167,19 @@ def start(log_file, feeder_mrid, model_api_topic):
     count = 0
     for bus1 in Ysys:
         count += len(Ysys[bus1])
-    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n')
+    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', flush=True)
+    print('\n***** Ysystem # entries unmatched in Ybus: ' + str(count) + '\n', file=logfile)
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
-            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
+            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag), flush=True)
+            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag), file=logfile)
 
     count = 0
     for bus1 in Ybus:
         count += len(Ybus[bus1])
-    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n')
+    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', flush=True)
+    print('\n***** Ybus # entries unmatched in Ysystem: ' + str(count) + '\n', file=logfile)
 
     for bus1 in Ybus:
         for bus2 in Ybus[bus1]:
@@ -179,11 +187,14 @@ def start(log_file, feeder_mrid, model_api_topic):
                 short_bus1 = bus1.split('.')[0]
                 short_bus2 = bus2.split('.')[0]
                 if short_bus1 in Unsupported and short_bus2 in Unsupported[short_bus1]:
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer')
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer', flush=True)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***UNSUPPORTED: 3-winding transformer', file=logfile)
                 else:
-                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), flush=True)
+                    print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag), file=logfile)
             else:
-                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO')
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO', flush=True)
+                print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO', file=logfile)
 
     print('')
 
