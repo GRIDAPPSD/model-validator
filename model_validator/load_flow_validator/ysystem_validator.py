@@ -52,22 +52,9 @@ import importlib
 from gridappsd import GridAPPSD
 
 
-def _main():
-    # for loading modules
-    if (os.path.isdir('shared')):
-        sys.path.append('.')
-    elif (os.path.isdir('../shared')):
-        sys.path.append('..')
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--request", help="Simulation Request")
-
-    opts = parser.parse_args()
-    sim_request = json.loads(opts.request.replace("\'",""))
-    feeder_mrid = sim_request["power_system_config"]["Line_name"]
-
-    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
-    log_file = open('load_flow_validator.log', 'w')
+def start(log_file, feeder_mrid, model_api_topic):
+    global logfile
+    logfile = log_file
 
     SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
 
@@ -199,6 +186,26 @@ def _main():
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',***NEAR_ZERO')
 
     print('')
+
+
+def _main():
+    # for loading modules
+    if (os.path.isdir('shared')):
+        sys.path.append('.')
+    elif (os.path.isdir('../shared')):
+        sys.path.append('..')
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--request", help="Simulation Request")
+
+    opts = parser.parse_args()
+    sim_request = json.loads(opts.request.replace("\'",""))
+    feeder_mrid = sim_request["power_system_config"]["Line_name"]
+
+    model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
+    log_file = open('ysystem_validator.log', 'w')
+
+    start(log_file, feeder_mrid, model_api_topic)
 
 
 if __name__ == "__main__":
