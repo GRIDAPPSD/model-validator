@@ -187,18 +187,18 @@ def start(log_file, feeder_mrid, model_api_topic):
     yellowCount = 0
     VI = float(greenCount)/float(ybusCount)
     report = []
-    report.append(["Missing entries", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    report.append(["Expected entries found", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(True), flush=True)
             print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag) + ',' + redCircle(False), file=logfile)
 
-    redYellowCount = 0
+    unexpectedCount = 0
     for bus1 in Ybus:
-        redYellowCount += len(Ybus[bus1])
-    print('\n*** Unexpected Ybus entries: ' + str(redYellowCount) + '\n', flush=True)
-    print('\n*** Unexpected Ybus entries: ' + str(redYellowCount) + '\n', file=logfile)
+        unexpectedCount += len(Ybus[bus1])
+    print('\n*** Unexpected Ybus entries: ' + str(unexpectedCount) + '\n', flush=True)
+    print('\n*** Unexpected Ybus entries: ' + str(unexpectedCount) + '\n', file=logfile)
 
     yellowCount = 0
     redCount = 0
@@ -220,15 +220,15 @@ def start(log_file, feeder_mrid, model_api_topic):
                 print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag) + ',' + yellowCircle(False) + ' ,***NEAR_ZERO', file=logfile)
                 yellowCount += 1
 
-    greenCount = ybusCount - redYellowCount
+    greenCount = ybusCount - unexpectedCount
     VI = float(ybusCount - redCount)/float(ybusCount)
-    report.append(["Unexpected entries", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    report.append(["Existing entries expected", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Ybus entry type", "# entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Ybus validation type", "Existing # entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
     print('', flush=True)
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Ybus entry type", "# entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Ybus validation type", "Existing # entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
     print('', file=logfile)
 
 
