@@ -225,11 +225,11 @@ def start(log_file, feeder_mrid, model_api_topic):
     report.append([f"Existing entries\N{SUPERSCRIPT TWO}", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Ybus validation type", "# entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Ybus check", "Entries checked", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
     print('', flush=True)
 
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Ybus validation type", "# entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Ybus check", "Entries checked", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
     print('', file=logfile)
 
     print(f"\N{SUPERSCRIPT ONE}Checks whether each expected entry is found in Ybus where green=found; yellow=not found, but explainable; red=not found", flush=True)
