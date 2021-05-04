@@ -140,8 +140,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     ysysCount = 0
     for bus1 in Ysys:
         ysysCount += len(Ysys[bus1])
-    print('Total computed # entries: ' + str(ysysCount) + '\n', flush=True)
-    print('Total computed # entries: ' + str(ysysCount) + '\n', file=logfile)
+    #print('Total computed # entries: ' + str(ysysCount) + '\n', flush=True)
+    #print('Total computed # entries: ' + str(ysysCount) + '\n', file=logfile)
 
     #print('\n*** Full Ybus:\n')
     #for bus1 in Ybus:
@@ -151,8 +151,8 @@ def start(log_file, feeder_mrid, model_api_topic):
     ybusCount = 0
     for bus1 in Ybus:
         ybusCount += len(Ybus[bus1])
-    print('Total Ybus # entries: ' + str(ybusCount) + '\n', flush=True)
-    print('Total Ybus # entries: ' + str(ybusCount) + '\n', file=logfile)
+    #print('Total Ybus # entries: ' + str(ybusCount) + '\n', flush=True)
+    #print('Total Ybus # entries: ' + str(ybusCount) + '\n', file=logfile)
 
     for bus1 in list(Ybus):
         for bus2 in list(Ybus[bus1]):
