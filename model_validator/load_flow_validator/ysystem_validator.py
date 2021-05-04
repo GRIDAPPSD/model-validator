@@ -183,11 +183,11 @@ def start(log_file, feeder_mrid, model_api_topic):
     print('\n*** Missing Ybus entries: ' + str(redCount) + '\n', flush=True)
     print('\n*** Missing Ybus entries: ' + str(redCount) + '\n', file=logfile)
 
-    greenCount = ybusCount - redCount
+    greenCount = ysysCount - redCount
     yellowCount = 0
-    VI = float(greenCount)/float(ybusCount)
+    VI = float(greenCount + yellowCount)/float(ysysCount)
     report = []
-    report.append(["Expected entries found", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    report.append([f"Expected entries\N{SUPERSCRIPT ONE}", ysysCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     for bus1 in Ysys:
         for bus2 in Ysys[bus1]:
@@ -222,14 +222,20 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     greenCount = ybusCount - unexpectedCount
     VI = float(ybusCount - redCount)/float(ybusCount)
-    report.append(["Existing entries expected", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
+    report.append([f"Existing entries\N{SUPERSCRIPT TWO}", ybusCount, "{:.4f}".format(VI), greenCount, yellowCount, redCount])
 
     print('\n', flush=True)
-    print(tabulate(report, headers=["Ybus validation type", "Existing # entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
+    print(tabulate(report, headers=["Ybus validation type", "# entries", "VI", greenCircle(True), yellowCircle(True), redCircle(True)], tablefmt="fancy_grid"), flush=True)
     print('', flush=True)
+
     print('\n', file=logfile)
-    print(tabulate(report, headers=["Ybus validation type", "Existing # entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
+    print(tabulate(report, headers=["Ybus validation type", "# entries", "VI", greenCircle(False), yellowCircle(False), redCircle(False)], tablefmt="fancy_grid"), file=logfile)
     print('', file=logfile)
+
+    print(f"\N{SUPERSCRIPT ONE}Checks whether each expected entry is found in Ybus where green=found; yellow=not found, but explainable; red=not found", flush=True)
+    print(f"\N{SUPERSCRIPT TWO}Checks whether each existing entry in Ybus is expected where green=expected; yellow=unexpected, but explainable; red=unexpected\n", flush=True)
+    print(f"\N{SUPERSCRIPT ONE}Checks whether each expected entry is found in Ybus where green=found; yellow=not found, but explainable; red=not found", file=logfile)
+    print(f"\N{SUPERSCRIPT TWO}Checks whether each existing entry in Ybus is expected where green=expected; yellow=unexpected, but explainable; red=unexpected\n", file=logfile)
 
 
 def _main():
