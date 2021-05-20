@@ -77,6 +77,9 @@ def diffColorIdxReal(absDiff):
     elif absDiff >= 1e-2:
         redCountReal += 1
         return 2
+    elif math.isnan(absDiff):
+        redCountReal += 1
+        return 2
     else:
         yellowCountReal += 1
         return 1
@@ -89,6 +92,9 @@ def diffColorIdxImag(absDiff):
         greenCountImag += 1
         return 0
     elif absDiff >= 1e-2:
+        redCountImag += 1
+        return 2
+    elif math.isnan(absDiff):
         redCountImag += 1
         return 2
     else:
@@ -170,7 +176,7 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
             RatedS_tank[xfmr_name] = {}
             RatedU_tank[xfmr_name] = {}
 
-        RatedS_tank[xfmr_name][enum] = int(obj['ratedS']['value'])
+        RatedS_tank[xfmr_name][enum] = int(float(obj['ratedS']['value']))
         RatedU_tank[xfmr_name][enum] = int(obj['ratedU']['value'])
         #print('xfmr_name: ' + xfmr_name + ', enum: ' + str(enum) + ', ratedS: ' + str(RatedS_tank[xfmr_name][enum]) + ', ratedU: ' + str(RatedU_tank[xfmr_name][enum]))
 
@@ -299,7 +305,12 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                 #print('\tbackward summing connection to node: ' + node2)
                 numsum += Ybus[node1][node2]*CNV[node2]
 
-        Yshunt = numsum/CNV[node1]
+        if CNV[node1] != 0j:
+            Yshunt = numsum/CNV[node1]
+        else:
+            Yshunt = complex(np.NAN, np.NAN)
+            print("\n*** WARNING: Nominal voltage reported as zero for node: " + node1, flush=True)
+            print("\n*** WARNING: Nominal voltage reported as zero for node: " + node1, file=logfile)
 
         print('\nValidating shunt element for node: ' + node1, flush=True)
         print('\nValidating shunt element for node: ' + node1, file=logfile)
@@ -365,8 +376,8 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                     else:
                         # baseV was above threshold to be certain of it being
                         # a split phase transformer
-                        print("\tWARNING: Skipping validation for possible split phase transformer with baseV > 300", flush=True)
-                        print("\tWARNING: Skipping validation for possible split phase transformer with baseV > 300", file=logfile)
+                        print("\t*** WARNING: Skipping validation for possible split phase transformer with baseV > 300", flush=True)
+                        print("\t*** WARNING: Skipping validation for possible split phase transformer with baseV > 300", file=logfile)
                         skipValidation3 = True
 
             if len(Xfmr_tank_name[node1]) > 1:
@@ -483,36 +494,42 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
             continue
 
         bus = items[0].strip('"')
-        basekV = float(items[1])
+        #basekV = float(items[1])
         #print('bus: ' + bus + ', basekV: ' + str(basekV))
 
-        rho = 1000.0*basekV/math.sqrt(3.0)
-        # TODO hardwire rho for basekV<0.25 for now at least
+        # old logic to hardwire rho for basekV<0.25 instead of using
+        # query results directly
         #if basekV < 0.25:
         #    rho = 120.0
         #else:
         #    rho = 1000.0*basekV/math.sqrt(3.0)
 
         node1 = items[2].strip()
+        rho1 = float(items[3])
         angle = float(items[4])
         # the following bit of cleverness rounds to the nearest 30
         angle1 = float(30 * round(int(angle)/30))
-        theta = angle1*math.pi/180.0
-        CNV[bus+'.'+node1] = complex(rho*math.cos(theta), rho*math.sin(theta))
+        theta1 = angle1*math.pi/180.0
+        #print('**** rho1 for: ' + bus+'.'+node1 + ' is: ' + str(rho1) + ', theta1: ' + str(theta1))
+        CNV[bus+'.'+node1] = complex(rho1*math.cos(theta1), rho1*math.sin(theta1))
 
         node2 = items[6].strip()
         if node2 != '0':
+            rho2 = float(items[7])
             angle = float(items[8])
             angle2 = float(30 * round(int(angle)/30))
-            theta = angle2*math.pi/180.0
-            CNV[bus+'.'+node2] = complex(rho*math.cos(theta), rho*math.sin(theta))
+            theta2 = angle2*math.pi/180.0
+            #print('**** rho2 for: ' + bus+'.'+node2 + ' is: ' + str(rho2) + ', theta2: ' + str(theta1))
+            CNV[bus+'.'+node2] = complex(rho2*math.cos(theta2), rho2*math.sin(theta2))
 
             node3 = items[10].strip()
             if node3 != '0':
+                rho3 = float(items[11])
                 angle = float(items[12])
                 angle3 = float(30 * round(int(angle)/30))
-                theta = angle3*math.pi/180.0
-                CNV[bus+'.'+node3] = complex(rho*math.cos(theta), rho*math.sin(theta))
+                theta3 = angle3*math.pi/180.0
+                #print('**** rho3 for: ' + bus+'.'+node3 + ' is: ' + str(rho3) + ', theta3: ' + str(theta1))
+                CNV[bus+'.'+node3] = complex(rho3*math.cos(theta3), rho3*math.sin(theta3))
 
     print('Vnom Processed', flush=True)
 

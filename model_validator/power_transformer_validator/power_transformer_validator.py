@@ -346,7 +346,7 @@ def validate_PowerTransformerEnd_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsuppor
         Bus[xfmr_name][end_number] = obj['bus']['value'].upper()
         #base_voltage = int(obj['base_voltage']['value'])
         Connection[xfmr_name][end_number] = obj['connection']['value']
-        RatedS[xfmr_name][end_number] = int(obj['ratedS']['value'])
+        RatedS[xfmr_name][end_number] = int(float(obj['ratedS']['value']))
         RatedU[xfmr_name][end_number] = int(obj['ratedU']['value'])
         R_ohm[xfmr_name][end_number] = float(obj['r_ohm']['value'])
         #angle = int(obj['angle']['value'])
@@ -551,7 +551,7 @@ def validate_TransformerTank_xfmrs(sparql_mgr, Ybus, cmpFlag, Ysys, Unsupported)
             Connection[xfmr_name] = {}
             R_ohm[xfmr_name] = {}
 
-        RatedS[xfmr_name][enum] = int(obj['ratedS']['value'])
+        RatedS[xfmr_name][enum] = int(float(obj['ratedS']['value']))
         RatedU[xfmr_name][enum] = int(obj['ratedU']['value'])
         Connection[xfmr_name][enum] = obj['connection']['value']
         #angle = int(obj['angle']['value'])
