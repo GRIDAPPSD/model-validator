@@ -352,7 +352,8 @@ class SPARQLManager:
         results = self.gad.query_data(SOURCE_QUERY)
         bindings = results['data']['results']['bindings']
         sourcebus = bindings[0]['bus']['value']
-        return sourcebus
+        vang = bindings[0]['vang']['value']
+        return sourcebus, vang
     
     def switch_query(self):
         LBS_QUERY = """
