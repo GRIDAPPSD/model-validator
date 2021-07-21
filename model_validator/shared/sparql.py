@@ -354,6 +354,29 @@ class SPARQLManager:
         sourcebus = bindings[0]['bus']['value']
         vang = bindings[0]['vang']['value']
         return sourcebus, vang
+
+    def nomv_query(self):
+        SOURCE_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT DISTINCT ?busname ?nomv WHERE {
+        VALUES ?fdrid {"%s"}
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?bus c:ConnectivityNode.ConnectivityNodeContainer ?fdr.
+        ?bus r:type c:ConnectivityNode.
+        ?bus c:IdentifiedObject.name ?busname.
+        ?bus c:IdentifiedObject.mRID ?cnid.
+        ?fdr c:IdentifiedObject.name ?feeder.
+        ?trm c:Terminal.ConnectivityNode ?bus.
+        ?trm c:Terminal.ConductingEquipment ?ce.
+        ?ce c:ConductingEquipment.BaseVoltage ?bv.
+        ?bv c:BaseVoltage.nominalVoltage ?nomv.
+        }
+        ORDER by ?feeder ?busname ?nomv
+        """% self.feeder_mrid
+        results = self.gad.query_data(SOURCE_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
     
     def switch_query(self):
         LBS_QUERY = """
