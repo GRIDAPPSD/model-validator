@@ -169,8 +169,10 @@ def start(log_file, feeder_mrid, model_api_topic):
     np.set_printoptions(threshold=sys.maxsize)
     #print(loadYbus)
 
-    sourcebus = sparql_mgr.sourcebus_query().upper()
+    sourcebus, vang = sparql_mgr.sourcebus_query()
+    sourcebus = sourcebus.upper()
     print('query results sourcebus name: ' + sourcebus)
+    print('query results vang: ' + vang)
 
     src_idxs = []
     if sourcebus+'.1' in loadNode:
@@ -180,6 +182,9 @@ def start(log_file, feeder_mrid, model_api_topic):
     if sourcebus+'.3' in loadNode:
         src_idxs.append(loadNode[sourcebus+'.3'])
     print('src_idxs: ' + str(src_idxs))
+
+    bindings = sparql_mgr.nomv_query()
+    print(bindings)
 
 
 
