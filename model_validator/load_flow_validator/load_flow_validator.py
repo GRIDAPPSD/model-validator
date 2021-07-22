@@ -48,6 +48,7 @@ import os
 import argparse
 import json
 import importlib
+import math
 import numpy as np
 from tabulate import tabulate
 
@@ -64,6 +65,10 @@ def redCircle(colorFlag):
 
 def yellowCircle(colorFlag):
     return '\u001b[33m\u25cf\u001b[37m' if colorFlag else '\u25d1'
+
+
+def pol2cart(rho, phi):
+    return complex(rho*math.cos(phi), rho*math.sin(phi))
 
 
 def start(log_file, feeder_mrid, model_api_topic):
@@ -172,7 +177,7 @@ def start(log_file, feeder_mrid, model_api_topic):
     sourcebus, vang = sparql_mgr.sourcebus_query()
     sourcebus = sourcebus.upper()
     print('query results sourcebus name: ' + sourcebus)
-    print('query results vang: ' + vang)
+    print('query results vang: ' + str(vang))
 
     src_idxs = []
     if sourcebus+'.1' in loadNode:
@@ -186,6 +191,38 @@ def start(log_file, feeder_mrid, model_api_topic):
     bindings = sparql_mgr.nomv_query()
     print(bindings)
 
+    sqrt3 = math.sqrt(3.0)
+    Vmag = {}
+
+    for obj in bindings:
+        busname = obj['busname']['value'].upper()
+        nomv = float(obj['nomv']['value'])
+        Vmag[busname] = nomv/sqrt3
+
+    Vang = {}
+    Vang['1'] = math.radians(0.0)
+    Vang['2'] = math.radians(-120.0)
+    Vang['3'] = math.radians(120.0)
+
+    # calculate candidateVnom
+    candidateVnom = {}
+    for node in loadNode:
+        bus = node[:node.find('.')]
+        phase = node[node.find('.')+1:]
+
+        # source bus is a special case for the angle
+        if node.startswith(sourcebus+'.'):
+            # vang in degrees
+            #candidateVnom[node] = pol2cart(Vmag[bus], math.radians(vang)+Vang[phase])
+            # vang in radians
+            candidateVnom[node] = pol2cart(Vmag[bus], vang+Vang[phase])
+        else:
+            if bus in Vmag:
+                candidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
+            else:
+                print('*** WARNING:  no nomv value for bus: ' + bus + ' for node: ' + node)
+
+    print(candidateVnom)
 
 
 def _main():

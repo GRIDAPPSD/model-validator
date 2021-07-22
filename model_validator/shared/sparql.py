@@ -352,7 +352,7 @@ class SPARQLManager:
         results = self.gad.query_data(SOURCE_QUERY)
         bindings = results['data']['results']['bindings']
         sourcebus = bindings[0]['bus']['value']
-        vang = bindings[0]['vang']['value']
+        vang = float(bindings[0]['vang']['value'])
         return sourcebus, vang
 
     def nomv_query(self):
