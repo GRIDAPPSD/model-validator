@@ -174,10 +174,10 @@ def start(log_file, feeder_mrid, model_api_topic):
     np.set_printoptions(threshold=sys.maxsize)
     #print(loadYbus)
 
-    sourcebus, vang = sparql_mgr.sourcebus_query()
+    sourcebus, sourcevang = sparql_mgr.sourcebus_query()
     sourcebus = sourcebus.upper()
     print('query results sourcebus name: ' + sourcebus)
-    print('query results vang: ' + str(vang))
+    print('query results sourcevang: ' + str(sourcevang))
 
     src_idxs = []
     if sourcebus+'.1' in loadNode:
@@ -212,10 +212,7 @@ def start(log_file, feeder_mrid, model_api_topic):
 
         # source bus is a special case for the angle
         if node.startswith(sourcebus+'.'):
-            # vang in degrees
-            #candidateVnom[node] = pol2cart(Vmag[bus], math.radians(vang)+Vang[phase])
-            # vang in radians
-            candidateVnom[node] = pol2cart(Vmag[bus], vang+Vang[phase])
+            candidateVnom[node] = pol2cart(Vmag[bus], sourcevang+Vang[phase])
         else:
             if bus in Vmag:
                 candidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
