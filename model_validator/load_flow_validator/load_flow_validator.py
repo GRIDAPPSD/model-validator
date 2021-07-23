@@ -152,43 +152,27 @@ def start(log_file, feeder_mrid, model_api_topic):
     # build the Numpy matrix from the full Ysys before we start deleting
     # entries to check Ysys vs. Ybus
     # first, create a node index dictionary
-    loadNode = {}
-    loadCount = 0
+    Node2idx = {}
+    idxCount = 0
     for bus1 in list(Ysys):
-        if bus1 not in loadNode:
-            loadNode[bus1] = loadCount
-            loadCount += 1
+        if bus1 not in Node2idx:
+            Node2idx[bus1] = idxCount
+            idxCount += 1
         for bus2 in list(Ysys[bus1]):
-            if bus2 not in loadNode:
-                loadNode[bus2] = loadCount
-                loadCount += 1
-    print(loadNode)
-    print('loadNode size: ' + str(loadCount))
-
-    loadYbus = np.zeros((loadCount,loadCount), dtype=complex)
-    # next, remap into a numpy array
-    for bus1 in list(Ysys):
-        for bus2 in list(Ysys[bus1]):
-            loadYbus[loadNode[bus2],loadNode[bus1]] = loadYbus[loadNode[bus1],loadNode[bus2]] = Ysys[bus1][bus2]
-
-    np.set_printoptions(threshold=sys.maxsize)
-    #print(loadYbus)
+            if bus2 not in Node2idx:
+                Node2idx[bus2] = idxCount
+                idxCount += 1
+    print('Node2idx size: ' + str(idxCount))
+    print('Node2idx dictionary:')
+    print(Node2idx)
 
     sourcebus, sourcevang = sparql_mgr.sourcebus_query()
     sourcebus = sourcebus.upper()
-    print('query results sourcebus name: ' + sourcebus)
+    print('\nquery results sourcebus: ' + sourcebus)
     print('query results sourcevang: ' + str(sourcevang))
 
-    src_idxs = []
-    if sourcebus+'.1' in loadNode:
-        src_idxs.append(loadNode[sourcebus+'.1'])
-    if sourcebus+'.2' in loadNode:
-        src_idxs.append(loadNode[sourcebus+'.2'])
-    if sourcebus+'.3' in loadNode:
-        src_idxs.append(loadNode[sourcebus+'.3'])
-    print('src_idxs: ' + str(src_idxs))
-
     bindings = sparql_mgr.nomv_query()
+    print('\nnomv query results:')
     print(bindings)
 
     sqrt3 = math.sqrt(3.0)
@@ -204,22 +188,53 @@ def start(log_file, feeder_mrid, model_api_topic):
     Vang['2'] = math.radians(-120.0)
     Vang['3'] = math.radians(120.0)
 
-    # calculate candidateVnom
-    candidateVnom = {}
-    for node in loadNode:
+    # calculate CandidateVnom
+    CandidateVnom = {}
+    for node in Node2idx:
         bus = node[:node.find('.')]
         phase = node[node.find('.')+1:]
 
         # source bus is a special case for the angle
         if node.startswith(sourcebus+'.'):
-            candidateVnom[node] = pol2cart(Vmag[bus], sourcevang+Vang[phase])
+            CandidateVnom[node] = pol2cart(Vmag[bus], sourcevang+Vang[phase])
         else:
             if bus in Vmag:
-                candidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
+                CandidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
             else:
                 print('*** WARNING:  no nomv value for bus: ' + bus + ' for node: ' + node)
 
-    print(candidateVnom)
+    print('\nCandidateVnom dictionary:')
+    print(CandidateVnom)
+
+    src_idxs = []
+    if sourcebus+'.1' in Node2idx:
+        src_idxs.append(Node2idx[sourcebus+'.1'])
+    if sourcebus+'.2' in Node2idx:
+        src_idxs.append(Node2idx[sourcebus+'.2'])
+    if sourcebus+'.3' in Node2idx:
+        src_idxs.append(Node2idx[sourcebus+'.3'])
+    print('\nsrc_idxs list: ' + str(src_idxs))
+
+    YsysArray = np.zeros((idxCount,idxCount), dtype=complex)
+    # next, remap into a numpy array
+    for bus1 in list(Ysys):
+        for bus2 in list(Ysys[bus1]):
+            YsysArray[Node2idx[bus2],Node2idx[bus1]] = YsysArray[Node2idx[bus1],Node2idx[bus2]] = Ysys[bus1][bus2]
+
+    np.set_printoptions(threshold=sys.maxsize)
+    #print('\nYsys numpy array:')
+    #print(YsysArray)
+
+    # create the CandidateVnom numpy vector for computations below
+    CandidateVnomVec = np.zeros((idxCount), dtype=complex)
+    for node in Node2idx:
+        if node in CandidateVnom:
+            #print('populating node: ' + node + ', index: ' + str(Node2idx[node]) + ', value: ' + str(CandidateVnom[node]))
+            CandidateVnomVec[Node2idx[node]] = CandidateVnom[node]
+        else:
+            print('*** WARNING: no CandidateVnom value for populating node: ' + node + ', index: ' + str(Node2idx[node]))
+    print('\nCandidateVnom numpy vector:')
+    print(CandidateVnomVec)
 
 
 def _main():
