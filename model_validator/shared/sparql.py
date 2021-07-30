@@ -356,7 +356,7 @@ class SPARQLManager:
         return sourcebus, vang
 
     def nomv_query(self):
-        SOURCE_QUERY = """
+        EQ_VNOM_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX c:  <http://iec.ch/TC57/CIM100#>
         SELECT DISTINCT ?busname ?nomv WHERE {
@@ -374,9 +374,34 @@ class SPARQLManager:
         }
         ORDER by ?feeder ?busname ?nomv
         """% self.feeder_mrid
-        results = self.gad.query_data(SOURCE_QUERY)
-        bindings = results['data']['results']['bindings']
-        return bindings
+        results = self.gad.query_data(EQ_VNOM_QUERY)
+        bindings1 = results['data']['results']['bindings']
+
+        XMFR_VNOM_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT  ?busname ?nomv  WHERE {
+        ?ce c:IdentifiedObject.name ?cename.
+        ?te c:TransformerEnd.BaseVoltage ?bvo.
+        ?bvo c:BaseVoltage.nominalVoltage ?nomv.
+        ?te c:TransformerEnd.Terminal ?term.
+        ?term c:Terminal.ConnectivityNode ?bus.
+        ?bus c:IdentifiedObject.name ?busname.
+        ?bus c:IdentifiedObject.mRID ?busid.
+        VALUES ?fdrid {"%s"}
+        {?te c:PowerTransformerEnd.PowerTransformer ?ce.}
+        UNION
+        {?te c:TransformerTankEnd.TransformerTank ?ce.}
+        ?ce c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        }
+        GROUP BY ?busname ?nomv
+        """% self.feeder_mrid
+        results = self.gad.query_data(XMFR_VNOM_QUERY)
+        bindings2 = results['data']['results']['bindings'] 
+        return bindings1 + bindings2
+
+
     
     def switch_query(self):
         LBS_QUERY = """
