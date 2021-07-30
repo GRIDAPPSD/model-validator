@@ -206,14 +206,19 @@ def start(log_file, feeder_mrid, model_api_topic):
     print('\nCandidateVnom dictionary:')
     print(CandidateVnom)
 
-    src_idxs = []
+    src_idxs_list = []
+    src_idxs = np.zeros((3), dtype=int)
     if sourcebus+'.1' in Node2idx:
-        src_idxs.append(Node2idx[sourcebus+'.1'])
+        src_idxs_list.append(Node2idx[sourcebus+'.1'])
+        src_idxs[0] = Node2idx[sourcebus+'.1']
     if sourcebus+'.2' in Node2idx:
-        src_idxs.append(Node2idx[sourcebus+'.2'])
+        src_idxs_list.append(Node2idx[sourcebus+'.2'])
+        src_idxs[1] = Node2idx[sourcebus+'.2']
     if sourcebus+'.3' in Node2idx:
-        src_idxs.append(Node2idx[sourcebus+'.3'])
-    print('\nsrc_idxs list: ' + str(src_idxs))
+        src_idxs_list.append(Node2idx[sourcebus+'.3'])
+        src_idxs[2] = Node2idx[sourcebus+'.3']
+    print('\nsrc_idxs_list: ' + str(src_idxs_list))
+    print('\nsrc_idxs vector: ' + str(src_idxs))
 
     YsysArray = np.zeros((idxCount,idxCount), dtype=complex)
     # next, remap into a numpy array
