@@ -202,10 +202,6 @@ def start(log_file, feeder_mrid, model_api_topic):
                 CandidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
             else:
                 print('*** WARNING:  no nomv value for bus: ' + bus + ' for node: ' + node)
-                if bus == '650':
-                    print('*** WARNING:  HACKING nomv for bus: ' + bus + ' for node: ' + node + ', to value: 4160')
-                    vmag = 4160.0/sqrt3
-                    CandidateVnom[node] = pol2cart(vmag, Vang[phase])
 
     print('\nCandidateVnom dictionary:')
     print(CandidateVnom)
