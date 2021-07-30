@@ -220,6 +220,11 @@ def start(log_file, feeder_mrid, model_api_topic):
     for bus1 in list(Ysys):
         for bus2 in list(Ysys[bus1]):
             YsysMatrix[Node2idx[bus2],Node2idx[bus1]] = YsysMatrix[Node2idx[bus1],Node2idx[bus2]] = Ysys[bus1][bus2]
+    # dump YsysMatrix for MATLAB comparison
+    #print('\nYsysMatrix for MATLAB:')
+    #for row in range(N):
+    #    for col in range(N):
+    #        print(str(row+1) + ',' + str(col+1) + ',' + str(YsysMatrix[row,col]))
 
     np.set_printoptions(threshold=sys.maxsize)
     #print('\nYsys numpy array:')
@@ -235,10 +240,18 @@ def start(log_file, feeder_mrid, model_api_topic):
             print('*** WARNING: no CandidateVnom value for populating node: ' + node + ', index: ' + str(Node2idx[node]))
     print('\nCandidateVnom:')
     print(CandidateVnomVec)
+    # dump CandidateVnomVec to CSV file for MATLAB comparison
+    #print('\nCandidateVnom for MATLAB:')
+    #for row in range(N):
+    #    print(CandidateVnomVec[row])
 
     # Start with Sinj as zero vector and we will come back to this later
     Sinj = np.zeros((N), dtype=complex)
     Sinj[src_idxs] = complex(0.0,1.0)
+    #Sinj[0] = complex(100.0, 50.0) # Shiva special
+    #Sinj[38] = complex(110.0, 90.0) # Shiva special
+    #Sinj[39] = complex(160.0, 110.0) # Shiva special
+    #Sinj[40] = complex(110.0, 90.0) # Shiva special
     #print('\nSinj:')
     #print(Sinj)
 
@@ -267,6 +280,7 @@ def start(log_file, feeder_mrid, model_api_topic):
     Isrc_vec = np.zeros((N), dtype=complex)
     Vfpi = np.zeros((N,Nfpi), dtype=complex)
 
+    # start with the CandidateVnom for Vfpi
     Vfpi[:,0] = CandidateVnomVec
     #print('\nVfpi:')
     #print(Vfpi)
