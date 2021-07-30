@@ -153,27 +153,27 @@ def start(log_file, feeder_mrid, model_api_topic):
     # entries to check Ysys vs. Ybus
     # first, create a node index dictionary
     Node2idx = {}
-    idxCount = 0
+    N = 0
     for bus1 in list(Ysys):
         if bus1 not in Node2idx:
-            Node2idx[bus1] = idxCount
-            idxCount += 1
+            Node2idx[bus1] = N
+            N += 1
         for bus2 in list(Ysys[bus1]):
             if bus2 not in Node2idx:
-                Node2idx[bus2] = idxCount
-                idxCount += 1
-    print('Node2idx size: ' + str(idxCount))
+                Node2idx[bus2] = N
+                N += 1
+    print('Node2idx size: ' + str(N))
     print('Node2idx dictionary:')
     print(Node2idx)
 
     sourcebus, sourcevang = sparql_mgr.sourcebus_query()
     sourcebus = sourcebus.upper()
-    print('\nquery results sourcebus: ' + sourcebus)
-    print('query results sourcevang: ' + str(sourcevang))
+    #print('\nquery results sourcebus: ' + sourcebus)
+    #print('query results sourcevang: ' + str(sourcevang))
 
     bindings = sparql_mgr.nomv_query()
-    print('\nnomv query results:')
-    print(bindings)
+    #print('\nnomv query results:')
+    #print(bindings)
 
     sqrt3 = math.sqrt(3.0)
     Vmag = {}
@@ -203,43 +203,102 @@ def start(log_file, feeder_mrid, model_api_topic):
             else:
                 print('*** WARNING:  no nomv value for bus: ' + bus + ' for node: ' + node)
 
-    print('\nCandidateVnom dictionary:')
-    print(CandidateVnom)
+    #print('\nCandidateVnom dictionary:')
+    #print(CandidateVnom)
 
-    src_idxs_list = []
-    src_idxs = np.zeros((3), dtype=int)
+    src_idxs = []
     if sourcebus+'.1' in Node2idx:
-        src_idxs_list.append(Node2idx[sourcebus+'.1'])
-        src_idxs[0] = Node2idx[sourcebus+'.1']
+        src_idxs.append(Node2idx[sourcebus+'.1'])
     if sourcebus+'.2' in Node2idx:
-        src_idxs_list.append(Node2idx[sourcebus+'.2'])
-        src_idxs[1] = Node2idx[sourcebus+'.2']
+        src_idxs.append(Node2idx[sourcebus+'.2'])
     if sourcebus+'.3' in Node2idx:
-        src_idxs_list.append(Node2idx[sourcebus+'.3'])
-        src_idxs[2] = Node2idx[sourcebus+'.3']
-    print('\nsrc_idxs_list: ' + str(src_idxs_list))
-    print('\nsrc_idxs vector: ' + str(src_idxs))
+        src_idxs.append(Node2idx[sourcebus+'.3'])
+    print('\nsrc_idxs: ' + str(src_idxs))
 
-    YsysArray = np.zeros((idxCount,idxCount), dtype=complex)
+    YsysMatrix = np.zeros((N,N), dtype=complex)
     # next, remap into a numpy array
     for bus1 in list(Ysys):
         for bus2 in list(Ysys[bus1]):
-            YsysArray[Node2idx[bus2],Node2idx[bus1]] = YsysArray[Node2idx[bus1],Node2idx[bus2]] = Ysys[bus1][bus2]
+            YsysMatrix[Node2idx[bus2],Node2idx[bus1]] = YsysMatrix[Node2idx[bus1],Node2idx[bus2]] = Ysys[bus1][bus2]
 
     np.set_printoptions(threshold=sys.maxsize)
     #print('\nYsys numpy array:')
-    #print(YsysArray)
+    #print(YsysMatrix)
 
     # create the CandidateVnom numpy vector for computations below
-    CandidateVnomVec = np.zeros((idxCount), dtype=complex)
+    CandidateVnomVec = np.zeros((N), dtype=complex)
     for node in Node2idx:
         if node in CandidateVnom:
             #print('populating node: ' + node + ', index: ' + str(Node2idx[node]) + ', value: ' + str(CandidateVnom[node]))
             CandidateVnomVec[Node2idx[node]] = CandidateVnom[node]
         else:
             print('*** WARNING: no CandidateVnom value for populating node: ' + node + ', index: ' + str(Node2idx[node]))
-    print('\nCandidateVnom numpy vector:')
+    print('\nCandidateVnom:')
     print(CandidateVnomVec)
+
+    # Start with Sinj as zero vector and we will come back to this later
+    Sinj = np.zeros((N), dtype=complex)
+    Sinj[src_idxs] = complex(0.0,1.0)
+    #print('\nSinj:')
+    #print(Sinj)
+
+    vsrc = np.zeros((3), dtype=complex)
+    vsrc = CandidateVnomVec[src_idxs]
+    #print('\nvsrc:')
+    #print(vsrc)
+
+    Iinj_nom = np.conj(Sinj/CandidateVnomVec)
+    #print('\nIinj_nom:')
+    #print(Iinj_nom)
+
+    Yinj_nom = -Iinj_nom/CandidateVnomVec
+    #print('\nYinj_nom:')
+    #print(Yinj_nom)
+
+    Yaug = YsysMatrix + np.diag(Yinj_nom)
+    #print('\nYaug:')
+    #print(Yaug)
+
+    Zaug = np.linalg.inv(Yaug)
+    #print('\nZaug:')
+    #print(Zaug)
+
+    Nfpi = 10
+    Isrc_vec = np.zeros((N), dtype=complex)
+    Vfpi = np.zeros((N,Nfpi), dtype=complex)
+
+    Vfpi[:,0] = CandidateVnomVec
+    #print('\nVfpi:')
+    #print(Vfpi)
+
+    k = 1
+    maxdiff = 1.0
+
+    while k<Nfpi and maxdiff>0.001:
+        Iload_tot = np.conj(Sinj / Vfpi[:,k-1])
+        Iload_z = -Yinj_nom * Vfpi[:,k-1]
+        Iload_comp = Iload_tot - Iload_z
+        #print('\nIload_comp numpy matrix:')
+        #print(Iload_comp)
+
+        term1 = np.linalg.inv(Zaug[np.ix_(src_idxs,src_idxs)])
+        term2 = vsrc - np.matmul(Zaug[np.ix_(src_idxs,list(range(N)))], Iload_comp)
+        Isrc_vec[src_idxs] = np.matmul(term1, term2)
+        #print("\nIsrc_vec:")
+        #print(Isrc_vec)
+
+        Icomp = Isrc_vec + Iload_comp
+        Vfpi[:,k] = np.matmul(Zaug, Icomp)
+        #print("\nVfpi:")
+        #print(Vfpi)
+
+        maxdiff = max(abs(abs(Vfpi[:,k]) - abs(Vfpi[:,k-1])))
+        print("\nk: " + str(k) + ", maxdiff: " + str(maxdiff))
+        k += 1
+
+    # set the final Vpfi index
+    k -= 1
+    print("\nconverged k: " + str(k))
 
 
 def _main():
