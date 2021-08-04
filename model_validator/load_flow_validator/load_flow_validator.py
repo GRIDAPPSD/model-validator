@@ -224,7 +224,7 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print('\nYsysMatrix for MATLAB:')
     #for row in range(N):
     #    for col in range(N):
-    #        print(str(row+1) + ',' + str(col+1) + ',' + str(YsysMatrix[row,col]))
+    #        print(str(row+1) + ',' + str(col+1) + ',' + str(YsysMatrix[row,col].real) + ',' + str(YsysMatrix[row,col].imag))
 
     np.set_printoptions(threshold=sys.maxsize)
     #print('\nYsys numpy array:')
@@ -243,7 +243,7 @@ def start(log_file, feeder_mrid, model_api_topic):
     # dump CandidateVnomVec to CSV file for MATLAB comparison
     #print('\nCandidateVnom for MATLAB:')
     #for row in range(N):
-    #    print(CandidateVnomVec[row])
+    #    print(str(CandidateVnomVec[row].real) + ',' + str(CandidateVnomVec[row].imag))
 
     # Start with Sinj as zero vector and we will come back to this later
     Sinj = np.zeros((N), dtype=complex)
