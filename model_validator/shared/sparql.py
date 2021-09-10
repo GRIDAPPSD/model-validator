@@ -450,6 +450,16 @@ class SPARQLManager:
         obj_msr_loadsw = [d for d in obj_msr_loadsw if d['type'] == 'Pos']
         return obj_msr_loadsw
 
+    def capacitor_ids_query(self):
+        message = {
+        "modelId": self.feeder_mrid,
+        "requestType": "QUERY_OBJECT_IDS",
+        "resultFormat": "JSON",
+        "objectType": "LinearShuntCompensator"}
+        cap_ids = self.gad.get_response(self.topic, message, timeout=30)
+        cap_ids = cap_ids['data']['objectIds']
+        return cap_ids
+
     def PerLengthPhaseImpedance_line_names(self):
         LINES_QUERY = """
         PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -1095,6 +1105,35 @@ class SPARQLManager:
         """% self.feeder_mrid
 
         results = self.gad.query_data(SHUNT_QUERY)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
+    def regid_query(self):
+        REGID_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?rname ?rid
+        WHERE {
+        VALUES ?fdrid {"%s"}
+         ?pxf c:Equipment.EquipmentContainer ?fdr.
+         ?fdr c:IdentifiedObject.mRID ?fdrid.
+         ?rtc r:type c:RatioTapChanger.
+         ?rtc c:IdentifiedObject.name ?rname.
+         ?rtc c:IdentifiedObject.mRID ?rid.
+         ?rtc c:RatioTapChanger.TransformerEnd ?end.
+         ?end c:TransformerEnd.endNumber ?wnum.
+        {?end c:PowerTransformerEnd.PowerTransformer ?pxf.}
+          UNION
+        {?end c:TransformerTankEnd.TransformerTank ?tank.
+         ?tank c:IdentifiedObject.name ?tname.
+         OPTIONAL {?end c:TransformerTankEnd.phases ?phsraw.
+          bind(strafter(str(?phsraw),"PhaseCode.") as ?phs)}
+         ?tank c:TransformerTank.PowerTransformer ?pxf.}
+        }
+        ORDER BY ?rname
+        """% self.feeder_mrid
+
+        results = self.gad.query_data(REGID_QUERY)
         bindings = results['data']['results']['bindings']
         return bindings
 
