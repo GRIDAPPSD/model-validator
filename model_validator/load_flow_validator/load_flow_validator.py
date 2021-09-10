@@ -1,4 +1,4 @@
-# ------------------------------------------------------------------------------
+
 # Copyright (c) 2021, Battelle Memorial Institute All rights reserved.
 # Battelle Memorial Institute (hereinafter Battelle) hereby grants permission to any person or entity
 # lawfully obtaining a copy of this software and associated documentation files (hereinafter the
@@ -44,6 +44,7 @@ Created on July 15, 2021
 """""
 
 import sys
+import time
 import os
 import argparse
 import json
@@ -53,6 +54,9 @@ import numpy as np
 from tabulate import tabulate
 
 from gridappsd import GridAPPSD
+from gridappsd import DifferenceBuilder
+from gridappsd.topics import simulation_input_topic
+from gridappsd.topics import simulation_output_topic
 
 
 def greenCircle(colorFlag):
@@ -71,7 +75,142 @@ def pol2cart(rho, phi):
     return complex(rho*math.cos(phi), rho*math.sin(phi))
 
 
-def start(log_file, feeder_mrid, model_api_topic):
+def cart2pol(cart):
+    rho = np.sqrt(np.real(cart)**2 + np.imag(cart)**2)
+    phi = np.arctan2(np.imag(cart), np.real(cart))
+    return (rho, phi)
+
+
+class SimSetWrapper(object):
+    def __init__(self, gapps, simulation_id, Rids):
+        self.gapps = gapps
+        self.simulation_id = simulation_id
+        self.Rids = Rids
+        self.rid_idx = 0
+        self.keepLoopingFlag = True
+        self.publish_to_topic = simulation_input_topic(simulation_id)
+
+
+    def keepLooping(self):
+        return self.keepLoopingFlag
+
+
+    def on_message(self, header, message):
+        # TODO workaround for broken unsubscribe method
+        if not self.keepLoopingFlag:
+            return
+
+        msgdict = message['message']
+        ts = msgdict['timestamp']
+        print('simulation timestamp: ' + str(ts), flush=True)
+
+        rid = self.Rids[self.rid_idx]
+        reg_diff = DifferenceBuilder(self.simulation_id)
+        reg_diff.add_difference(rid, 'TapChanger.step', 0, 1)
+        msg = reg_diff.get_message()
+        print(msg)
+        self.gapps.send(self.publish_to_topic, json.dumps(msg))
+        reg_diff.clear()
+
+        self.rid_idx += 1
+        if self.rid_idx == len(self.Rids):
+            self.keepLoopingFlag = False
+
+
+class SimHackWrapper(object):
+    def __init__(self, gapps, simulation_id, Cids):
+        self.gapps = gapps
+        self.simulation_id = simulation_id
+        self.Cids = Cids
+        self.cid_idx = 0
+        self.keepLoopingFlag = True
+        self.publish_to_topic = simulation_input_topic(simulation_id)
+
+
+    def keepLooping(self):
+        return self.keepLoopingFlag
+
+
+    def on_message(self, header, message):
+        # TODO workaround for broken unsubscribe method
+        if not self.keepLoopingFlag:
+            return
+
+        msgdict = message['message']
+        ts = msgdict['timestamp']
+        print('simulation timestamp: ' + str(ts), flush=True)
+
+        cid = self.Cids[self.cid_idx]
+        #print('cid: ' + cid, flush=True)
+        cap_diff = DifferenceBuilder(self.simulation_id)
+        cap_diff.add_difference(cid, 'ShuntCompensator.sections', 0, 1)
+        msg = cap_diff.get_message()
+        print(msg)
+        self.gapps.send(self.publish_to_topic, json.dumps(msg))
+        cap_diff.clear()
+
+        self.cid_idx += 1
+        if self.cid_idx == len(self.Cids):
+            self.keepLoopingFlag = False
+
+
+class SimCheckWrapper(object):
+    def __init__(self, Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs):
+        self.Sinj = Sinj
+        self.PNVmag = PNVmag
+        self.RegMRIDs = RegMRIDs
+        self.CondMRIDs = CondMRIDs
+        self.PNVmRIDs = PNVmRIDs
+        self.keepLoopingFlag = True
+
+
+    def keepLooping(self):
+        return self.keepLoopingFlag
+
+
+    def on_message(self, header, message):
+        # TODO workaround for broken unsubscribe method
+        if not self.keepLoopingFlag:
+            return
+
+        msgdict = message['message']
+        ts = msgdict['timestamp']
+        print('simulation timestamp: ' + str(ts), flush=True)
+        #print(msgdict['measurements'])
+        measurements = msgdict['measurements']
+        #for mrid in measurements:
+        #    print('simulation mrid: ' + mrid)
+        #    print('simulation data: ' + str(measurements[mrid]))
+        # check RegMRIDs for 0 tap positions
+        allZeroFlag = True
+        for mrid in self.RegMRIDs:
+            meas = measurements[mrid]
+            print(meas, flush=True)
+            if meas['value'] != 0:
+                allZeroFlag = False
+                # TODO uncomment the following line to not check all mRIDs
+                break
+
+        if allZeroFlag:
+            for mrid, condType, idx in self.CondMRIDs:
+                #if idx==27 or idx==29 or idx==33 or idx==34:
+                #    print('This is one of the multiple Sinj conducting equipment types for idx: ' + str(idx) + ', condType: ' + condType, flush=True)
+                #if self.Sinj[idx] != 0j:
+                #    print('This is the second contributor to Sinj for idx: ' + str(idx) + ', condType: ' + condType, flush=True)
+                meas = measurements[mrid]
+                if condType == 'EnergyConsumer':
+                    self.Sinj[idx] += -1.0*pol2cart(meas['magnitude'], math.radians(meas['angle']))
+                else:
+                    self.Sinj[idx] += pol2cart(meas['magnitude'], math.radians(meas['angle']))
+
+            for mrid, idx in self.PNVmRIDs:
+                meas = measurements[mrid]
+                self.PNVmag[idx] = meas['magnitude']
+
+            self.keepLoopingFlag = False
+
+
+def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     global logfile
     logfile = log_file
 
@@ -138,6 +277,15 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print('Switching_equipment # entries: ' + str(switch_count) + '\n', flush=True)
     #print('Switching_equipment # entries: ' + str(switch_count) + '\n', file=logfile)
 
+    # HACK START
+    # Shiva Special Start
+    Ysys['675.1']['675.1'] += complex(0.0, 0.01155)
+    Ysys['675.2']['675.2'] += complex(0.0, 0.01155)
+    Ysys['675.3']['675.3'] += complex(0.0, 0.01155)
+    Ysys['611.3']['611.3'] += complex(0.0, 0.01736)
+    # Shiva Special END
+    # HACK END
+
     #print('\n*** Full Ysys:\n')
     #for bus1 in Ysys:
     #    for bus2 in Ysys[bus1]:
@@ -190,6 +338,7 @@ def start(log_file, feeder_mrid, model_api_topic):
 
     # calculate CandidateVnom
     CandidateVnom = {}
+    CandidateVnomPolar = {}
     for node in Node2idx:
         bus = node[:node.find('.')]
         phase = node[node.find('.')+1:]
@@ -197,9 +346,11 @@ def start(log_file, feeder_mrid, model_api_topic):
         # source bus is a special case for the angle
         if node.startswith(sourcebus+'.'):
             CandidateVnom[node] = pol2cart(Vmag[bus], sourcevang+Vang[phase])
+            CandidateVnomPolar[node] = (Vmag[bus], math.degrees(sourcevang+Vang[phase]))
         else:
             if bus in Vmag:
                 CandidateVnom[node] = pol2cart(Vmag[bus], Vang[phase])
+                CandidateVnomPolar[node] = (Vmag[bus], math.degrees(Vang[phase]))
             else:
                 print('*** WARNING:  no nomv value for bus: ' + bus + ' for node: ' + node)
 
@@ -234,26 +385,109 @@ def start(log_file, feeder_mrid, model_api_topic):
     CandidateVnomVec = np.zeros((N), dtype=complex)
     for node in Node2idx:
         if node in CandidateVnom:
-            #print('populating node: ' + node + ', index: ' + str(Node2idx[node]) + ', value: ' + str(CandidateVnom[node]))
+            print('CandidateVnomVec node: ' + node + ', index: ' + str(Node2idx[node]) + ', cartesian value: ' + str(CandidateVnom[node]) + ', polar value: ' + str(CandidateVnomPolar[node]))
             CandidateVnomVec[Node2idx[node]] = CandidateVnom[node]
         else:
             print('*** WARNING: no CandidateVnom value for populating node: ' + node + ', index: ' + str(Node2idx[node]))
-    print('\nCandidateVnom:')
-    print(CandidateVnomVec)
+    #print('\nCandidateVnom:')
+    #print(CandidateVnomVec)
     # dump CandidateVnomVec to CSV file for MATLAB comparison
     #print('\nCandidateVnom for MATLAB:')
     #for row in range(N):
     #    print(str(CandidateVnomVec[row].real) + ',' + str(CandidateVnomVec[row].imag))
 
-    # Start with Sinj as zero vector and we will come back to this later
+    # time to get the source injection terms
+    # first, get the dictionary of regulator ids
+    bindings = sparql_mgr.regid_query()
+    Rids = []
+    for obj in bindings:
+        Rids.append(obj['rid']['value'])
+    print('\nRegulator IDs: ' + str(Rids))
+
+    # second, subscribe to simulation output so we can start setting tap
+    # positions to 0
+    simSetRap = SimSetWrapper(gapps, simulation_id, Rids)
+    conn_id = gapps.subscribe(simulation_output_topic(simulation_id), simSetRap)
+
+    while simSetRap.keepLooping():
+        #print('Sleeping....', flush=True)
+        time.sleep(0.1)
+
+    gapps.unsubscribe(conn_id)
+
+    # HACK START
+    Cids = sparql_mgr.capacitor_ids_query()
+    print('\nCapacitor IDs: ' + str(Cids))
+
+    simHackRap = SimHackWrapper(gapps, simulation_id, Cids)
+    conn_id = gapps.subscribe(simulation_output_topic(simulation_id), simHackRap)
+    while simHackRap.keepLooping():
+        #print('Sleeping....', flush=True)
+        time.sleep(0.1)
+
+    gapps.unsubscribe(conn_id)
+    # HACK END
+
+    # third, verify all tap positions are 0
+    config_api_topic = 'goss.gridappsd.process.request.config'
+    message = {
+        'configurationType': 'CIM Dictionary',
+        'parameters': {'model_id': feeder_mrid}
+        }
+    cim_dict = gapps.get_response(config_api_topic, message, timeout=10)
+    #print('\nCIM Dictionary:')
+    #print(cim_dict)
+    # get list of regulator mRIDs
+    RegMRIDs = []
+    CondMRIDs = []
+    PNVmRIDs = []
+    condTypes = set(['EnergyConsumer', 'LinearShuntCompensator', 'PowerElectronicsConnection', 'SynchronousMachine'])
+    phaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
+
+    for feeder in cim_dict['data']['feeders']:
+        for measurement in feeder['measurements']:
+            if measurement['name'].startswith('RatioTapChanger') and measurement['measurementType']=='Pos':
+                RegMRIDs.append(measurement['mRID'])
+
+            elif measurement['measurementType']=='VA' and (measurement['ConductingEquipment_type'] in condTypes):
+                node = measurement['ConnectivityNode'].upper()
+                #print('Appending CondMRID tuple:: ' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[measurement['ConnectivityNode']+phaseIdx[measurement['phases']]]), flush=True)
+                CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node+phaseIdx[measurement['phases']]]))
+
+            elif measurement['measurementType'] == 'PNV':
+                # save PNV measurements for later comparison
+                node = measurement['ConnectivityNode'].upper()
+                PNVmRIDs.append((measurement['mRID'], Node2idx[node+phaseIdx[measurement['phases']]]))
+
+    print('Found RatioTapChanger mRIDs: ' + str(RegMRIDs), flush=True)
+    print('Found ConductingEquipment mRIDs: ' + str(CondMRIDs), flush=True)
+
+    # fourth, verify tap ratios are all 0 and then set Sinj values for the
+    # conducting equipment mRIDs by listening to simulation output
+
+    # start with Sinj as zero vector and we will come back to this later
     Sinj = np.zeros((N), dtype=complex)
     Sinj[src_idxs] = complex(0.0,1.0)
-    #Sinj[0] = complex(100.0, 50.0) # Shiva special
-    #Sinj[38] = complex(110.0, 90.0) # Shiva special
-    #Sinj[39] = complex(160.0, 110.0) # Shiva special
-    #Sinj[40] = complex(110.0, 90.0) # Shiva special
-    #print('\nSinj:')
+    print('\nInitial Sinj:')
+    print(Sinj)
+
+    PNVmag = np.zeros((N), dtype=float)
+
+    # subscribe to simulation output so we can start checking tap positions
+    # and then setting Sinj
+    simCheckRap = SimCheckWrapper(Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs)
+    conn_id = gapps.subscribe(simulation_output_topic(simulation_id), simCheckRap)
+
+    while simCheckRap.keepLooping():
+        #print('Sleeping....', flush=True)
+        time.sleep(0.1)
+
+    gapps.unsubscribe(conn_id)
+
+    print('\nFinal Sinj:')
     #print(Sinj)
+    for key,value in Node2idx.items():
+        print(key + ': ' + str(Sinj[value]))
 
     vsrc = np.zeros((3), dtype=complex)
     vsrc = CandidateVnomVec[src_idxs]
@@ -276,7 +510,9 @@ def start(log_file, feeder_mrid, model_api_topic):
     #print('\nZaug:')
     #print(Zaug)
 
+    tolerance = 0.01
     Nfpi = 10
+    Nfpi = 15
     Isrc_vec = np.zeros((N), dtype=complex)
     Vfpi = np.zeros((N,Nfpi), dtype=complex)
 
@@ -288,7 +524,7 @@ def start(log_file, feeder_mrid, model_api_topic):
     k = 1
     maxdiff = 1.0
 
-    while k<Nfpi and maxdiff>0.001:
+    while k<Nfpi and maxdiff>tolerance:
         Iload_tot = np.conj(Sinj / Vfpi[:,k-1])
         Iload_z = -Yinj_nom * Vfpi[:,k-1]
         Iload_comp = Iload_tot - Iload_z
@@ -305,16 +541,38 @@ def start(log_file, feeder_mrid, model_api_topic):
         Vfpi[:,k] = np.matmul(Zaug, Icomp)
         #print("\nVfpi:")
         #print(Vfpi)
+        #print(Vfpi[:,k])
+
+        maxlist = abs(abs(Vfpi[:,k]) - abs(Vfpi[:,k-1]))
+        print("\nmaxlist:")
+        for i in range(41):
+          print(str(i) + ": " + str(maxlist[i]))
 
         maxdiff = max(abs(abs(Vfpi[:,k]) - abs(Vfpi[:,k-1])))
         print("\nk: " + str(k) + ", maxdiff: " + str(maxdiff))
         k += 1
 
+    if k == Nfpi:
+        print("\nDid not converge with k: " + str(k))
+        return
+
     # set the final Vpfi index
     k -= 1
     print("\nconverged k: " + str(k))
+    print("\nVfpi:")
+    for key, value in Node2idx.items():
+        rho, phi = cart2pol(Vfpi[value,k])
+        print(key + ': rho: ' + str(rho) + ', phi: ' + str(math.degrees(phi)))
+        print('index: ' + str(value) + ', sim mag: ' + str(PNVmag[value]))
 
-    # start here
+    print("\nVfpi rho to sim magnitude CSV:")
+    for key, value in Node2idx.items():
+        mag = PNVmag[value]
+        if mag != 0.0:
+            rho, phi = cart2pol(Vfpi[value,k])
+            print(str(value) + ',' + key + ',' + str(rho) + ',' + str(mag))
+
+    return
 
 
 def _main():
@@ -326,15 +584,17 @@ def _main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", help="Simulation Request")
+    parser.add_argument("--simid", help="Simulation ID")
 
     opts = parser.parse_args()
     sim_request = json.loads(opts.request.replace("\'",""))
     feeder_mrid = sim_request["power_system_config"]["Line_name"]
+    simulation_id = opts.simid
 
     model_api_topic = "goss.gridappsd.process.request.data.powergridmodel"
     log_file = open('ysystem_validator.log', 'w')
 
-    start(log_file, feeder_mrid, model_api_topic)
+    start(log_file, feeder_mrid, model_api_topic, simulation_id)
 
 
 if __name__ == "__main__":
