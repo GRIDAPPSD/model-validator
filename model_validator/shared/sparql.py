@@ -247,7 +247,6 @@ class SPARQLManager:
         ORDER by ?name
         """% self.feeder_mrid
         results = self.gad.query_data(LOAD_QUERY)
-        print(results)
         bindings = results['data']['results']['bindings']
         return bindings
 
