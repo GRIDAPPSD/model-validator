@@ -401,12 +401,13 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
             elif measurement['measurementType']=='VA' and (measurement['ConductingEquipment_type'] in condTypes):
                 node = measurement['ConnectivityNode'].upper()
-                print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[measurement['ConnectivityNode']+phaseIdx[measurement['phases']]]) + ') for node: ' + measurement['ConnectivityNode']+phaseIdx[measurement['phases']], flush=True)
+                print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node+phaseIdx[measurement['phases']]]) + ') for node: ' + node+phaseIdx[measurement['phases']], flush=True)
                 CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node+phaseIdx[measurement['phases']]]))
 
             elif measurement['measurementType'] == 'PNV':
                 # save PNV measurements for later comparison
                 node = measurement['ConnectivityNode'].upper()
+                print('Appending PNVmRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node+phaseIdx[measurement['phases']]]) + ') for node: ' + node+phaseIdx[measurement['phases']], flush=True)
                 PNVmRIDs.append((measurement['mRID'], Node2idx[node+phaseIdx[measurement['phases']]]))
 
     print('Found RatioTapChanger mRIDs: ' + str(RegMRIDs), flush=True)
