@@ -117,43 +117,6 @@ class SimSetWrapper(object):
             self.keepLoopingFlag = False
 
 
-class SimHackWrapper(object):
-    def __init__(self, gapps, simulation_id, Cids):
-        self.gapps = gapps
-        self.simulation_id = simulation_id
-        self.Cids = Cids
-        self.cid_idx = 0
-        self.keepLoopingFlag = True
-        self.publish_to_topic = simulation_input_topic(simulation_id)
-
-
-    def keepLooping(self):
-        return self.keepLoopingFlag
-
-
-    def on_message(self, header, message):
-        # TODO workaround for broken unsubscribe method
-        if not self.keepLoopingFlag:
-            return
-
-        msgdict = message['message']
-        ts = msgdict['timestamp']
-        print('simulation timestamp: ' + str(ts), flush=True)
-
-        cid = self.Cids[self.cid_idx]
-        #print('cid: ' + cid, flush=True)
-        cap_diff = DifferenceBuilder(self.simulation_id)
-        cap_diff.add_difference(cid, 'ShuntCompensator.sections', 0, 1)
-        msg = cap_diff.get_message()
-        print(msg)
-        self.gapps.send(self.publish_to_topic, json.dumps(msg))
-        cap_diff.clear()
-
-        self.cid_idx += 1
-        if self.cid_idx == len(self.Cids):
-            self.keepLoopingFlag = False
-
-
 class SimCheckWrapper(object):
     def __init__(self, Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs):
         self.Sinj = Sinj
@@ -415,19 +378,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     gapps.unsubscribe(conn_id)
 
-    # HACK START
-    Cids = sparql_mgr.capacitor_ids_query()
-    print('\nCapacitor IDs: ' + str(Cids))
-
-    simHackRap = SimHackWrapper(gapps, simulation_id, Cids)
-    conn_id = gapps.subscribe(simulation_output_topic(simulation_id), simHackRap)
-    while simHackRap.keepLooping():
-        #print('Sleeping....', flush=True)
-        time.sleep(0.1)
-
-    gapps.unsubscribe(conn_id)
-    # HACK END
-
     # third, verify all tap positions are 0
     config_api_topic = 'goss.gridappsd.process.request.config'
     message = {
@@ -451,7 +401,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
             elif measurement['measurementType']=='VA' and (measurement['ConductingEquipment_type'] in condTypes):
                 node = measurement['ConnectivityNode'].upper()
-                #print('Appending CondMRID tuple:: ' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[measurement['ConnectivityNode']+phaseIdx[measurement['phases']]]), flush=True)
+                print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[measurement['ConnectivityNode']+phaseIdx[measurement['phases']]]) + ') for node: ' + measurement['ConnectivityNode']+phaseIdx[measurement['phases']], flush=True)
                 CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node+phaseIdx[measurement['phases']]]))
 
             elif measurement['measurementType'] == 'PNV':
@@ -571,6 +521,22 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         if mag != 0.0:
             rho, phi = cart2pol(Vfpi[value,k])
             print(str(value) + ',' + key + ',' + str(rho) + ',' + str(mag))
+
+    bindings = sparql_mgr.query_energyconsumer_lf()
+    #print(bindings)
+
+    Bus = {}
+    Conn = {}
+    Phases = {}
+
+    print("\nDelta connected load EnergyConsumer query:")
+    for obj in bindings:
+        name = obj['name']['value'].upper()
+        Bus[name] = obj['bus']['value'].upper()
+        Conn[name] = obj['conn']['value']
+        Phases[name] = obj['phases']['value']
+        print('name: ' + name + ', bus: ' + Bus[name] + ', conn: ' + Conn[name] + ', phases: ' + Phases[name])
+
 
     return
 
