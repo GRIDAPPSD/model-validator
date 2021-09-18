@@ -208,6 +208,49 @@ class SPARQLManager:
         output = pd.DataFrame(list_of_dicts)
         return output
 
+    def query_energyconsumer_lf(self):
+        """Get information on loads in the feeder."""
+        # Perform the query.
+        LOAD_QUERY = """
+        PREFIX r:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX c:  <http://iec.ch/TC57/CIM100#>
+        SELECT ?name ?bus ?basev ?p ?q ?conn ?cnt ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe ?fdrid (group_concat(distinct ?phs;separator="\\n") as ?phases) WHERE {
+        ?s r:type c:EnergyConsumer.
+        VALUES ?fdrid {"%s"}
+        ?s c:Equipment.EquipmentContainer ?fdr.
+        ?fdr c:IdentifiedObject.mRID ?fdrid.
+        ?s c:IdentifiedObject.name ?name.
+        ?s c:ConductingEquipment.BaseVoltage ?bv.
+        ?bv c:BaseVoltage.nominalVoltage ?basev.
+        ?s c:EnergyConsumer.customerCount ?cnt.
+        ?s c:EnergyConsumer.p ?p.
+        ?s c:EnergyConsumer.q ?q.
+        ?s c:EnergyConsumer.phaseConnection ?connraw.
+        bind(strafter(str(?connraw),"PhaseShuntConnectionKind.") as ?conn)
+        ?s c:EnergyConsumer.LoadResponse ?lr.
+        ?lr c:LoadResponseCharacteristic.pConstantImpedance ?pz.
+        ?lr c:LoadResponseCharacteristic.qConstantImpedance ?qz.
+        ?lr c:LoadResponseCharacteristic.pConstantCurrent ?pi.
+        ?lr c:LoadResponseCharacteristic.qConstantCurrent ?qi.
+        ?lr c:LoadResponseCharacteristic.pConstantPower ?pp.
+        ?lr c:LoadResponseCharacteristic.qConstantPower ?qp.
+        ?lr c:LoadResponseCharacteristic.pVoltageExponent ?pe.
+        ?lr c:LoadResponseCharacteristic.qVoltageExponent ?qe.
+        OPTIONAL {?ecp c:EnergyConsumerPhase.EnergyConsumer ?s.
+        ?ecp c:EnergyConsumerPhase.phase ?phsraw.
+        bind(strafter(str(?phsraw),"SinglePhaseKind.") as ?phs) }
+        ?t c:Terminal.ConductingEquipment ?s.
+        ?t c:Terminal.ConnectivityNode ?cn.
+        ?cn c:IdentifiedObject.name ?bus
+        }
+        GROUP BY ?name ?bus ?basev ?p ?q ?cnt ?conn ?pz ?qz ?pi ?qi ?pp ?qp ?pe ?qe ?fdrid
+        ORDER by ?name
+        """% self.feeder_mrid
+        results = self.gad.query_data(LOAD_QUERY)
+        print(results)
+        bindings = results['data']['results']['bindings']
+        return bindings
+
     def acline_measurements(self, logfile):
         message = {
             "modelId": self.feeder_mrid,
