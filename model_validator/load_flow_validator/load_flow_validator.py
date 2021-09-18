@@ -391,6 +391,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     RegMRIDs = []
     CondMRIDs = []
     PNVmRIDs = []
+    PNVdict = {}
     condTypes = set(['EnergyConsumer', 'LinearShuntCompensator', 'PowerElectronicsConnection', 'SynchronousMachine'])
     phaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
 
@@ -405,14 +406,16 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node+phaseIdx[measurement['phases']]]))
 
             elif measurement['measurementType'] == 'PNV':
-            #elif measurement['measurementType']=='PNV' and measurement['ConductingEquipment_type']=='EnergyConsumer':
                 # save PNV measurements in Andy's mixing bowl for later
                 node = measurement['ConnectivityNode'].upper()
                 print('Appending PNVmRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node+phaseIdx[measurement['phases']]]) + ') for node: ' + node+phaseIdx[measurement['phases']], flush=True)
                 PNVmRIDs.append((measurement['mRID'], Node2idx[node+phaseIdx[measurement['phases']]]))
+                # Shiva's PNV dictionary to be used next
+                PNVdict[node+phaseIdx[measurement['phases']]] = measurement['mRID']
 
     print('Found RatioTapChanger mRIDs: ' + str(RegMRIDs), flush=True)
     print('Found ConductingEquipment mRIDs: ' + str(CondMRIDs), flush=True)
+    print('Found PNV dictionary: ' + str(PNVdict), flush=True)
 
     # fourth, verify tap ratios are all 0 and then set Sinj values for the
     # conducting equipment mRIDs by listening to simulation output
