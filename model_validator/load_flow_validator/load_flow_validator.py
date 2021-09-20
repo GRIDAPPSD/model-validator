@@ -118,12 +118,13 @@ class SimSetWrapper(object):
 
 
 class SimCheckWrapper(object):
-    def __init__(self, Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs):
+    def __init__(self, Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs, PNVdict):
         self.Sinj = Sinj
         self.PNVmag = PNVmag
         self.RegMRIDs = RegMRIDs
         self.CondMRIDs = CondMRIDs
         self.PNVmRIDs = PNVmRIDs
+        self.PNVdict = PNVdict
         self.keepLoopingFlag = True
 
 
@@ -155,16 +156,32 @@ class SimCheckWrapper(object):
                 break
 
         if allZeroFlag:
-            for mrid, condType, idx in self.CondMRIDs:
+            for mrid, condType, idx1, idx2 in self.CondMRIDs:
                 #if idx==27 or idx==29 or idx==33 or idx==34:
                 #    print('This is one of the multiple Sinj conducting equipment types for idx: ' + str(idx) + ', condType: ' + condType, flush=True)
                 #if self.Sinj[idx] != 0j:
                 #    print('This is the second contributor to Sinj for idx: ' + str(idx) + ', condType: ' + condType, flush=True)
                 meas = measurements[mrid]
                 if condType == 'EnergyConsumer':
-                    self.Sinj[idx] += -1.0*pol2cart(meas['magnitude'], math.radians(meas['angle']))
+                    if idx2 == None:
+                        self.Sinj[idx1] += -1.0*pol2cart(meas['magnitude'], math.radians(meas['angle']))
+
+                    elif idx1 in self.PNVdict and idx2 in self.PNVdict:
+                        measv1 = measurements[self.PNVdict[idx1]]
+                        v1 = pol2cart(measv1['magnitude'], math.radians(measv1['angle']))
+                        measv2 = measurements[self.PNVdict[idx2]]
+                        v2 = pol2cart(measv2['magnitude'], math.radians(measv2['angle']))
+                        S12 = pol2cart(meas['magnitude'], math.radians(meas['angle']))
+                        I12 = np.conj(S12/(v1-v2))
+                        self.Sinj[idx1] += -v1*np.conj(I12)
+                        self.Sinj[idx2] += v2*np.conj(I12)
+
+                    else:
+                        print('*** WARNING: required voltage measurements for computing nodal injection for delta load not available!')
+                        sys.exit(0)
+
                 else:
-                    self.Sinj[idx] += pol2cart(meas['magnitude'], math.radians(meas['angle']))
+                    self.Sinj[idx1] += pol2cart(meas['magnitude'], math.radians(meas['angle']))
 
             for mrid, idx in self.PNVmRIDs:
                 meas = measurements[mrid]
@@ -239,15 +256,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     #switch_count = count - line_count - xfmr_count
     #print('Switching_equipment # entries: ' + str(switch_count) + '\n', flush=True)
     #print('Switching_equipment # entries: ' + str(switch_count) + '\n', file=logfile)
-
-    # HACK START
-    # Shiva Special Start
-    Ysys['675.1']['675.1'] += complex(0.0, 0.01155)
-    Ysys['675.2']['675.2'] += complex(0.0, 0.01155)
-    Ysys['675.3']['675.3'] += complex(0.0, 0.01155)
-    Ysys['611.3']['611.3'] += complex(0.0, 0.01736)
-    # Shiva Special END
-    # HACK END
 
     #print('\n*** Full Ysys:\n')
     #for bus1 in Ysys:
@@ -378,6 +386,28 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
 
     gapps.unsubscribe(conn_id)
 
+    bindings = sparql_mgr.query_energyconsumer_lf()
+    #print(bindings)
+
+    phaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
+    DeltaList = []
+    #print("\nDelta connected load EnergyConsumer query:")
+    for obj in bindings:
+        #name = obj['name']['value'].upper()
+        bus = obj['bus']['value'].upper()
+        conn = obj['conn']['value']
+        phases = obj['phases']['value']
+        #print('bus: ' + bus + ', conn: ' + conn + ', phases: ' + phases)
+        if conn == 'D':
+           if phases == '':
+               DeltaList.append(bus+'.1')
+               DeltaList.append(bus+'.2')
+               DeltaList.append(bus+'.3')
+           else:
+               DeltaList.append(bus+phaseIdx[phases])
+
+    PNVmag = np.zeros((N), dtype=float)
+
     # third, verify all tap positions are 0
     config_api_topic = 'goss.gridappsd.process.request.config'
     message = {
@@ -393,7 +423,7 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     PNVmRIDs = []
     PNVdict = {}
     condTypes = set(['EnergyConsumer', 'LinearShuntCompensator', 'PowerElectronicsConnection', 'SynchronousMachine'])
-    phaseIdx = {'A': '.1', 'B': '.2', 'C': '.3', 's1': '.1', 's2': '.2'}
+    phaseIdx2 = {'A': '.2', 'B': '.3', 'C': '.1'}
 
     for feeder in cim_dict['data']['feeders']:
         for measurement in feeder['measurements']:
@@ -401,21 +431,26 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
                 RegMRIDs.append(measurement['mRID'])
 
             elif measurement['measurementType']=='VA' and (measurement['ConductingEquipment_type'] in condTypes):
-                node = measurement['ConnectivityNode'].upper()
-                print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node+phaseIdx[measurement['phases']]]) + ') for node: ' + node+phaseIdx[measurement['phases']], flush=True)
-                CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node+phaseIdx[measurement['phases']]]))
+                node = measurement['ConnectivityNode'].upper() + phaseIdx[measurement['phases']]
+                if node in DeltaList:
+                    node2 = measurement['ConnectivityNode'].upper() + phaseIdx2[measurement['phases']]
+                    #print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node]) + ', ' + str(Node2idx[node2]) + ') for node: ' + node, flush=True)
+                    CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node], Node2idx[node2]))
+                else:
+                    #print('Appending CondMRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node]) + ', None) for node: ' + node, flush=True)
+                    CondMRIDs.append((measurement['mRID'], measurement['ConductingEquipment_type'], Node2idx[node], None))
 
             elif measurement['measurementType'] == 'PNV':
                 # save PNV measurements in Andy's mixing bowl for later
-                node = measurement['ConnectivityNode'].upper()
-                print('Appending PNVmRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node+phaseIdx[measurement['phases']]]) + ') for node: ' + node+phaseIdx[measurement['phases']], flush=True)
-                PNVmRIDs.append((measurement['mRID'], Node2idx[node+phaseIdx[measurement['phases']]]))
-                # Shiva's PNV dictionary to be used next
-                PNVdict[node+phaseIdx[measurement['phases']]] = measurement['mRID']
+                node = measurement['ConnectivityNode'].upper() + phaseIdx[measurement['phases']]
+                #print('Appending PNVmRID tuple: (' + measurement['mRID'] + ', ' + measurement['ConductingEquipment_type'] + ', ' + str(Node2idx[node]) + ') for node: ' + node, flush=True)
+                PNVmRIDs.append((measurement['mRID'], Node2idx[node]))
+                PNVdict[Node2idx[node]] = measurement['mRID']
 
     print('Found RatioTapChanger mRIDs: ' + str(RegMRIDs), flush=True)
     print('Found ConductingEquipment mRIDs: ' + str(CondMRIDs), flush=True)
     print('Found PNV dictionary: ' + str(PNVdict), flush=True)
+    print('PNV dictionary size: ' + str(len(PNVdict)), flush=True)
 
     # fourth, verify tap ratios are all 0 and then set Sinj values for the
     # conducting equipment mRIDs by listening to simulation output
@@ -426,11 +461,9 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
     print('\nInitial Sinj:')
     print(Sinj)
 
-    PNVmag = np.zeros((N), dtype=float)
-
     # subscribe to simulation output so we can start checking tap positions
     # and then setting Sinj
-    simCheckRap = SimCheckWrapper(Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs)
+    simCheckRap = SimCheckWrapper(Sinj, PNVmag, RegMRIDs, CondMRIDs, PNVmRIDs, PNVdict)
     conn_id = gapps.subscribe(simulation_output_topic(simulation_id), simCheckRap)
 
     while simCheckRap.keepLooping():
@@ -526,22 +559,6 @@ def start(log_file, feeder_mrid, model_api_topic, simulation_id):
         if mag != 0.0:
             rho, phi = cart2pol(Vfpi[value,k])
             print(str(value) + ',' + key + ',' + str(rho) + ',' + str(mag))
-
-    bindings = sparql_mgr.query_energyconsumer_lf()
-    #print(bindings)
-
-    Bus = {}
-    Conn = {}
-    Phases = {}
-
-    print("\nDelta connected load EnergyConsumer query:")
-    for obj in bindings:
-        name = obj['name']['value'].upper()
-        Bus[name] = obj['bus']['value'].upper()
-        Conn[name] = obj['conn']['value']
-        Phases[name] = obj['phases']['value']
-        print('name: ' + name + ', bus: ' + Bus[name] + ', conn: ' + Conn[name] + ', phases: ' + Phases[name])
-
 
     return
 
