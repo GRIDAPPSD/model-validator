@@ -228,7 +228,7 @@ def check_topology(feeder_mrid, model_api_topic, simulation_id):
     
     # Get graph connectivity    
     undirected_graph = sparql_mgr.graph_query()
-    sourcebus, = sparql_mgr.sourcebus_query()
+    sourcebus, sourcevang = sparql_mgr.sourcebus_query()
     sourcebus = sourcebus.upper()
     openSW_CIM = sparql_mgr.opensw()
     print('MICROSERVICES conectivity information obtained', flush=True)
