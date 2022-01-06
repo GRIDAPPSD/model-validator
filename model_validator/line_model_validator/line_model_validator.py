@@ -73,9 +73,11 @@ def diffColorRealIdx(absDiff, perDiff):
     global greenCountReal, yellowCountReal, redCountReal
 
     if absDiff<1e-3 and perDiff<0.01:
+    #if absDiff<1e-0:
         greenCountReal += 1
         return 0
     elif absDiff>=1e-2 or perDiff>=0.1:
+    #elif absDiff>=1e+1:
         redCountReal += 1
         return 2
     else:
@@ -87,9 +89,11 @@ def diffColorImagIdx(absDiff, perDiff):
     global greenCountImag, yellowCountImag, redCountImag
 
     if absDiff<1e-3 and perDiff<0.01:
+    #if absDiff<1e-0:
         greenCountImag += 1
         return 0
     elif absDiff>=1e-2 or perDiff>=0.1:
+    #elif absDiff>=1e+1:
         redCountImag += 1
         return 2
     else:
