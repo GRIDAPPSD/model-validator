@@ -57,11 +57,11 @@ if [[ ! -z "$SIMID" ]]; then
         fi
     fi
 
-#    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
-    ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
+    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
+#    ./supervisor.py "$SIMREQ" $SIMID 2>&1 | tee validator.log
 else
-#    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
-    ./supervisor.py "$SIMREQ" 2>&1 | tee validator.log
+    sleep 0  # uncomment this if commenting out the line below to avoid syntax error
+#    ./supervisor.py "$SIMREQ" 2>&1 | tee validator.log
 fi
 
 
@@ -73,7 +73,7 @@ fi
 
 # Ybus based validation modules
 # invoke line_model_validator with "./run-validator 9500 nosim"
-#python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
+python3 line_model_validator/line_model_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 # invoke power_transformer_validator with "./run-validator 9500 nosim"
 #python3 power_transformer_validator/power_transformer_validator.py --request "$SIMREQ" 2>&1 | tee validator.log
 # invoke switching_equipment_validator with "./run-validator 9500 nosim"
