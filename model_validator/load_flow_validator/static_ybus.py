@@ -52,55 +52,131 @@ import importlib
 from gridappsd import GridAPPSD
 
 
+def fillYbusUnique(bus1, bus2, Ybus):
+    if bus1 not in Ybus:
+        Ybus[bus1] = {}
+
+    if bus2 in Ybus[bus1]:
+        print('    *** WARNING: Unexpected existing value found for Ybus[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', flush=True)
+        print('    *** WARNING: Unexpected existing value found for Ybus[' + bus1 + '][' + bus2 + '] when filling switching equipment value\n', file=logfile)
+
+    # if needed, here's how to find the two immediate calling functions
+    #if bus2=='X2673305B.1' and bus1=='X2673305B.2':
+    #    print('*** fillYbusUnique bus1: ' + bus1 + ', bus2: ' + bus2 + ', caller: ' + str(inspect.stack()[1].function) + ', ' + str(inspect.stack()[2].function), flush=True)
+
+    Ybus[bus1][bus2] = complex(-500.0, 500.0)
+
+
+def fillYbusAdd(bus1, bus2, Ybus):
+    if bus1 not in Ybus:
+        Ybus[bus1] = {}
+
+    if bus2 in Ybus[bus1]:
+        Ybus[bus1][bus2] += complex(500.0, -500.0)
+    else:
+        Ybus[bus1][bus2] = complex(500.0, -500.0)
+
+
+def fillYbusNoSwap(bus1, bus2, is_Open, Ybus):
+    #print('fillYbusNoSwap bus1: ' + bus1 + ', bus2: ' + bus2 + ', is_Open: ' + str(is_Open), flush=True)
+    if not is_Open:
+        fillYbusUnique(bus2, bus1, Ybus)
+        fillYbusAdd(bus1, bus1, Ybus)
+        fillYbusAdd(bus2, bus2, Ybus)
+
+def fill_Ybus_SwitchingEquipment_switches(sparql_mgr, Ybus):
+    bindings = sparql_mgr.SwitchingEquipment_switch_names()
+    #print('SWITCHING_EQUIPMENT_FILL_YBUS switch_names query results:', flush=True)
+    #print(bindings, flush=True)
+
+    if len(bindings) == 0:
+        return
+
+    # map transformer query phase values to nodelist indexes
+    ybusPhaseIdx = {'A': '.1', 'B': '.2', 'C': '.3'}
+
+    for obj in bindings:
+        sw_name = obj['sw_name']['value']
+        #base_V = int(obj['base_V']['value'])
+        is_Open = obj['is_Open']['value'].upper() == 'TRUE'
+        #rated_Current = int(obj['rated_Current']['value'])
+        #breaking_Capacity = int(obj['breaking_Capacity']['value'])
+        #sw_ph_status = obj['sw_ph_status']['value']
+        bus1 = obj['bus1']['value'].upper()
+        bus2 = obj['bus2']['value'].upper()
+        phases_side1 = obj['phases_side1']['value']
+        #phases_side2 = obj['phases_side2']['value']
+        #print('sw_name: ' + sw_name + ', is_Open: ' + str(is_Open) + ', bus1: ' + bus1 + ', bus2: ' + bus2 + ', phases_side1: (' + phases_side1 + ')' + ', phases_side2: (' + phases_side2 + ')')
+
+        if phases_side1 == '':
+            # 3-phase switch
+            #print('3-phase switch found bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
+            fillYbusNoSwap(bus1+'.1', bus2+'.1', is_Open, Ybus)
+            fillYbusNoSwap(bus1+'.2', bus2+'.2', is_Open, Ybus)
+            fillYbusNoSwap(bus1+'.3', bus2+'.3', is_Open, Ybus)
+
+        else:
+            # 1- or 2-phase switch
+            switchColorIdx = 0
+            for phase in phases_side1:
+                #print('1/2-phase switch found phase: ' + phase + ', bus1: ' + bus1 + ', bus2: ' + bus2, flush=True)
+                if phase in ybusPhaseIdx:
+                    fillYbusNoSwap(bus1+ybusPhaseIdx[phase], bus2+ybusPhaseIdx[phase], is_Open, Ybus)
+
+
 def start(log_file, feeder_mrid, model_api_topic):
     global logfile
     logfile = log_file
 
+    SPARQLManager = getattr(importlib.import_module('shared.sparql'), 'SPARQLManager')
+
+    gapps = GridAPPSD()
+
+    sparql_mgr = SPARQLManager(gapps, feeder_mrid, model_api_topic)
+
     print('\nStarting to build static Ybus...', flush=True)
 
-    Ysys = {}
+    Ybus = {}
     Unsupported = {}
 
     mod_import = importlib.import_module('line_model_validator.line_model_validator')
     start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
+    start_func(log_file, feeder_mrid, model_api_topic, False, Ybus, Unsupported)
     #print('line_model_validator static Ybus...')
-    #print(Ysys)
+    #print(Ybus)
     line_count = 0
-    for bus1 in Ysys:
-        line_count += len(Ysys[bus1])
+    for bus1 in Ybus:
+        line_count += len(Ybus[bus1])
     print('\nLine_model # entries: ' + str(line_count), flush=True)
 
     mod_import = importlib.import_module('power_transformer_validator.power_transformer_validator')
     start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
+    start_func(log_file, feeder_mrid, model_api_topic, False, Ybus, Unsupported)
     #print('power_transformer_validator static Ybus...')
-    #print(Ysys)
+    #print(Ybus)
     count = 0
-    for bus1 in Ysys:
-        count += len(Ysys[bus1])
+    for bus1 in Ybus:
+        count += len(Ybus[bus1])
     xfmr_count = count - line_count
     print('\nPower_transformer # entries: ' + str(xfmr_count), flush=True)
 
-    mod_import = importlib.import_module('switching_equipment_validator.switching_equipment_validator')
-    start_func = getattr(mod_import, 'start')
-    start_func(log_file, feeder_mrid, model_api_topic, False, Ysys, Unsupported)
+    fill_Ybus_SwitchingEquipment_switches(sparql_mgr, Ybus)
     #print('switching_equipment_validator (final) static Ybus...')
-    #print(Ysys)
+    #print(Ybus)
     count = 0
-    for bus1 in Ysys:
-        count += len(Ysys[bus1])
+    for bus1 in Ybus:
+        count += len(Ybus[bus1])
     switch_count = count - line_count - xfmr_count
     print('\nSwitching_equipment # entries: ' + str(switch_count), flush=True)
 
     print('\nFull static Ybus:')
-    for bus1 in Ysys:
-        for bus2 in Ysys[bus1]:
-            print(bus1 + ',' + bus2 + ',' + str(Ysys[bus1][bus2].real) + ',' + str(Ysys[bus1][bus2].imag))
+    for bus1 in Ybus:
+        for bus2 in Ybus[bus1]:
+            print(bus1 + ',' + bus2 + ',' + str(Ybus[bus1][bus2].real) + ',' + str(Ybus[bus1][bus2].imag))
 
     ysysCount = 0
-    for bus1 in Ysys:
-        ysysCount += len(Ysys[bus1])
+    for bus1 in Ybus:
+        ysysCount += len(Ybus[bus1])
     print('\nTotal static Ybus # entries: ' + str(ysysCount) + '\n', flush=True)
 
 
