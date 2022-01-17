@@ -348,11 +348,16 @@ def validate_ShuntElement_elements(sparql_mgr, Ybus, Yexp, CNV):
                     num_elem += 1
                     ratedU_sq = RatedU_tank[xfmr][2]*RatedU_tank[xfmr][2]
                     zBaseS = ratedU_sq/RatedS_tank[xfmr][2]
-                    sum_shunt_real += (Noloadloss[xfmr]*1000.0)/ratedU_sq
                     #print('Adding tank transformer real contribution: ' + str((Noloadloss[xfmr]*1000.0)/ratedU_sq))
-                    sum_shunt_imag += -I_exciting[xfmr]/(100.0*zBaseS)
                     #print('Adding tank transformer imag contribution: ' + str(-I_exciting[xfmr]/(100.0*zBaseS)))
-
+                    G_c = (Noloadloss[xfmr]*1000.0)/ratedU_sq
+                    Ym = I_exciting[xfmr]/(100.0 * zBaseS)
+                    try:
+                        B_m = math.sqrt(Ym ** 2 - G_c ** 2)
+                    except:
+                        B_m = Ym
+                    sum_shunt_imag += -B_m
+                    sum_shunt_real += G_c
                 if Enum_tank[xfmr][bus] == 3:
                     # this is the other split phase node to check
                     skipNode2 = bus + '.2'
