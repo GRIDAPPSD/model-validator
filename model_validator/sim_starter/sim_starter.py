@@ -86,7 +86,7 @@ Optional command line arguments:
         print('SIM_STARTER initializing simulation from: ' + sim_config_file, file=sys.stderr, flush=True)
         sim = Simulation(gapps, sim_config)
         print('SIM_STARTER about to start simulation...', file=sys.stderr, flush=True)
-        sim.start_simulation()
+        sim.start_simulation(timeout=90)
         sim_id = sim.simulation_id
         print('SIM_STARTER simulation started with id: ' + sim_id, file=sys.stderr, flush=True)
         print(sim_id, flush=True)
